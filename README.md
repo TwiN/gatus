@@ -84,6 +84,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Rocket.Chat alerts](#configuring-rocketchat-alerts)
     - [Configuring SendGrid alerts](#configuring-sendgrid-alerts)
     - [Configuring Signal alerts](#configuring-signal-alerts)
+    - [Configuring Signalgrid alerts](#configuring-signalgrid-alerts)
     - [Configuring SIGNL4 alerts](#configuring-signl4-alerts)
     - [Configuring Slack alerts](#configuring-slack-alerts)
     - [Configuring Splunk alerts](#configuring-splunk-alerts)
@@ -866,6 +867,7 @@ endpoints:
 | `alerting.rocketchat`      | Configuration for alerts of type `rocketchat`. <br />See [Configuring Rocket.Chat alerts](#configuring-rocketchat-alerts).              | `{}`    |
 | `alerting.sendgrid`        | Configuration for alerts of type `sendgrid`. <br />See [Configuring SendGrid alerts](#configuring-sendgrid-alerts).                     | `{}`    |
 | `alerting.signal`          | Configuration for alerts of type `signal`. <br />See [Configuring Signal alerts](#configuring-signal-alerts).                           | `{}`    |
+| `alerting.signalgrid`      | Configuration for alerts of type `signalgrid`. <br />See [Configuring Signalgrid alerts](#configuring-signalgrid-alerts).               | `{}`    |
 | `alerting.signl4`          | Configuration for alerts of type `signl4`. <br />See [Configuring SIGNL4 alerts](#configuring-signl4-alerts).                           | `{}`    |
 | `alerting.slack`           | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                              | `{}`    |
 | `alerting.splunk`          | Configuration for alerts of type `splunk`. <br />See [Configuring Splunk alerts](#configuring-splunk-alerts).                           | `{}`    |
@@ -2088,6 +2090,39 @@ endpoints:
       - "[STATUS] == 200"
     alerts:
       - type: signal
+        send-on-resolved: true
+```
+
+
+#### Configuring Signalgrid alerts
+
+[Signalgrid](https://signalgrid.co/) is a push notification service for sending monitoring alerts to iOS and Android devices, including critical notifications that can bypass silent mode and Do Not Disturb when enabled.
+
+| Parameter                          | Description                                                                                                     | Default       |
+|:-----------------------------------|:----------------------------------------------------------------------------------------------------------------|:--------------|
+| `alerting.signalgrid`              | Configuration for alerts of type `signalgrid`                                                                  | `{}`          |
+| `alerting.signalgrid.client-key`   | Signalgrid client key                                                                                           | Required `""` |
+| `alerting.signalgrid.channel`      | Signalgrid channel token                                                                                        | Required `""` |
+| `alerting.signalgrid.critical`     | Whether triggered alerts should be sent as critical notifications                                               | `false`       |
+| `alerting.signalgrid.default-alert` | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)                      | N/A           |
+
+Triggered alerts are sent with Signalgrid type `CRIT`. Resolved alerts are sent with type `SUCCESS` and are never sent as critical notifications.
+
+```yaml
+alerting:
+  signalgrid:
+    client-key: "your-client-key"
+    channel: "your-channel-token"
+    critical: true
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: signalgrid
         send-on-resolved: true
 ```
 
