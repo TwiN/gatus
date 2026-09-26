@@ -7,12 +7,12 @@ import (
 	"github.com/TwiN/gatus/v5/config/suite"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // SuiteStatuses handles requests to retrieve all suite statuses
 func SuiteStatuses(cfg *config.Config) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		page, pageSize := extractPageAndPageSizeFromRequest(c, 100)
 		params := paging.NewSuiteStatusParams().WithPagination(page, pageSize)
 		suiteStatuses, err := store.Get().GetAllSuiteStatuses(params)
@@ -35,7 +35,7 @@ func SuiteStatuses(cfg *config.Config) fiber.Handler {
 
 // SuiteStatus handles requests to retrieve a single suite's status
 func SuiteStatus(cfg *config.Config) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		page, pageSize := extractPageAndPageSizeFromRequest(c, 100)
 		key := c.Params("key")
 		params := paging.NewSuiteStatusParams().WithPagination(page, pageSize)

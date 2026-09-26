@@ -2,7 +2,6 @@ package api
 
 import (
 	"io/fs"
-	"net/http"
 	"os"
 
 	"github.com/TwiN/gatus/v5/config"
@@ -11,13 +10,13 @@ import (
 	static "github.com/TwiN/gatus/v5/web"
 	"github.com/TwiN/health"
 	"github.com/TwiN/logr"
-	fiber "github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/adaptor"
-	"github.com/gofiber/fiber/v2/middleware/compress"
-	"github.com/gofiber/fiber/v2/middleware/cors"
-	fiberfs "github.com/gofiber/fiber/v2/middleware/filesystem"
-	"github.com/gofiber/fiber/v2/middleware/recover"
-	"github.com/gofiber/fiber/v2/middleware/redirect"
+	fiber "github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/adaptor"
+	"github.com/gofiber/fiber/v3/middleware/compress"
+	"github.com/gofiber/fiber/v3/middleware/cors"
+	"github.com/gofiber/fiber/v3/middleware/recover"
+	"github.com/gofiber/fiber/v3/middleware/redirect"
+	fiberfs "github.com/gofiber/fiber/v3/middleware/static"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
@@ -46,17 +45,16 @@ func (a *API) Router() *fiber.App {
 
 func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	app := fiber.New(fiber.Config{
-		ErrorHandler: func(c *fiber.Ctx, err error) error {
+		ErrorHandler: func(c fiber.Ctx, err error) error {
 			logr.Errorf("[api.ErrorHandler] %s", err.Error())
 			return fiber.DefaultErrorHandler(c, err)
 		},
 		ReadBufferSize: cfg.Web.ReadBufferSize,
-		Network:        fiber.NetworkTCP,
 		Immutable:      true, // If not enabled, will cause issues due to fiber's zero allocation. See #1268 and https://docs.gofiber.io/#zero-allocation
 	})
 	if os.Getenv("ENVIRONMENT") == "dev" {
 		app.Use(cors.New(cors.Config{
-			AllowOrigins:     "http://localhost:8081",
+			AllowOrigins:     []string{"http://localhost:8081"},
 			AllowCredentials: true,
 		}))
 	}
@@ -93,7 +91,7 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	app.Get("/suites/:key", SinglePageApplication(cfg.UI))
 	// Health endpoint
 	healthHandler := health.Handler().WithJSON(true)
-	app.Get("/health", func(c *fiber.Ctx) error {
+	app.Get("/health", func(c fiber.Ctx) error {
 		statusCode, body := healthHandler.GetResponseStatusCodeAndBody()
 		return c.Status(statusCode).Send(body)
 	})
@@ -110,9 +108,8 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	if err != nil {
 		panic(err)
 	}
-	app.Use("/", fiberfs.New(fiberfs.Config{
-		Root:   http.FS(staticFileSystem),
-		Index:  "index.html",
+	app.Use("/", fiberfs.New("", fiberfs.Config{
+		FS:     staticFileSystem,
 		Browse: true,
 	}))
 	//////////////////////

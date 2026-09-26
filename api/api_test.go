@@ -8,7 +8,7 @@ import (
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/ui"
 	"github.com/TwiN/gatus/v5/security"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func TestNew(t *testing.T) {

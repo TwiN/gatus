@@ -14,13 +14,13 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/logr"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 // EndpointStatuses handles requests to retrieve all EndpointStatus
 // Due to how intensive this operation can be on the storage, this function leverages a cache.
 func EndpointStatuses(cfg *config.Config) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
 		value, exists := cache.Get(fmt.Sprintf("endpoint-status-%d-%d", page, pageSize))
 		var data []byte
@@ -85,7 +85,7 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*end
 
 // EndpointStatus retrieves a single endpoint.Status by group and endpoint name
 func EndpointStatus(cfg *config.Config) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		page, pageSize := extractPageAndPageSizeFromRequest(c, cfg.Storage.MaximumNumberOfResults)
 		key, err := url.QueryUnescape(c.Params("key"))
 		if err != nil {
