@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/TwiN/gatus/v5/security"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func TestConfigHandler_ServeHTTP(t *testing.T) {

@@ -6,7 +6,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/security"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 type ConfigHandler struct {
@@ -14,7 +14,7 @@ type ConfigHandler struct {
 	config         *config.Config
 }
 
-func (handler ConfigHandler) GetConfig(c *fiber.Ctx) error {
+func (handler ConfigHandler) GetConfig(c fiber.Ctx) error {
 	hasOIDC := false
 	isAuthenticated := true // Default to true if no security config is set
 	if handler.securityConfig != nil {
