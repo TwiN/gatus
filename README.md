@@ -2587,7 +2587,12 @@ Furthermore, you may use the following placeholders in the body (`alerting.custo
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 - `[RESULT_ERRORS]` (resolved from the health evaluation of a given health check)
 - `[RESULT_CONDITIONS]` (condition results from the health evaluation of a given health check)
--
+
+If the `Content-Type` header in `alerting.custom.headers` is JSON (`application/json`, or a type ending in `+json`),
+the values of these placeholders are escaped as the content of a JSON string in the body, so a quote, a backslash or a
+newline in them (e.g. the response body that a failed `[BODY]` condition shows) cannot break the JSON document. Put the
+placeholder inside the quotes of a JSON string, like `"text": "[RESULT_CONDITIONS]"`.
+
 If you have an alert using the `custom` provider with `send-on-resolved` set to `true`, you can use the
 `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications.
 The aforementioned placeholder will be replaced by `TRIGGERED` or `RESOLVED` accordingly, though it can be modified
