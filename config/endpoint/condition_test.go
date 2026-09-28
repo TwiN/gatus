@@ -862,3 +862,22 @@ func TestConditionEvaluateWithMixedValidAndInvalidContext(t *testing.T) {
 		t.Errorf("Incorrect condition display\nExpected: %s\nActual:   %s", expectedDisplay, actualDisplay)
 	}
 }
+
+func TestFormatDuration(t *testing.T) {
+	scenarios := map[time.Duration]string{
+		0:                                      "0s",
+		15 * time.Second:                       "15s",
+		10 * time.Minute:                       "10m",
+		30 * time.Minute:                       "30m",
+		time.Hour:                              "1h",
+		time.Hour + 10*time.Minute:             "1h10m",
+		time.Hour + 15*time.Second:             "1h0m15s",
+		336 * time.Hour:                        "336h",
+		10*time.Minute + 1500*time.Millisecond: "10m1s",
+	}
+	for duration, expected := range scenarios {
+		if actual := formatDuration(duration); actual != expected {
+			t.Errorf("expected formatDuration(%s) to be %s, got %s", duration, expected, actual)
+		}
+	}
+}
