@@ -3,6 +3,7 @@ package endpoint
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strconv"
 	"testing"
 	"time"
@@ -860,6 +861,245 @@ func TestConditionEvaluateWithMixedValidAndInvalidContext(t *testing.T) {
 	expectedDisplay := "[RESPONSE_TIME] (100) < [CONTEXT].invalid_key (0)"
 	if actualDisplay != expectedDisplay {
 		t.Errorf("Incorrect condition display\nExpected: %s\nActual:   %s", expectedDisplay, actualDisplay)
+	}
+}
+
+func TestCondition_evaluateWithHeaderAndAge(t *testing.T) {
+	now := time.Now()
+	fresh := now.Add(-5 * time.Minute)
+	stale := now.Add(-2 * time.Hour)
+	headers := http.Header{
+		"Content-Type":  []string{"application/json"},
+		"Last-Modified": []string{fresh.UTC().Format(http.TimeFormat)},
+		"X-Stale":       []string{stale.UTC().Format(http.TimeFormat)},
+		"X-Garbage":     []string{"not-a-date"},
+		"X-Updated":     []string{fresh.UTC().Format("02/01/2006 15:04:05")},
+		"X-Updated-Old": []string{stale.UTC().Format("02/01/2006 15:04:05")},
+	}
+	scenarios := []struct {
+		Name            string
+		Condition       Condition
+		Result          *Result
+		ExpectedSuccess bool
+		ExpectedOutput  string
+	}{
+		{
+			Name:            "header",
+			Condition:       Condition("[HEADER].Content-Type == application/json"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[HEADER].Content-Type == application/json",
+		},
+		{
+			Name:            "header-case-insensitive",
+			Condition:       Condition("[header].content-type == application/json"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[header].content-type == application/json",
+		},
+		{
+			Name:            "header-failure",
+			Condition:       Condition("[HEADER].Content-Type == text/html"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[HEADER].Content-Type (application/json) == text/html",
+		},
+		{
+			Name:            "header-missing",
+			Condition:       Condition("[HEADER].X-Missing == value"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[HEADER].X-Missing (INVALID) == value",
+		},
+		{
+			Name:            "has-header",
+			Condition:       Condition("has([HEADER].Last-Modified) == true"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "has([HEADER].Last-Modified) == true",
+		},
+		{
+			Name:            "has-header-missing",
+			Condition:       Condition("has([HEADER].X-Missing) == false"),
+			Result:          &Result{},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "has([HEADER].X-Missing) == false",
+		},
+		{
+			Name:            "age-header-http-date",
+			Condition:       Condition("age([HEADER].Last-Modified) < 10m"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "age([HEADER].Last-Modified) < 10m",
+		},
+		{
+			Name:            "age-header-http-date-stale",
+			Condition:       Condition("age([HEADER].X-Stale) < 10m"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: false,
+		},
+		{
+			Name:            "age-header-http-date-greater-than",
+			Condition:       Condition("age([HEADER].X-Stale) > 1h"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "age([HEADER].X-Stale) > 1h",
+		},
+		{
+			Name:            "age-header-missing",
+			Condition:       Condition("age([HEADER].X-Missing) < 10m"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "age([HEADER].X-Missing) (INVALID) < 10m",
+		},
+		{
+			Name:            "age-header-missing-with-greater-than",
+			Condition:       Condition("age([HEADER].X-Missing) > 10m"),
+			Result:          &Result{},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "age([HEADER].X-Missing) (INVALID) > 10m",
+		},
+		{
+			Name:            "age-header-missing-with-less-than-or-equal",
+			Condition:       Condition("age([HEADER].X-Missing) <= 10m"),
+			Result:          &Result{},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "age([HEADER].X-Missing) (INVALID) <= 10m",
+		},
+		{
+			Name:            "age-header-missing-with-greater-than-or-equal",
+			Condition:       Condition("age([HEADER].X-Missing) >= 10m"),
+			Result:          &Result{},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "age([HEADER].X-Missing) (INVALID) >= 10m",
+		},
+		{
+			Name:            "age-on-right-side",
+			Condition:       Condition("10m > age([HEADER].Last-Modified)"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "10m > age([HEADER].Last-Modified)",
+		},
+		{
+			Name:            "age-on-right-side-missing",
+			Condition:       Condition("10m > age([HEADER].X-Missing)"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "10m > age([HEADER].X-Missing) (INVALID)",
+		},
+		{
+			Name:            "age-on-both-sides-with-one-missing",
+			Condition:       Condition("age([HEADER].Last-Modified) < age([HEADER].X-Missing)"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: false,
+		},
+		{
+			Name:            "age-header-unparseable",
+			Condition:       Condition("age([HEADER].X-Garbage) < 10m"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "age([HEADER].X-Garbage) (INVALID) < 10m",
+		},
+		{
+			Name:            "age-header-custom-layout",
+			Condition:       Condition("age([HEADER].X-Updated, 02/01/2006 15:04:05) < 10m"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "age([HEADER].X-Updated, 02/01/2006 15:04:05) < 10m",
+		},
+		{
+			Name:            "age-header-custom-layout-stale",
+			Condition:       Condition("age([HEADER].X-Updated-Old, 02/01/2006 15:04:05) < 10m"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: false,
+		},
+		{
+			Name:            "age-header-custom-layout-overrides-default-formats",
+			Condition:       Condition("age([HEADER].Last-Modified, 02/01/2006 15:04:05) < 10m"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "age([HEADER].Last-Modified, 02/01/2006 15:04:05) (INVALID) < 10m",
+		},
+		{
+			Name:            "age-header-custom-layout-missing",
+			Condition:       Condition("age([HEADER].X-Missing, 02/01/2006 15:04:05) < 10m"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "age([HEADER].X-Missing, 02/01/2006 15:04:05) (INVALID) < 10m",
+		},
+		{
+			Name:            "age-body-rfc3339",
+			Condition:       Condition("age([BODY].updated_at) < 10m"),
+			Result:          &Result{Body: []byte(`{"updated_at":"` + fresh.Format(time.RFC3339) + `"}`)},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "age([BODY].updated_at) < 10m",
+		},
+		{
+			Name:            "age-body-epoch-seconds",
+			Condition:       Condition("age([BODY].updated_at) < 10m"),
+			Result:          &Result{Body: []byte(`{"updated_at":` + strconv.FormatInt(fresh.Unix(), 10) + `}`)},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "age([BODY].updated_at) < 10m",
+		},
+		{
+			Name:            "age-body-epoch-milliseconds",
+			Condition:       Condition("age([BODY].updated_at) < 10m"),
+			Result:          &Result{Body: []byte(`{"updated_at":` + strconv.FormatInt(fresh.UnixMilli(), 10) + `}`)},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "age([BODY].updated_at) < 10m",
+		},
+		{
+			Name:            "age-body-epoch-stale",
+			Condition:       Condition("age([BODY].updated_at) < 10m"),
+			Result:          &Result{Body: []byte(`{"updated_at":` + strconv.FormatInt(stale.Unix(), 10) + `}`)},
+			ExpectedSuccess: false,
+		},
+		{
+			Name:            "age-body-custom-layout",
+			Condition:       Condition("age([BODY].updated_at, 2006-01-02 15:04:05) < 10m"),
+			Result:          &Result{Body: []byte(`{"updated_at":"` + fresh.UTC().Format("2006-01-02 15:04:05") + `"}`)},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "age([BODY].updated_at, 2006-01-02 15:04:05) < 10m",
+		},
+		{
+			Name:            "age-body-custom-layout-stale",
+			Condition:       Condition("age([BODY].updated_at, 2006-01-02 15:04:05) < 10m"),
+			Result:          &Result{Body: []byte(`{"updated_at":"` + stale.UTC().Format("2006-01-02 15:04:05") + `"}`)},
+			ExpectedSuccess: false,
+		},
+		{
+			Name:            "age-body-custom-layout-mismatch",
+			Condition:       Condition("age([BODY].updated_at, 2006-01-02) < 10m"),
+			Result:          &Result{Body: []byte(`{"updated_at":"` + fresh.Format(time.RFC3339) + `"}`)},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "age([BODY].updated_at, 2006-01-02) (INVALID) < 10m",
+		},
+		{
+			Name:            "age-body-missing",
+			Condition:       Condition("age([BODY].updated_at) < 10m"),
+			Result:          &Result{Body: []byte(`{}`)},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "age([BODY].updated_at) (INVALID) < 10m",
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			scenario.Condition.evaluate(scenario.Result, false, false, nil)
+			if scenario.Result.ConditionResults[0].Success != scenario.ExpectedSuccess {
+				t.Errorf("Condition '%s' should have been success=%v, got '%s'", scenario.Condition, scenario.ExpectedSuccess, scenario.Result.ConditionResults[0].Condition)
+			}
+			if len(scenario.ExpectedOutput) > 0 && scenario.Result.ConditionResults[0].Condition != scenario.ExpectedOutput {
+				t.Errorf("Condition '%s' should have resolved to '%s', got '%s'", scenario.Condition, scenario.ExpectedOutput, scenario.Result.ConditionResults[0].Condition)
+			}
+		})
+	}
+}
+
+func TestCondition_ValidateWithHeaderAndAge(t *testing.T) {
+	for _, condition := range []Condition{"[HEADER].Content-Type == application/json", "age([HEADER].Last-Modified) < 10m", "age([BODY].updated_at, 2006-01-02 15:04:05) < 1h"} {
+		if err := condition.Validate(); err != nil {
+			t.Errorf("expected condition '%s' to be valid, got %v", condition, err)
+		}
 	}
 }
 

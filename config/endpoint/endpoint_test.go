@@ -1747,3 +1747,52 @@ func TestEndpoint_HideUIFeatures(t *testing.T) {
 		})
 	}
 }
+
+func TestEndpoint_needsToReadHeaders(t *testing.T) {
+	if (&Endpoint{Conditions: []Condition{"[STATUS] == 200", "[BODY].status == UP"}}).needsToReadHeaders() {
+		t.Error("expected false, got true")
+	}
+	if !(&Endpoint{Conditions: []Condition{"[STATUS] == 200", "age([HEADER].Last-Modified) < 10m"}}).needsToReadHeaders() {
+		t.Error("expected true, got false")
+	}
+	if !(&Endpoint{Conditions: []Condition{"[header].content-type == application/json"}}).needsToReadHeaders() {
+		t.Error("expected true for lowercase placeholder, got false")
+	}
+	if !(&Endpoint{Conditions: []Condition{"[STATUS] == 200"}, Store: map[string]string{"etag": "[HEADER].ETag"}}).needsToReadHeaders() {
+		t.Error("expected true when store has header placeholder, got false")
+	}
+}
+
+func TestEndpoint_EvaluateHealthWithHeaderAndAge(t *testing.T) {
+	defer client.InjectHTTPClient(nil)
+	lastModified := time.Now().Add(-5 * time.Minute).UTC()
+	mockResponse := test.MockRoundTripper(func(r *http.Request) *http.Response {
+		return &http.Response{
+			StatusCode: http.StatusOK,
+			Header:     http.Header{"Last-Modified": []string{lastModified.Format(http.TimeFormat)}},
+			Body:       io.NopCloser(bytes.NewBufferString(`{"sats_at":"` + lastModified.Format(time.RFC3339) + `"}`)),
+		}
+	})
+	client.InjectHTTPClient(&http.Client{Transport: mockResponse})
+	scenarios := []struct {
+		name            string
+		conditions      []Condition
+		expectedSuccess bool
+	}{
+		{"fresh", []Condition{"age([HEADER].Last-Modified) < 10m", "age([BODY].sats_at) < 10m"}, true},
+		{"stale", []Condition{"age([HEADER].Last-Modified) < 1m"}, false},
+		{"missing-header", []Condition{"age([HEADER].X-Missing) < 10m"}, false},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			endpoint := Endpoint{Name: "data", URL: "https://example.com/data.json", Conditions: scenario.conditions}
+			if err := endpoint.ValidateAndSetDefaults(); err != nil {
+				t.Fatalf("ValidateAndSetDefaults failed: %v", err)
+			}
+			result := endpoint.EvaluateHealth()
+			if result.Success != scenario.expectedSuccess {
+				t.Errorf("expected success=%v, got %v (%+v)", scenario.expectedSuccess, result.Success, result.ConditionResults)
+			}
+		})
+	}
+}
