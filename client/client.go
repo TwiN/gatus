@@ -358,26 +358,35 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 		// The pinger resolves hostnames with the system resolver, so we have to resolve it ourselves
 		dnsResolver, err := config.parseDNSResolver()
 		if err != nil {
-			logr.Errorf("[client.Ping] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error: %s", err.Error())
-		} else {
-			resolver := &net.Resolver{
-				PreferGo: true,
-				Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
-					d := net.Dialer{}
-					return d.DialContext(ctx, dnsResolver.Protocol, dnsResolver.Host+":"+dnsResolver.Port)
-				},
+			// Already validated by ValidateAndSetDefaults, but fail the check rather than fall back to the system resolver
+			logr.Errorf("[client.Ping] Invalid DNS resolver: %s", err.Error())
+			return false, 0
+		}
+		resolver := &net.Resolver{
+			PreferGo: true,
+			// The network requested by the resolver is ignored in favor of the protocol configured in dns-resolver
+			Dial: func(ctx context.Context, _, _ string) (net.Conn, error) {
+				d := net.Dialer{}
+				return d.DialContext(ctx, dnsResolver.Protocol, dnsResolver.Host+":"+dnsResolver.Port)
+			},
+		}
+		network := "ip"
+		if config.Network == "ip4" || config.Network == "ip6" {
+			network = config.Network
+		}
+		ctx, cancel := context.WithTimeout(context.Background(), config.Timeout)
+		defer cancel()
+		ips, err := resolver.LookupIP(ctx, network, address)
+		if err != nil || len(ips) == 0 {
+			return false, 0
+		}
+		// Prefer IPv4 like net.ResolveIPAddr does, which is what the pinger would've used to resolve the hostname
+		address = ips[0].String()
+		for _, ip := range ips {
+			if ip.To4() != nil {
+				address = ip.String()
+				break
 			}
-			network := "ip"
-			if config.Network == "ip4" || config.Network == "ip6" {
-				network = config.Network
-			}
-			ctx, cancel := context.WithTimeout(context.Background(), config.Timeout)
-			defer cancel()
-			ips, err := resolver.LookupIP(ctx, network, address)
-			if err != nil || len(ips) == 0 {
-				return false, 0
-			}
-			address = ips[0].String()
 		}
 	}
 	pinger := ping.New(address)
