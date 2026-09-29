@@ -26,6 +26,7 @@ type OIDCConfig struct {
 	Scopes          []string      `yaml:"scopes"`           // e.g. ["openid"]
 	AllowedSubjects []string      `yaml:"allowed-subjects"` // e.g. ["user1@example.com"]. If empty, all subjects are allowed
 	SessionTTL      time.Duration `yaml:"session-ttl"`      // e.g. 8h. Defaults to 8 hours
+	APITokens       []string      `yaml:"api-tokens"`       // e.g. ["token"]. Bearer tokens that can be used to access the API without a session
 
 	oauth2Config oauth2.Config
 	verifier     *oidc.IDTokenVerifier
@@ -36,7 +37,7 @@ func (c *OIDCConfig) ValidateAndSetDefaults() bool {
 	if c.SessionTTL <= 0 {
 		c.SessionTTL = DefaultOIDCSessionTTL
 	}
-	return len(c.IssuerURL) > 0 && len(c.RedirectURL) > 0 && strings.HasSuffix(c.RedirectURL, "/authorization-code/callback") && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0
+	return len(c.IssuerURL) > 0 && len(c.RedirectURL) > 0 && strings.HasSuffix(c.RedirectURL, "/authorization-code/callback") && len(c.ClientID) > 0 && len(c.ClientSecret) > 0 && len(c.Scopes) > 0 && validateTokens(c.APITokens)
 }
 
 func (c *OIDCConfig) initialize() error {
