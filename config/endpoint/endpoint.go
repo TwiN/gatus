@@ -543,7 +543,7 @@ func (e *Endpoint) call(result *Result) {
 			result.Body = fmt.Appendf(nil, "{\"status\":\"%s\"}", status)
 		}
 	case TypeDomain:
-		// domain expiration checked before call `call`
+		// domain expiration checked in EvaluateHealthWithContext needsToRetrieveDomainExpiration
 		return
 	case TypeHTTP:
 		request := e.buildHTTPRequest()
