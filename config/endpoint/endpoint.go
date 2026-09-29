@@ -451,8 +451,6 @@ func (e *Endpoint) getIP(result *Result) {
 }
 
 func (e *Endpoint) call(result *Result) {
-	var request *http.Request
-	var response *http.Response
 	var err error
 	var certificate *x509.Certificate
 	endpointType := e.Type()
@@ -548,8 +546,8 @@ func (e *Endpoint) call(result *Result) {
 		// domain expiration checked before call `call`
 		return
 	case TypeHTTP:
-		request = e.buildHTTPRequest()
-		response, err = client.GetHTTPClient(e.ClientConfig).Do(request)
+		request := e.buildHTTPRequest()
+		response, err := client.GetHTTPClient(e.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
 		if err != nil {
 			result.AddError(err.Error())
