@@ -1,9 +1,7 @@
-version: "3.9"
 services:
   gatus:
     image: twinproduction/gatus:latest
     ports:
-      - "8080:8080"
+      - 8080:8080
     volumes:
       - ./config:/config
-      - ./data:/data/

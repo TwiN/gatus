@@ -797,7 +797,7 @@ func TestSuiteResultOrdering(t *testing.T) {
 	baseTime := time.Now().Add(-5 * time.Hour)
 	timestamps := make([]time.Time, 5)
 
-	for i := 0; i < 5; i++ {
+	for i := range 5 {
 		timestamp := baseTime.Add(time.Duration(i) * time.Hour)
 		timestamps[i] = timestamp
 		result := &suite.Result{
@@ -878,7 +878,7 @@ func TestSuiteResultOrdering(t *testing.T) {
 		smallSuite := &suite.Suite{Name: "small-suite", Group: "test"}
 
 		// Insert 6 results, should keep only the newest 3
-		for i := 0; i < 6; i++ {
+		for i := range 6 {
 			result := &suite.Result{
 				Name:      smallSuite.Name,
 				Group:     smallSuite.Group,
@@ -925,7 +925,7 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 
 		// Create endpoints for concurrent testing
 		endpoints := make([]*endpoint.Endpoint, numGoroutines)
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			endpoints[i] = &endpoint.Endpoint{
 				Name:  "endpoint-" + string(rune('A'+i)),
 				Group: "concurrent",
@@ -934,12 +934,12 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 		}
 
 		// Concurrently insert results for different endpoints
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			wg.Add(1)
 			go func(endpointIndex int) {
 				defer wg.Done()
 				ep := endpoints[endpointIndex]
-				for j := 0; j < resultsPerGoroutine; j++ {
+				for j := range resultsPerGoroutine {
 					result := &endpoint.Result{
 						Success:   j%2 == 0,
 						Timestamp: time.Now().Add(time.Duration(j) * time.Minute),
@@ -978,7 +978,7 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 
 		// Create suites for concurrent testing
 		suites := make([]*suite.Suite, numGoroutines)
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			suites[i] = &suite.Suite{
 				Name:  "suite-" + string(rune('A'+i)),
 				Group: "concurrent",
@@ -986,12 +986,12 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 		}
 
 		// Concurrently insert results for different suites
-		for i := 0; i < numGoroutines; i++ {
+		for i := range numGoroutines {
 			wg.Add(1)
 			go func(suiteIndex int) {
 				defer wg.Done()
 				su := suites[suiteIndex]
-				for j := 0; j < resultsPerGoroutine; j++ {
+				for j := range resultsPerGoroutine {
 					result := &suite.Result{
 						Name:      su.Name,
 						Group:     su.Group,
@@ -1036,7 +1036,7 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 5; i++ {
+			for i := range 5 {
 				result := &endpoint.Result{
 					Success:   true,
 					Timestamp: time.Now(),
@@ -1050,7 +1050,7 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 5; i++ {
+			for i := range 5 {
 				result := &suite.Result{
 					Name:      testSuite.Name,
 					Group:     testSuite.Group,
@@ -1066,7 +1066,7 @@ func TestStore_ConcurrentAccess(t *testing.T) {
 		wg.Add(1)
 		go func() {
 			defer wg.Done()
-			for i := 0; i < 10; i++ {
+			for range 10 {
 				store.GetAllEndpointStatuses(&paging.EndpointStatusParams{})
 				store.GetAllSuiteStatuses(&paging.SuiteStatusParams{})
 				time.Sleep(1 * time.Millisecond)

@@ -129,6 +129,52 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			},
 		},
 		{
+			name: "Failed alert with custom topic",
+			provider: AlertProvider{
+				DefaultConfig: Config{
+					BotEmail:  "bot-email",
+					BotAPIKey: "bot-api-key",
+					Domain:    "domain",
+					ChannelID: "channel-id",
+					Topic:     "alerts",
+				},
+			},
+			alert:         basicAlert,
+			resolved:      false,
+			hasConditions: false,
+			expectedBody: url.Values{
+				"content": {`An alert for **endpoint-Name** has been triggered due to having failed 3 time(s) in a row
+> Description
+`},
+				"to":    {"channel-id"},
+				"topic": {"alerts"},
+				"type":  {"channel"},
+			},
+		},
+		{
+			name: "Failed alert with templated topic",
+			provider: AlertProvider{
+				DefaultConfig: Config{
+					BotEmail:  "bot-email",
+					BotAPIKey: "bot-api-key",
+					Domain:    "domain",
+					ChannelID: "channel-id",
+					Topic:     "[ENDPOINT_NAME]",
+				},
+			},
+			alert:         basicAlert,
+			resolved:      false,
+			hasConditions: false,
+			expectedBody: url.Values{
+				"content": {`An alert for **endpoint-Name** has been triggered due to having failed 3 time(s) in a row
+> Description
+`},
+				"to":    {"channel-id"},
+				"topic": {"endpoint-Name"},
+				"type":  {"channel"},
+			},
+		},
+		{
 			name: "Resolved alert with conditions",
 			provider: AlertProvider{
 				DefaultConfig: basicConfig,
@@ -446,12 +492,14 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				"bot-api-key": "alert-bot-api-key",
 				"domain":      "alert-domain",
 				"channel-id":  "alert-channel-id",
+				"topic":       "alert-topic",
 			}},
 			ExpectedOutput: Config{
 				BotEmail:  "alert-bot-email",
 				BotAPIKey: "alert-bot-api-key",
 				Domain:    "alert-domain",
 				ChannelID: "alert-channel-id",
+				Topic:     "alert-topic",
 			},
 		},
 	}
@@ -472,6 +520,9 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			}
 			if got.ChannelID != scenario.ExpectedOutput.ChannelID {
 				t.Errorf("expected %s, got %s", scenario.ExpectedOutput.ChannelID, got.ChannelID)
+			}
+			if got.Topic != scenario.ExpectedOutput.Topic {
+				t.Errorf("expected %s, got %s", scenario.ExpectedOutput.Topic, got.Topic)
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
 			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {

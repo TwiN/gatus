@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"net/http"
 	"strconv"
 	"strings"
@@ -170,9 +171,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	// Merge metadata: cfg.Metadata + ep.ExtraLabels (if present)
 	mergedMetadata := map[string]interface{}{}
 	// Copy cfg.Metadata
-	for k, v := range cfg.Metadata {
-		mergedMetadata[k] = v
-	}
+	maps.Copy(mergedMetadata, cfg.Metadata)
 	// Add extra labels from endpoint (if present)
 	if ep.ExtraLabels != nil && len(ep.ExtraLabels) > 0 {
 		for k, v := range ep.ExtraLabels {

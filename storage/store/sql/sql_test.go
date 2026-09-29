@@ -900,7 +900,7 @@ func TestEventOrderingFix(t *testing.T) {
 	}
 	// Create many events over time
 	baseTime := time.Now().Add(-100 * time.Hour) // Start 100 hours ago
-	for i := 0; i < 50; i++ {
+	for i := range 50 {
 		result := &endpoint.Result{
 			Success:   i%2 == 0, // Alternate between true/false to create events
 			Timestamp: baseTime.Add(time.Duration(i) * time.Hour),

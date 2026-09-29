@@ -31,8 +31,28 @@ export const generatePrettyTimeAgo = (timestamp) => {
  * @returns {string} Time difference string
  */
 export const generatePrettyTimeDifference = (start, end) => {
-  let minutes = Math.ceil((new Date(start) - new Date(end)) / 1000 / 60);
-  return minutes + (minutes === 1 ? ' minute' : ' minutes');
+  const ms = new Date(start) - new Date(end)
+  const seconds = Math.floor(ms / 1000)
+  const minutes = Math.floor(seconds / 60)
+  const hours = Math.floor(minutes / 60)
+
+  if (hours > 0) {
+    const remainingMinutes = minutes % 60
+    const hoursText = hours + (hours === 1 ? ' hour' : ' hours')
+    if (remainingMinutes > 0) {
+      return hoursText + ' ' + remainingMinutes + (remainingMinutes === 1 ? ' minute' : ' minutes')
+    }
+    return hoursText
+  } else if (minutes > 0) {
+    const remainingSeconds = seconds % 60
+    const minutesText = minutes + (minutes === 1 ? ' minute' : ' minutes')
+    if (remainingSeconds > 0) {
+      return minutesText + ' ' + remainingSeconds + (remainingSeconds === 1 ? ' second' : ' seconds')
+    }
+    return minutesText
+  } else {
+    return seconds + (seconds === 1 ? ' second' : ' seconds')
+  }
 }
 
 /**

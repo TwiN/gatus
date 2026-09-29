@@ -1,4 +1,3 @@
-version: "3.9"
 services:
   gatus:
     container_name: gatus
@@ -13,7 +12,7 @@ services:
 
   prometheus:
     container_name: prometheus
-    image: prom/prometheus:v2.14.0
+    image: prom/prometheus:v3.5.0
     restart: always
     command: --config.file=/etc/prometheus/prometheus.yml
     ports:
@@ -25,7 +24,7 @@ services:
 
   grafana:
     container_name: grafana
-    image: grafana/grafana:6.4.4
+    image: grafana/grafana:12.1.0
     restart: always
     environment:
       GF_SECURITY_ADMIN_PASSWORD: secret

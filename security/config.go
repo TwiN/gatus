@@ -30,7 +30,7 @@ type Config struct {
 
 // ValidateAndSetDefaults returns whether the security configuration is valid or not and sets default values.
 func (c *Config) ValidateAndSetDefaults() bool {
-	return (c.Basic != nil && c.Basic.isValid()) || (c.OIDC != nil && c.OIDC.ValidateAndSetDefaults()) || (c.API != nil && c.API.Validate() == nil && len(c.API.Tokens) > 0)
+	return (c.Basic == nil || c.Basic.isValid()) && (c.OIDC == nil || c.OIDC.ValidateAndSetDefaults()) && c.API.Validate() == nil
 }
 
 // RegisterHandlers registers all handlers required based on the security configuration

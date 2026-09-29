@@ -53,11 +53,11 @@ func BenchmarkStore_GetAllEndpointStatuses(b *testing.B) {
 		numberOfEndpoints := []int{10, 25, 50, 100}
 		for _, numberOfEndpointsToCreate := range numberOfEndpoints {
 			// Create endpoints and insert results
-			for i := 0; i < numberOfEndpointsToCreate; i++ {
+			for i := range numberOfEndpointsToCreate {
 				ep := testEndpoint
 				ep.Name = "endpoint" + strconv.Itoa(i)
 				// InsertEndpointResult 20 results for each endpoint
-				for j := 0; j < 20; j++ {
+				for range 20 {
 					scenario.Store.InsertEndpointResult(&ep, &testSuccessfulResult)
 				}
 			}
@@ -191,7 +191,7 @@ func BenchmarkStore_GetEndpointStatusByKey(b *testing.B) {
 		},
 	}
 	for _, scenario := range scenarios {
-		for i := 0; i < 50; i++ {
+		for range 50 {
 			scenario.Store.InsertEndpointResult(&testEndpoint, &testSuccessfulResult)
 			scenario.Store.InsertEndpointResult(&testEndpoint, &testUnsuccessfulResult)
 		}

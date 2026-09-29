@@ -31,7 +31,7 @@
         <div>
           <div class="flex items-center justify-between mb-1">
             <p class="text-xs text-muted-foreground">Success Rate: {{ successRate }}%</p>
-            <p class="text-xs text-muted-foreground" v-if="averageDuration">{{ averageDuration }}ms avg</p>
+            <p class="text-xs text-muted-foreground" v-if="averageDuration !== null">{{ averageDuration }}ms avg</p>
           </div>
           <div class="flex gap-0.5">
             <div
@@ -126,7 +126,7 @@ const averageDuration = computed(() => {
   
   const total = props.suite.results.reduce((sum, r) => sum + (r.duration || 0), 0)
   // Convert nanoseconds to milliseconds
-  return Math.round((total / props.suite.results.length) / 1000000)
+  return Math.trunc((total / props.suite.results.length) / 1000000)
 })
 
 const oldestResultTime = computed(() => {

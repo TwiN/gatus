@@ -17,7 +17,7 @@
                 :is="link ? 'a' : 'div'" 
                 :href="link" 
                 target="_blank"
-                class="flex items-center gap-3 hover:opacity-80 transition-opacity"
+                :class="['flex items-center gap-3', link && 'hover:opacity-80 transition-opacity']"
               >
                 <div class="w-12 h-12 flex items-center justify-center">
                   <img 
@@ -112,13 +112,14 @@
     <div v-else id="login-container" class="flex items-center justify-center min-h-screen p-4">
       <Card class="w-full max-w-md">
         <CardHeader class="text-center">
-          <img 
-            src="./assets/logo.svg" 
-            alt="Gatus" 
-            class="w-20 h-20 mx-auto mb-4"
-          />
-          <CardTitle class="text-3xl">Gatus</CardTitle>
-          <p class="text-muted-foreground mt-2">System Monitoring Dashboard</p>
+          <div v-if="logo" class="flex items-center justify-center gap-4 mb-4">
+            <img :src="logo" alt="" class="w-20 h-20 object-contain" />
+            <div class="w-px h-12 bg-border"></div>
+            <img src="./assets/logo.svg" alt="Gatus" class="w-20 h-20" />
+          </div>
+          <img v-else src="./assets/logo.svg" alt="Gatus" class="w-20 h-20 mx-auto mb-4" />
+          <CardTitle class="text-3xl">{{ header }}</CardTitle>
+          <p class="text-muted-foreground mt-2">{{ loginSubtitle }}</p>
         </CardHeader>
         <CardContent>
           <div v-if="route && route.query.error" class="mb-6">
@@ -133,7 +134,7 @@
           </div>
           
           <a
-            :href="`${SERVER_URL}/oidc/login`"
+            :href="`/oidc/login`"
             class="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-primary text-primary-foreground hover:bg-primary/90 h-11 px-8 w-full"
             @click="isOidcLoading = true"
           >
@@ -153,7 +154,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { Menu, X, LogIn } from 'lucide-vue-next'
@@ -162,7 +162,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import Social from './components/Social.vue'
 import Tooltip from './components/Tooltip.vue'
 import Loading from './components/Loading.vue'
-import { SERVER_URL } from '@/main'
 
 const route = useRoute()
 
@@ -193,17 +192,20 @@ const buttons = computed(() => {
   return window.config && window.config.buttons ? window.config.buttons : []
 })
 
+const loginSubtitle = computed(() => {
+  return window.config && window.config.loginSubtitle && window.config.loginSubtitle !== '{{ .UI.LoginSubtitle }}' ? window.config.loginSubtitle : "System Monitoring Dashboard"
+})
+
 // Methods
 const fetchConfig = async () => {
   try {
-    const response = await fetch(`${SERVER_URL}/api/v1/config`, { credentials: 'include' })
-    retrievedConfig.value = true
-    
+    const response = await fetch(`/api/v1/config`, { credentials: 'include' })
     if (response.status === 200) {
       const data = await response.json()
       config.value = data
       announcements.value = data.announcements || []
     }
+    retrievedConfig.value = true
   } catch (error) {
     console.error('Failed to fetch config:', error)
     retrievedConfig.value = true

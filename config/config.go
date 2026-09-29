@@ -6,6 +6,7 @@ import (
 	"io/fs"
 	"os"
 	"path/filepath"
+	"slices"
 	"sort"
 	"strings"
 	"time"
@@ -136,7 +137,7 @@ func (config *Config) GetUniqueExtraMetricLabels() []string {
 			continue
 		}
 		for label := range ep.ExtraLabels {
-			if contains(labels, label) {
+			if slices.Contains(labels, label) {
 				continue
 			}
 			labels = append(labels, label)
@@ -594,6 +595,7 @@ func ValidateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 	}
 	alertTypes := []alert.Type{
 		alert.TypeAWSSES,
+		alert.TypeClickUp,
 		alert.TypeCustom,
 		alert.TypeDatadog,
 		alert.TypeDiscord,

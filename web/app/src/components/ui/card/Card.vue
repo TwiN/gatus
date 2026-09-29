@@ -5,5 +5,5 @@
 </template>
 
 <script setup>
-import { combineClasses } from '@/lib/utils'
+import { combineClasses } from '@/utils/misc'
 </script>

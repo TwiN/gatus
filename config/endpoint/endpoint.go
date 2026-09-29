@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"io"
+	"maps"
 	"math/rand"
 	"net"
 	"net/http"
@@ -50,6 +51,7 @@ const (
 	TypeSTARTTLS Type = "STARTTLS"
 	TypeTLS      Type = "TLS"
 	TypeHTTP     Type = "HTTP"
+	TypeGRPC     Type = "GRPC"
 	TypeWS       Type = "WEBSOCKET"
 	TypeSSH      Type = "SSH"
 	TypeUNKNOWN  Type = "UNKNOWN"
@@ -177,6 +179,8 @@ func (e *Endpoint) Type() Type {
 		return TypeTLS
 	case strings.HasPrefix(e.URL, "http://") || strings.HasPrefix(e.URL, "https://"):
 		return TypeHTTP
+	case strings.HasPrefix(e.URL, "grpc://") || strings.HasPrefix(e.URL, "grpcs://"):
+		return TypeGRPC
 	case strings.HasPrefix(e.URL, "ws://") || strings.HasPrefix(e.URL, "wss://"):
 		return TypeWS
 	case strings.HasPrefix(e.URL, "ssh://"):
@@ -218,12 +222,12 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 		e.Headers = make(map[string]string)
 	}
 	// Automatically add user agent header if there isn't one specified in the endpoint configuration
-	if _, userAgentHeaderExists := e.Headers[UserAgentHeader]; !userAgentHeaderExists {
+	if !hasHeader(e.Headers, UserAgentHeader) {
 		e.Headers[UserAgentHeader] = GatusUserAgent
 	}
 	// Automatically add "Content-Type: application/json" header if there's no Content-Type set
 	// and endpoint.GraphQL is set to true
-	if _, contentTypeHeaderExists := e.Headers[ContentTypeHeader]; !contentTypeHeaderExists && e.GraphQL {
+	if !hasHeader(e.Headers, ContentTypeHeader) && e.GraphQL {
 		e.Headers[ContentTypeHeader] = "application/json"
 	}
 	if len(e.Conditions) == 0 {
@@ -329,7 +333,7 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	}
 	// Evaluate the conditions
 	for _, condition := range processedEndpoint.Conditions {
-		success := condition.evaluate(result, processedEndpoint.UIConfig.DontResolveFailedConditions, context)
+		success := condition.evaluate(result, processedEndpoint.UIConfig.DontResolveFailedConditions, processedEndpoint.UIConfig.ResolveSuccessfulConditions, context)
 		if !success {
 			result.Success = false
 		}
@@ -352,6 +356,9 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.port, "<redacted>")
 		}
 		result.port = ""
+	}
+	if processedEndpoint.UIConfig.HideErrors {
+		result.Errors = nil
 	}
 	if processedEndpoint.UIConfig.HideConditions {
 		result.ConditionResults = nil
@@ -483,12 +490,10 @@ func (e *Endpoint) call(result *Result) {
 	} else if endpointType == TypeWS {
 		wsHeaders := map[string]string{}
 		if e.Headers != nil {
-			for k, v := range e.Headers {
-				wsHeaders[k] = v
-			}
+			maps.Copy(wsHeaders, e.Headers)
 		}
-		if _, exists := wsHeaders["User-Agent"]; !exists {
-			wsHeaders["User-Agent"] = GatusUserAgent
+		if !hasHeader(wsHeaders, UserAgentHeader) {
+			wsHeaders[UserAgentHeader] = GatusUserAgent
 		}
 		result.Connected, result.Body, err = client.QueryWebSocket(e.URL, e.getParsedBody(), wsHeaders, e.ClientConfig)
 		if err != nil {
@@ -497,8 +502,8 @@ func (e *Endpoint) call(result *Result) {
 		}
 		result.Duration = time.Since(startTime)
 	} else if endpointType == TypeSSH {
-		// If there's no username/password specified, attempt to validate just the SSH banner
-		if len(e.SSHConfig.Username) == 0 && len(e.SSHConfig.Password) == 0 {
+		// If there's no username, password or private key specified, attempt to validate just the SSH banner
+		if e.SSHConfig == nil || (len(e.SSHConfig.Username) == 0 && len(e.SSHConfig.Password) == 0 && len(e.SSHConfig.PrivateKey) == 0) {
 			result.Connected, result.HTTPStatus, err = client.CheckSSHBanner(strings.TrimPrefix(e.URL, "ssh://"), e.ClientConfig)
 			if err != nil {
 				result.AddError(err.Error())
@@ -509,7 +514,7 @@ func (e *Endpoint) call(result *Result) {
 			return
 		}
 		var cli *ssh.Client
-		result.Connected, cli, err = client.CanCreateSSHConnection(strings.TrimPrefix(e.URL, "ssh://"), e.SSHConfig.Username, e.SSHConfig.Password, e.ClientConfig)
+		result.Connected, cli, err = client.CanCreateSSHConnection(strings.TrimPrefix(e.URL, "ssh://"), e.SSHConfig.Username, e.SSHConfig.Password, e.SSHConfig.PrivateKey, e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return
@@ -525,6 +530,19 @@ func (e *Endpoint) call(result *Result) {
 			result.Body = output
 		}
 		result.Duration = time.Since(startTime)
+	} else if endpointType == TypeGRPC {
+		useTLS := strings.HasPrefix(e.URL, "grpcs://")
+		address := strings.TrimPrefix(strings.TrimPrefix(e.URL, "grpcs://"), "grpc://")
+		connected, status, err, duration := client.PerformGRPCHealthCheck(address, useTLS, e.ClientConfig)
+		if err != nil {
+			result.AddError(err.Error())
+			return
+		}
+		result.Connected = connected
+		result.Duration = duration
+		if e.needsToReadBody() {
+			result.Body = []byte(fmt.Sprintf("{\"status\":\"%s\"}", status))
+		}
 	} else {
 		response, err = client.GetHTTPClient(e.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
@@ -563,7 +581,7 @@ func (e *Endpoint) buildHTTPRequest() *http.Request {
 	request, _ := http.NewRequest(e.Method, e.URL, bodyBuffer)
 	for k, v := range e.Headers {
 		request.Header.Set(k, v)
-		if k == HostHeader {
+		if strings.EqualFold(k, HostHeader) {
 			request.Host = v
 		}
 	}
@@ -602,6 +620,16 @@ func (e *Endpoint) needsToRetrieveDomainExpiration() bool {
 func (e *Endpoint) needsToRetrieveIP() bool {
 	for _, condition := range e.Conditions {
 		if condition.hasIPPlaceholder() {
+			return true
+		}
+	}
+	return false
+}
+
+// hasHeader checks if a header exists in the map using a case-insensitive lookup
+func hasHeader(headers map[string]string, name string) bool {
+	for k := range headers {
+		if strings.EqualFold(k, name) {
 			return true
 		}
 	}

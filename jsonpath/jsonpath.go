@@ -87,7 +87,7 @@ func extractValue(currentKey string, value interface{}) interface{} {
 			}
 		}
 		arrayIndex, err := strconv.Atoi(index)
-		if err != nil {
+		if err != nil || arrayIndex < 0 {
 			return nil
 		}
 		currentKeyWithoutIndex := currentKey[:startOfBracket]

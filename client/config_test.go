@@ -17,6 +17,9 @@ func TestConfig_getHTTPClient(t *testing.T) {
 	if insecureClient.Timeout != defaultTimeout {
 		t.Error("expected Config.Timeout to default the HTTP client to a timeout of 10s")
 	}
+	if insecureClient.Jar != nil {
+		t.Error("expected Config.StoreCookies to default the HTTP client to not store cookies")
+	}
 	request, _ := http.NewRequest("GET", "", nil)
 	if err := insecureClient.CheckRedirect(request, nil); err != nil {
 		t.Error("expected Config.IgnoreRedirect set to false to cause the HTTP client's CheckRedirect to return nil")
@@ -31,9 +34,21 @@ func TestConfig_getHTTPClient(t *testing.T) {
 	if secureClient.Timeout != 5*time.Second {
 		t.Error("expected Config.Timeout to cause the HTTP client to have a timeout of 5s")
 	}
+	if insecureClient.Jar != nil {
+		t.Error("expected Config.StoreCookies to default the HTTP client to not store cookies")
+	}
 	request, _ = http.NewRequest("GET", "", nil)
 	if err := secureClient.CheckRedirect(request, nil); err != http.ErrUseLastResponse {
 		t.Error("expected Config.IgnoreRedirect set to true to cause the HTTP client's CheckRedirect to return http.ErrUseLastResponse")
+	}
+}
+
+func TestConfig_getHTTPClient_withCookieJar(t *testing.T) {
+	config := &Config{StoreCookies: true}
+	config.ValidateAndSetDefaults()
+	client := config.getHTTPClient()
+	if client.Jar == nil {
+		t.Error("expected Config.StoreCookies to cause the HTTP client to have a CookieJar")
 	}
 }
 

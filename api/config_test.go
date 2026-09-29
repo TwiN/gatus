@@ -3,6 +3,7 @@ package api
 import (
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"testing"
 
 	"github.com/TwiN/gatus/v5/security"
@@ -27,7 +28,7 @@ func TestConfigHandler_ServeHTTP(t *testing.T) {
 		t.Error("expected err to be nil, but was", err)
 	}
 	// Test the config handler
-	request, _ := http.NewRequest("GET", "/api/v1/config", http.NoBody)
+	request := httptest.NewRequest("GET", "/api/v1/config", http.NoBody)
 	response, err := app.Test(request)
 	if err != nil {
 		t.Error("expected err to be nil, but was", err)

@@ -40,7 +40,6 @@
 </template>
 
 <script setup>
-/* eslint-disable no-undef */
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { ChevronDown, Check } from 'lucide-vue-next'
 

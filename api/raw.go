@@ -3,6 +3,7 @@ package api
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"time"
 
 	"github.com/TwiN/gatus/v5/storage/store"
@@ -25,7 +26,10 @@ func UptimeRaw(c *fiber.Ctx) error {
 	default:
 		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h, 1h")
 	}
-	key := c.Params("key")
+	key, err := url.QueryUnescape(c.Params("key"))
+	if err != nil {
+		return c.Status(400).SendString("invalid key encoding")
+	}
 	uptime, err := store.Get().GetUptimeByKey(key, from, time.Now())
 	if err != nil {
 		if errors.Is(err, common.ErrEndpointNotFound) {
@@ -57,7 +61,10 @@ func ResponseTimeRaw(c *fiber.Ctx) error {
 	default:
 		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h, 1h")
 	}
-	key := c.Params("key")
+	key, err := url.QueryUnescape(c.Params("key"))
+	if err != nil {
+		return c.Status(400).SendString("invalid key encoding")
+	}
 	responseTime, err := store.Get().GetAverageResponseTimeByKey(key, from, time.Now())
 	if err != nil {
 		if errors.Is(err, common.ErrEndpointNotFound) {
