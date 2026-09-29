@@ -549,8 +549,6 @@ func (e *Endpoint) call(result *Result) {
 		return
 	case TypeHTTP:
 		request = e.buildHTTPRequest()
-		fallthrough
-	default:
 		response, err = client.GetHTTPClient(e.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
 		if err != nil {
@@ -571,6 +569,10 @@ func (e *Endpoint) call(result *Result) {
 				result.AddError("error reading response body:" + err.Error())
 			}
 		}
+	case TypeUNKNOWN:
+		result.AddError(ErrUnknownEndpointType.Error())
+	default:
+		result.AddError(ErrUnknownEndpointType.Error())
 	}
 }
 
