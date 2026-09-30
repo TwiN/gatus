@@ -67,6 +67,7 @@ import { useRouter } from 'vue-router'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { generatePrettyTimeAgo } from '@/utils/time'
+import { formatDuration } from '@/utils/format'
 
 const router = useRouter()
 
@@ -126,28 +127,26 @@ const formattedResponseTime = computed(() => {
   
   for (const result of props.endpoint.results) {
     if (result.duration) {
-      const durationMs = result.duration / 1000000
-      total += durationMs
+      total += result.duration
       count++
-      min = Math.min(min, durationMs)
-      max = Math.max(max, durationMs)
+      min = Math.min(min, result.duration)
+      max = Math.max(max, result.duration)
     }
   }
   
   if (count === 0) return 'N/A'
   
   if (props.showAverageResponseTime) {
-    const avgMs = Math.round(total / count)
-    return `~${avgMs}ms`
+    return `~${formatDuration(total / count)}`
   } else {
     // Show min-max range
-    const minMs = Math.trunc(min)
-    const maxMs = Math.trunc(max)
+    const minFormatted = formatDuration(min)
+    const maxFormatted = formatDuration(max)
     // If min and max are the same, show single value
-    if (minMs === maxMs) {
-      return `${minMs}ms`
+    if (minFormatted === maxFormatted) {
+      return minFormatted
     }
-    return `${minMs}-${maxMs}ms`
+    return `${minFormatted}-${maxFormatted}`
   }
 })
 
