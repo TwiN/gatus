@@ -79,6 +79,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Ntfy alerts](#configuring-ntfy-alerts)
     - [Configuring Opsgenie alerts](#configuring-opsgenie-alerts)
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
+    - [Configuring Pinglet alerts](#configuring-pinglet-alerts)
     - [Configuring Plivo alerts](#configuring-plivo-alerts)
     - [Configuring Pushover alerts](#configuring-pushover-alerts)
     - [Configuring Rocket.Chat alerts](#configuring-rocketchat-alerts)
@@ -861,6 +862,7 @@ endpoints:
 | `alerting.ntfy`            | Configuration for alerts of type `ntfy`. <br />See [Configuring Ntfy alerts](#configuring-ntfy-alerts).                                 | `{}`    |
 | `alerting.opsgenie`        | Configuration for alerts of type `opsgenie`. <br />See [Configuring Opsgenie alerts](#configuring-opsgenie-alerts).                     | `{}`    |
 | `alerting.pagerduty`       | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).                  | `{}`    |
+| `alerting.pinglet`         | Configuration for alerts of type `pinglet`. <br />See [Configuring Pinglet alerts](#configuring-pinglet-alerts).                        | `{}`    |
 | `alerting.plivo`           | Configuration for alerts of type `plivo`. <br />See [Configuring Plivo alerts](#configuring-plivo-alerts).                              | `{}`    |
 | `alerting.pushover`        | Configuration for alerts of type `pushover`. <br />See [Configuring Pushover alerts](#configuring-pushover-alerts).                     | `{}`    |
 | `alerting.rocketchat`      | Configuration for alerts of type `rocketchat`. <br />See [Configuring Rocket.Chat alerts](#configuring-rocketchat-alerts).              | `{}`    |
@@ -1908,6 +1910,53 @@ endpoints:
         success-threshold: 5
         send-on-resolved: true
         description: "healthcheck failed"
+```
+
+
+#### Configuring Pinglet alerts
+| Parameter                            | Description                                                                                | Default                     |
+|:-------------------------------------|:------------------------------------------------------------------------------------------|:----------------------------|
+| `alerting.pinglet`                   | Configuration for alerts of type `pinglet`                                                 | `{}`                        |
+| `alerting.pinglet.api-key`           | Pinglet API key used to authenticate requests                                              | Required `""`               |
+| `alerting.pinglet.namespace`         | Namespace the topic resides in                                                             | Required `""`               |
+| `alerting.pinglet.topic`             | Topic the alert will be published to                                                       | Required `""`               |
+| `alerting.pinglet.url`               | The URL of the target Pinglet server                                                       | `https://pinglet.dev` |
+| `alerting.pinglet.priority`          | Delivery priority: `silent`, `normal` or `urgent`                                          | `normal`                    |
+| `alerting.pinglet.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                         |
+| `alerting.pinglet.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                        |
+| `alerting.pinglet.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                        |
+| `alerting.pinglet.overrides[].*`     | See `alerting.pinglet.*` parameters                                                        | `{}`                        |
+
+[Pinglet](https://pinglet.dev) is a push notification service organized around namespaces and topics.
+
+Example:
+```yaml
+alerting:
+  pinglet:
+    api-key: "pinglet_00000000000000000000000000000000"
+    namespace: "acme"
+    topic: "deploys"
+    priority: "urgent"
+    default-alert:
+      failure-threshold: 3
+      send-on-resolved: true
+    # You can also add group-specific overrides, which take
+    # precedence over the configuration above for those groups
+    overrides:
+      - group: "other"
+        topic: "other-topic"
+        priority: "normal"
+
+endpoints:
+  - name: website
+    interval: 5m
+    url: "https://twin.sh/health"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: pinglet
 ```
 
 
