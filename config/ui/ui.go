@@ -5,6 +5,7 @@ import (
 	"errors"
 	"html/template"
 
+	"github.com/TwiN/gatus/v5/buildinfo"
 	"github.com/TwiN/gatus/v5/storage"
 	static "github.com/TwiN/gatus/v5/web"
 )
@@ -27,11 +28,13 @@ const (
 )
 
 var (
-	defaultDarkMode = true
+	defaultDarkMode    = true
+	defaultShowVersion = false
 
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
 	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
 	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
+	ErrEmptyBuildVersion      = errors.New("build version cannot be empty: This should never happen")
 )
 
 // Config is the configuration for the UI of Gatus
@@ -50,10 +53,12 @@ type Config struct {
 	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
 	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
 	LoginSubtitle           string   `yaml:"login-subtitle,omitempty"`         // LoginSubtitle is the subtitle displayed on the OIDC login page
+  ShowVersion             *bool    `yaml:"show-version,omitempty"`           // ShowVersion is a flag to show build information in the footer
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
-	MaximumNumberOfResults int `yaml:"-"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
+	MaximumNumberOfResults int    `yaml:"-"` // MaximumNumberOfResults to display on the page, it's not configurable because we're passing it from the storage config
+	BuildVersion           string `yaml:"-"` // BuildVersion of Gatus, it's not configurable because it is set at build time
 }
 
 func (cfg *Config) IsDarkMode() bool {
@@ -85,6 +90,10 @@ type Favicon struct {
 
 // GetDefaultConfig returns a Config struct with the default values
 func GetDefaultConfig() *Config {
+	var buildversion string
+	if defaultShowVersion { // Only set version if exposing it to the frontend is enabled
+		buildversion = buildinfo.Get().Version
+	}
 	return &Config{
 		Title:                  defaultTitle,
 		Description:            defaultDescription,
@@ -98,7 +107,9 @@ func GetDefaultConfig() *Config {
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
 		LoginSubtitle:          defaultLoginSubtitle,
+		ShowVersion:            &defaultShowVersion,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+		BuildVersion:           buildversion,
 		Favicon: Favicon{
 			Default:   defaultFavicon,
 			Size16x16: defaultFavicon16,
@@ -149,6 +160,12 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	if len(cfg.LoginSubtitle) == 0 {
 		cfg.LoginSubtitle = defaultLoginSubtitle
 	}
+  if cfg.ShowVersion == nil {
+		cfg.ShowVersion = &defaultShowVersion
+	}
+	if *cfg.ShowVersion { // Only set version if exposing it to the frontend is enabled
+		cfg.BuildVersion = buildinfo.Get().Version
+  }
 	if len(cfg.Favicon.Default) == 0 {
 		cfg.Favicon.Default = defaultFavicon
 	}

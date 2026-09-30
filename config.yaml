@@ -1,3 +1,6 @@
+ui:
+  show-version: true
+
 endpoints:
   - name: front-end
     group: core
