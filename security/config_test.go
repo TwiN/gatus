@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"golang.org/x/oauth2"
 )
 
@@ -103,7 +103,7 @@ func TestConfig_ApplySecurityMiddleware(t *testing.T) {
 		if err := c.ApplySecurityMiddleware(app); err != nil {
 			t.Error("expected no error, got", err)
 		}
-		app.Get("/test", func(c *fiber.Ctx) error {
+		app.Get("/test", func(c fiber.Ctx) error {
 			return c.SendStatus(200)
 		})
 		// Try to access the route without basic auth
@@ -143,7 +143,7 @@ func TestConfig_ApplySecurityMiddleware(t *testing.T) {
 		if err := c.ApplySecurityMiddleware(app); err != nil {
 			t.Error("expected no error, got", err)
 		}
-		app.Get("/test", func(c *fiber.Ctx) error {
+		app.Get("/test", func(c fiber.Ctx) error {
 			return c.SendStatus(200)
 		})
 		// Try without any session cookie

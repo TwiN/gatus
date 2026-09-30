@@ -11,7 +11,7 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/logr"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 	"github.com/wcharczuk/go-chart/v2"
 	"github.com/wcharczuk/go-chart/v2/drawing"
 )
@@ -31,7 +31,7 @@ var (
 	}
 )
 
-func ResponseTimeChart(c *fiber.Ctx) error {
+func ResponseTimeChart(c fiber.Ctx) error {
 	duration := c.Params("duration")
 	chartTimestampFormatter := chart.TimeValueFormatterWithFormat(timeFormat)
 	var from time.Time
@@ -127,7 +127,7 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 	return nil
 }
 
-func ResponseTimeHistory(c *fiber.Ctx) error {
+func ResponseTimeHistory(c fiber.Ctx) error {
 	duration := c.Params("duration")
 	var from time.Time
 	switch duration {

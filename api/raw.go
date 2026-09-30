@@ -8,10 +8,10 @@ import (
 
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
-func UptimeRaw(c *fiber.Ctx) error {
+func UptimeRaw(c fiber.Ctx) error {
 	duration := c.Params("duration")
 	var from time.Time
 	switch duration {
@@ -46,7 +46,7 @@ func UptimeRaw(c *fiber.Ctx) error {
 	return c.Status(200).Send([]byte(fmt.Sprintf("%f", uptime)))
 }
 
-func ResponseTimeRaw(c *fiber.Ctx) error {
+func ResponseTimeRaw(c fiber.Ctx) error {
 	duration := c.Params("duration")
 	var from time.Time
 	switch duration {

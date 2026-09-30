@@ -347,7 +347,7 @@ func TestSuiteStatus_SuiteNotInStoreButInConfig(t *testing.T) {
 			}
 			bodyStr := string(body)
 			if tt.expectJSON {
-				if response.Header.Get("Content-Type") != "application/json" {
+				if response.Header.Get("Content-Type") != "application/json; charset=utf-8" {
 					t.Errorf("Expected JSON content type, got %s", response.Header.Get("Content-Type"))
 				}
 				if len(bodyStr) == 0 || bodyStr[0] != '{' {

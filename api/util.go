@@ -3,7 +3,7 @@ package api
 import (
 	"strconv"
 
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 const (
@@ -14,7 +14,7 @@ const (
 	DefaultPageSize = 50
 )
 
-func extractPageAndPageSizeFromRequest(c *fiber.Ctx, maximumNumberOfResults int) (page, pageSize int) {
+func extractPageAndPageSizeFromRequest(c fiber.Ctx, maximumNumberOfResults int) (page, pageSize int) {
 	var err error
 	if pageParameter := c.Query("page"); len(pageParameter) == 0 {
 		page = DefaultPage
