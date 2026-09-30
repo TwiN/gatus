@@ -1861,6 +1861,83 @@ endpoints:
 	}
 }
 
+func TestParseAndValidateConfigBytesWithEnvironmentVariableDefaults(t *testing.T) {
+	t.Setenv("GATUS_TestEnvWithDefaultSet", "from-environment")
+	t.Setenv("GATUS_TestEnvWithDefaultEmpty", "")
+	t.Setenv("GATUS_TestEnvWithDefaultUnset", "")
+	if err := os.Unsetenv("GATUS_TestEnvWithDefaultUnset"); err != nil {
+		t.Fatal(err)
+	}
+
+	config, err := parseAndValidateConfigBytes([]byte(`
+endpoints:
+  - name: website
+    url: https://${GATUS_TestEnvWithDefaultSet:-twin.sh}/health
+    conditions:
+      - "[BODY] == ${GATUS_TestEnvWithDefaultUnset:-fallback}"
+      - "[STATUS] == ${GATUS_TestEnvWithDefaultEmpty:-200}"
+`))
+	if err != nil {
+		t.Fatal("expected no error, got", err)
+	}
+	if config == nil {
+		t.Fatal("config should not have been nil")
+	}
+	if config.Endpoints[0].URL != "https://from-environment/health" {
+		t.Errorf("URL should have expanded the configured variable, but was %q", config.Endpoints[0].URL)
+	}
+	if config.Endpoints[0].Conditions[0] != "[BODY] == fallback" {
+		t.Errorf("first condition should have used the default value, but was %q", config.Endpoints[0].Conditions[0])
+	}
+	if config.Endpoints[0].Conditions[1] != "[STATUS] == 200" {
+		t.Errorf("second condition should have used the default value for an empty variable, but was %q", config.Endpoints[0].Conditions[1])
+	}
+}
+
+func TestParseAndValidateConfigBytesWithEnvironmentVariableDefaultsPreservesDollars(t *testing.T) {
+	t.Setenv("GATUS_DefaultValue", "")
+	if err := os.Unsetenv("GATUS_DefaultValue"); err != nil {
+		t.Fatal(err)
+	}
+	t.Setenv("GATUS_EmptyValue", "")
+	t.Setenv("GATUS_OtherValue", "expanded")
+	t.Setenv("GATUS_SetValue", "$GATUS_OtherValue/${GATUS_OtherValue}/$$")
+
+	for _, tc := range []struct {
+		name  string
+		value string
+		want  string
+	}{
+		{"unset default", "${GATUS_DefaultValue:-fallback}", "fallback"},
+		{"empty default", "before${GATUS_DefaultValue:-}after", "beforeafter"},
+		{"empty variable", "${GATUS_EmptyValue:-fallback}", "fallback"},
+		{"dollar in default", "${GATUS_DefaultValue:-$GATUS_OtherValue}", "$GATUS_OtherValue"},
+		{"escaped dollar in default", "${GATUS_DefaultValue:-$$GATUS_OtherValue}", "$GATUS_OtherValue"},
+		{"dollars in environment", "${GATUS_SetValue:-fallback}", "$GATUS_OtherValue/${GATUS_OtherValue}/$$"},
+		{"plain variable", "$GATUS_OtherValue", "expanded"},
+		{"braced variable", "${GATUS_OtherValue}", "expanded"},
+		{"literal default expression", "$${GATUS_DefaultValue:-fallback}", "${GATUS_DefaultValue:-fallback}"},
+		{"adjacent expansions", "${GATUS_DefaultValue:-$GATUS_OtherValue}/${GATUS_OtherValue}", "$GATUS_OtherValue/expanded"},
+		{"colon in default", "${GATUS_DefaultValue:-https://example.com}", "https://example.com"},
+	} {
+		t.Run(tc.name, func(t *testing.T) {
+			config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
+endpoints:
+  - name: website
+    url: https://example.com
+    conditions:
+      - '[BODY] == %s'
+`, tc.value)))
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := string(config.Endpoints[0].Conditions[0]); got != "[BODY] == "+tc.want {
+				t.Errorf("condition = %q, want %q", got, "[BODY] == "+tc.want)
+			}
+		})
+	}
+}
+
 func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(``))
 	if !errors.Is(err, ErrNoEndpointOrSuiteInConfig) {

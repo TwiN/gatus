@@ -3456,6 +3456,18 @@ web:
 ui:
   title: $TITLE
 ```
+You can also provide a default value that is used when the variable is unset or empty:
+```yaml
+web:
+  port: ${PORT:-8081}
+
+ui:
+  title: ${TITLE:-Gatus}
+```
+Only the `${VAR:-default}` form is supported; `${VAR-default}` and nested variable
+expansion inside defaults are not supported. Environment values and defaults are
+inserted without expanding any `$VAR` they contain. Expansion happens before YAML
+parsing, so the resulting configuration must still be valid YAML.
 ⚠️ When your configuration parameter contains a `$` symbol, you have to escape `$` with `$$`.
 
 ### Configuring a startup delay

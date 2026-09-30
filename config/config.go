@@ -45,6 +45,21 @@ const (
 	DefaultConcurrency = 3
 )
 
+// expandEnvironmentVariablesWithDefaults expands environment variables and
+// ${VARIABLE:-default} in one pass, without re-expanding replacement values.
+// This runs before YAML parsing, so YAML quoting and escaping rules still apply.
+func expandEnvironmentVariablesWithDefaults(value string) string {
+	return os.Expand(value, func(name string) string {
+		if variable, defaultValue, ok := strings.Cut(name, ":-"); ok {
+			if resolved := os.Getenv(variable); resolved != "" {
+				return resolved
+			}
+			return defaultValue
+		}
+		return os.Getenv(name)
+	})
+}
+
 var (
 	// ErrNoEndpointOrSuiteInConfig is an error returned when a configuration file or directory has no endpoints configured
 	ErrNoEndpointOrSuiteInConfig = errors.New("configuration should contain at least one endpoint or suite")
@@ -280,11 +295,12 @@ func walkConfigDir(path string, fn fs.WalkDirFunc) error {
 
 // parseAndValidateConfigBytes parses a Gatus configuration file into a Config struct and validates its parameters
 func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
-	// Replace $$ with __GATUS_LITERAL_DOLLAR_SIGN__ to prevent os.ExpandEnv from treating "$$" as if it was an
+	// Replace $$ with __GATUS_LITERAL_DOLLAR_SIGN__ to prevent os.Expand from treating "$$" as if it was an
 	// environment variable. This allows Gatus to support literal "$" in the configuration file.
 	yamlBytes = []byte(strings.ReplaceAll(string(yamlBytes), "$$", "__GATUS_LITERAL_DOLLAR_SIGN__"))
-	// Expand environment variables
-	yamlBytes = []byte(os.ExpandEnv(string(yamlBytes)))
+	// Expand environment variables and defaults together so replacement values
+	// containing dollar signs are not expanded a second time.
+	yamlBytes = []byte(expandEnvironmentVariablesWithDefaults(string(yamlBytes)))
 	// Replace __GATUS_LITERAL_DOLLAR_SIGN__ with "$" to restore the literal "$" in the configuration file
 	yamlBytes = []byte(strings.ReplaceAll(string(yamlBytes), "__GATUS_LITERAL_DOLLAR_SIGN__", "$"))
 	// Parse configuration file
