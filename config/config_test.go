@@ -358,6 +358,70 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
 			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because a new file has been added in the directory")
 		}
 	})
+	t.Run("config-directory-file-removed", func(t *testing.T) {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(`endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`), 0o644); err != nil {
+			t.Fatalf("failed to write config file: %v", err)
+		}
+		if err := os.WriteFile(filepath.Join(dir, "other.yaml"), []byte(`endpoints:
+  - name: other
+    url: https://example.org/health
+    conditions:
+      - "[STATUS] == 200"
+`), 0o644); err != nil {
+			t.Fatalf("failed to write config file: %v", err)
+		}
+		config, err := LoadConfiguration(dir)
+		if err != nil {
+			t.Fatalf("failed to load configuration: %v", err)
+		}
+		if config.HasLoadedConfigurationBeenModified() {
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return false because nothing has happened since it was created")
+		}
+		if err = os.Remove(filepath.Join(dir, "other.yaml")); err != nil {
+			t.Fatalf("failed to remove config file: %v", err)
+		}
+		if !config.HasLoadedConfigurationBeenModified() {
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because a file has been removed from the directory")
+		}
+		// Invalid configuration updates are skipped by calling UpdateLastFileModTime, which must not make the
+		// removed file look like a new change on every subsequent check
+		config.UpdateLastFileModTime()
+		if config.HasLoadedConfigurationBeenModified() {
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return false because the change has already been processed")
+		}
+	})
+	t.Run("config-directory-file-added-with-old-mod-time", func(t *testing.T) {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(`endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`), 0o644); err != nil {
+			t.Fatalf("failed to write config file: %v", err)
+		}
+		config, err := LoadConfiguration(dir)
+		if err != nil {
+			t.Fatalf("failed to load configuration: %v", err)
+		}
+		// Copying a file while preserving its timestamps (e.g. cp -p) gives it a modification time in the past
+		if err = os.WriteFile(filepath.Join(dir, "metrics.yaml"), []byte(`metrics: true`), 0o644); err != nil {
+			t.Fatalf("failed to add config file: %v", err)
+		}
+		past := time.Now().Add(-time.Hour)
+		if err = os.Chtimes(filepath.Join(dir, "metrics.yaml"), past, past); err != nil {
+			t.Fatalf("failed to set config file mod time: %v", err)
+		}
+		if !config.HasLoadedConfigurationBeenModified() {
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because a new file has been added in the directory")
+		}
+	})
 }
 
 func TestParseAndValidateConfigBytes(t *testing.T) {
