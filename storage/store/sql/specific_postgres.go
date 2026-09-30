@@ -124,5 +124,11 @@ func (s *Store) createPostgresSchema() error {
 	_, _ = s.db.Exec(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_endpoint_result_conditions_endpoint_result_id ON endpoint_result_conditions (endpoint_result_id)`)
 	// Create index for endpoint_results
 	_, _ = s.db.Exec(`CREATE INDEX CONCURRENTLY IF NOT EXISTS idx_endpoint_results_endpoint_id ON endpoint_results (endpoint_id)`)
+
+	// Create public column on status and endpoints
+	_, _ = s.db.Exec(`ALTER TABLE endpoints ADD COLUMN endpoint_public BOOLEAN DEFAULT FALSE;`)
+	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD COLUMN endpoint_public BOOLEAN DEFAULT FALSE;`)
+	_, _ = s.db.Exec(`ALTER TABLE suites ADD COLUMN suite_public BOOLEAN DEFAULT FALSE;`)
+	_, _ = s.db.Exec(`ALTER TABLE suite_results ADD COLUMN suite_public BOOLEAN DEFAULT FALSE;`)
 	return err
 }

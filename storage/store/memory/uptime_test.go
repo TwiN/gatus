@@ -10,7 +10,7 @@ import (
 
 func TestProcessUptimeAfterResult(t *testing.T) {
 	ep := &endpoint.Endpoint{Name: "name", Group: "group"}
-	status := endpoint.NewStatus(ep.Group, ep.Name)
+	status := endpoint.NewStatus(ep.Group, ep.Name, false)
 	uptime := status.Uptime
 
 	now := time.Now()
@@ -45,7 +45,7 @@ func TestProcessUptimeAfterResult(t *testing.T) {
 
 func TestAddResultUptimeIsCleaningUpAfterItself(t *testing.T) {
 	ep := &endpoint.Endpoint{Name: "name", Group: "group"}
-	status := endpoint.NewStatus(ep.Group, ep.Name)
+	status := endpoint.NewStatus(ep.Group, ep.Name, false)
 	now := time.Now()
 	now = time.Date(now.Year(), now.Month(), now.Day(), now.Hour(), 0, 0, 0, now.Location())
 	// Start 12 days ago
