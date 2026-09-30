@@ -1,6 +1,8 @@
 package metrics
 
 import (
+	"time"
+
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/maintenance"
@@ -33,28 +35,29 @@ func (c *endpointMaintenanceCollector) Describe(ch chan<- *prometheus.Desc) {
 }
 
 func (c *endpointMaintenanceCollector) Collect(ch chan<- prometheus.Metric) {
-	globalMaintenance := c.config.Maintenance != nil && c.config.Maintenance.IsUnderMaintenance()
+	now := time.Now()
+	globalMaintenance := c.config.Maintenance != nil && c.config.Maintenance.IsUnderMaintenanceAt(now)
 	for _, ep := range c.config.Endpoints {
 		if ep.IsEnabled() {
-			c.collectEndpoint(ch, ep, ep.MaintenanceWindows, globalMaintenance)
+			c.collectEndpoint(ch, ep, ep.MaintenanceWindows, globalMaintenance, now)
 		}
 	}
 	for _, ep := range c.config.ExternalEndpoints {
 		if ep.IsEnabled() {
 			// Copy only static identity fields, not the counters updated by the watchdog.
 			converted := &endpoint.Endpoint{Name: ep.Name, Group: ep.Group}
-			c.collectEndpoint(ch, converted, ep.MaintenanceWindows, globalMaintenance)
+			c.collectEndpoint(ch, converted, ep.MaintenanceWindows, globalMaintenance, now)
 		}
 	}
 }
 
-func (c *endpointMaintenanceCollector) collectEndpoint(ch chan<- prometheus.Metric, ep *endpoint.Endpoint, windows []*maintenance.Config, globalMaintenance bool) {
+func (c *endpointMaintenanceCollector) collectEndpoint(ch chan<- prometheus.Metric, ep *endpoint.Endpoint, windows []*maintenance.Config, globalMaintenance bool, now time.Time) {
 	value := 0.0
 	if globalMaintenance {
 		value = 1
 	} else {
 		for _, window := range windows {
-			if window.IsUnderMaintenance() {
+			if window.IsUnderMaintenanceAt(now) {
 				value = 1
 				break
 			}

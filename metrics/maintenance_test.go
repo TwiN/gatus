@@ -12,6 +12,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/testutil"
+	dto "github.com/prometheus/client_model/go"
 )
 
 func maintenanceWindow(t *testing.T, start string, duration time.Duration) *maintenance.Config {
@@ -117,11 +118,11 @@ gatus_results_endpoint_maintenance{group="",key="_backup",name="backup",team="",
 }
 
 func TestEndpointMaintenanceReload(t *testing.T) {
+	t.Cleanup(UnregisterPrometheusMetrics)
 	reg := prometheus.NewRegistry()
 	InitializePrometheusMetrics(&config.Config{Endpoints: []*endpoint.Endpoint{{Name: "old", URL: "https://example.org"}}}, reg)
 	assertMaintenanceMetric(t, reg, "gatus_results_endpoint_maintenance{group=\"\",key=\"_old\",name=\"old\",type=\"HTTP\"} 0\n")
 	InitializePrometheusMetrics(&config.Config{Endpoints: []*endpoint.Endpoint{{Name: "new", URL: "https://example.org"}}}, reg)
-	t.Cleanup(UnregisterPrometheusMetrics)
 	assertMaintenanceMetric(t, reg, "gatus_results_endpoint_maintenance{group=\"\",key=\"_new\",name=\"new\",type=\"HTTP\"} 0\n")
 	UnregisterPrometheusMetrics()
 	count, err := testutil.GatherAndCount(reg, "gatus_results_endpoint_maintenance")
@@ -130,5 +131,59 @@ func TestEndpointMaintenanceReload(t *testing.T) {
 	}
 	if count != 0 {
 		t.Fatalf("maintenance metric remains registered after shutdown: %d", count)
+	}
+}
+
+// A slow scrape crossing a window boundary must use one timestamp for all endpoints.
+func TestEndpointMaintenanceConsistentScrape(t *testing.T) {
+	for _, external := range []bool{false, true} {
+		t.Run(fmt.Sprintf("external=%v", external), func(t *testing.T) {
+			synctest.Test(t, func(t *testing.T) {
+				window := maintenanceWindow(t, "01:00", time.Hour)
+				cfg := &config.Config{}
+				for i := 0; i < 3; i++ {
+					if external {
+						cfg.ExternalEndpoints = append(cfg.ExternalEndpoints, &endpoint.ExternalEndpoint{
+							Name: fmt.Sprint(i), MaintenanceWindows: []*maintenance.Config{window},
+						})
+					} else {
+						cfg.Endpoints = append(cfg.Endpoints, &endpoint.Endpoint{
+							Name: fmt.Sprint(i), MaintenanceWindows: []*maintenance.Config{window},
+						})
+					}
+				}
+				collector := newEndpointMaintenanceCollector(cfg, nil)
+				time.Sleep(time.Hour - 500*time.Millisecond)
+				ch := make(chan prometheus.Metric)
+				go func() {
+					collector.Collect(ch)
+					close(ch)
+				}()
+				assertValue := func(metric prometheus.Metric, want float64) {
+					t.Helper()
+					sample := &dto.Metric{}
+					if err := metric.Write(sample); err != nil {
+						t.Fatal(err)
+					}
+					if got := sample.GetGauge().GetValue(); got != want {
+						t.Errorf("maintenance = %v, want %v", got, want)
+					}
+				}
+				assertValue(<-ch, 0)
+				// Wait until the second send blocks, then cross the maintenance boundary.
+				synctest.Wait()
+				time.Sleep(time.Second)
+				for metric := range ch {
+					assertValue(metric, 0)
+				}
+				// The next scrape must observe the new state, without retaining a cached value.
+				next := make(chan prometheus.Metric, 3)
+				collector.Collect(next)
+				close(next)
+				for metric := range next {
+					assertValue(metric, 1)
+				}
+			})
+		})
 	}
 }

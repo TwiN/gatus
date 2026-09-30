@@ -2855,12 +2855,12 @@ endpoint on the same port your application is configured to run on (`web.port`).
 `gatus_results_endpoint_maintenance` is evaluated on every scrape for enabled endpoints and external endpoints,
 even before their first result. It is `1` when the global maintenance window or any of the endpoint's
 `maintenance-windows` is active, and `0` otherwise. It includes the same custom labels as the other endpoint metrics
-and does not change `gatus_results_endpoint_success`. Suite and remote-instance endpoints are not included.
+and does not change `gatus_results_endpoint_success`. Missing custom label values are emitted as empty strings.
+Suite and remote-instance endpoints are not included.
 For example, the following PromQL expression selects failed endpoints that are not currently under maintenance:
 
 ```promql
-(gatus_results_endpoint_success == 0)
-  and (gatus_results_endpoint_maintenance == 0)
+(gatus_results_endpoint_success == 0) and (gatus_results_endpoint_maintenance == 0)
 ```
 
 See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafana-prometheus) for further documentation as well as an example.
