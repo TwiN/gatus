@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"net/http"
 	"slices"
 	"time"
 )
@@ -50,6 +51,12 @@ type Result struct {
 	// Note that this field is not persisted in the storage.
 	// It is used for health evaluation as well as debugging purposes.
 	Body []byte `json:"-"`
+
+	// Headers are the HTTP response headers
+	//
+	// Note that this field is not persisted in the storage.
+	// It is only populated if a condition or store mapping uses the HeaderPlaceholder.
+	Headers http.Header `json:"-"`
 
 	///////////////////////////////////////////////////////////////////////
 	// Below is used only for the UI and is not persisted in the storage //

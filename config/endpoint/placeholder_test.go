@@ -123,3 +123,41 @@ func TestResolvePlaceholderWithoutContext(t *testing.T) {
 		})
 	}
 }
+
+func TestParseTimestamp(t *testing.T) {
+	expected := time.Date(2026, 9, 27, 12, 30, 45, 0, time.UTC)
+	scenarios := []struct {
+		name     string
+		value    string
+		layout   string
+		expected time.Time
+		ok       bool
+	}{
+		{"http-date", "Sun, 27 Sep 2026 12:30:45 GMT", "", expected, true},
+		{"rfc850", "Sunday, 27-Sep-26 12:30:45 GMT", "", expected, true},
+		{"ansi-c", "Sun Sep 27 12:30:45 2026", "", expected, true},
+		{"rfc3339", "2026-09-27T12:30:45Z", "", expected, true},
+		{"rfc3339-with-offset", "2026-09-27T14:30:45+02:00", "", expected, true},
+		{"rfc3339-quoted", `"2026-09-27T12:30:45Z"`, "", expected, true},
+		{"epoch-seconds", "1790512245", "", expected, true},
+		{"epoch-seconds-scientific-notation", "1.790512245e+09", "", expected, true},
+		{"epoch-milliseconds", "1790512245000", "", expected, true},
+		{"custom-layout", "2026-09-27 12:30:45", "2006-01-02 15:04:05", expected, true},
+		{"custom-layout-with-timezone", "27/09/2026 14:30:45 +0200", "02/01/2006 15:04:05 -0700", expected, true},
+		{"custom-layout-mismatch", "2026-09-27T12:30:45Z", "2006-01-02 15:04:05", time.Time{}, false},
+		{"garbage", "not-a-date", "", time.Time{}, false},
+		{"empty", "", "", time.Time{}, false},
+		{"negative-epoch", "-1", "", time.Time{}, false},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			actual, ok := parseTimestamp(scenario.value, scenario.layout)
+			if ok != scenario.ok {
+				t.Fatalf("expected ok=%v, got %v", scenario.ok, ok)
+			}
+			if ok && !actual.Equal(scenario.expected) {
+				t.Errorf("expected %s, got %s", scenario.expected, actual)
+			}
+		})
+	}
+}
