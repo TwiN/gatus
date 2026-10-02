@@ -70,6 +70,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring IFTTT alerts](#configuring-ifttt-alerts)
     - [Configuring Ilert alerts](#configuring-ilert-alerts)
     - [Configuring Incident.io alerts](#configuring-incidentio-alerts)
+    - [Configuring Jira alerts](#configuring-jira-alerts)
     - [Configuring Line alerts](#configuring-line-alerts)
     - [Configuring Matrix alerts](#configuring-matrix-alerts)
     - [Configuring Mattermost alerts](#configuring-mattermost-alerts)
@@ -852,6 +853,7 @@ endpoints:
 | `alerting.ifttt`           | Configuration for alerts of type `ifttt`. <br />See [Configuring IFTTT alerts](#configuring-ifttt-alerts).                              | `{}`    |
 | `alerting.ilert`           | Configuration for alerts of type `ilert`. <br />See [Configuring ilert alerts](#configuring-ilert-alerts).                              | `{}`    |
 | `alerting.incident-io`     | Configuration for alerts of type `incident-io`. <br />See [Configuring Incident.io alerts](#configuring-incidentio-alerts).             | `{}`    |
+| `alerting.jira`            | Configuration for alerts of type `jira`. <br />See [Configuring Jira alerts](#configuring-jira-alerts).                                 | `{}`    |
 | `alerting.line`            | Configuration for alerts of type `line`. <br />See [Configuring Line alerts](#configuring-line-alerts).                                 | `{}`    |
 | `alerting.matrix`          | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                           | `{}`    |
 | `alerting.mattermost`      | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).               | `{}`    |
@@ -1550,6 +1552,50 @@ endpoints:
 In order to get the required alert source config id and authentication token, you must configure an HTTP alert source.
 
 > **_NOTE:_**  the source config id is of the form `https://api.incident.io/v2/alert_events/http/$ID` and the token is expected to be passed as a bearer token like so: `Authorization: Bearer $TOKEN`
+
+
+#### Configuring Jira alerts
+
+| Parameter                             | Description                                                                                  | Default       |
+|:--------------------------------------|:---------------------------------------------------------------------------------------------|:--------------|
+| `alerting.jira`                       | Configuration for alerts of type `jira`                                                      | `{}`          |
+| `alerting.jira.base-url`              | Base URL of the Jira instance (e.g. `https://your-domain.atlassian.net`)                     | Required `""` |
+| `alerting.jira.username`             | Account email used for authentication                                                        | Required `""` |
+| `alerting.jira.token`                 | API token paired with the username                                                           | Required `""` |
+| `alerting.jira.project-key`           | Key of the project to create issues in (e.g. `OPS`)                                          | Required `""` |
+| `alerting.jira.issue-type`            | Type of issue to create                                                                      | `"Task"`      |
+| `alerting.jira.resolve-transition`    | Name of the transition used to close the issue when the alert is resolved                    | `"Done"`      |
+| `alerting.jira.default-alert`         | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert).  | N/A           |
+
+The Jira alerting provider creates an issue with a summary prefixed with `alert(gatus):` and suffixed with the
+endpoint's display name for each alert. If `send-on-resolved` is set to `true` on the endpoint alert, the matching
+open issue(s) will be transitioned using `resolve-transition` when the alert is resolved. Authentication uses basic
+auth with your account email and an API token, which you can create at
+https://id.atlassian.com/manage-profile/security/api-tokens.
+
+```yaml
+alerting:
+  jira:
+    base-url: "https://your-domain.atlassian.net"
+    username: "you@example.com"
+    token: "your-api-token"
+    project-key: "OPS"
+
+endpoints:
+  - name: example
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 75"
+    alerts:
+      - type: jira
+        failure-threshold: 2
+        success-threshold: 3
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
 
 
 #### Configuring Line alerts
