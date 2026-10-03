@@ -32,6 +32,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
 	"github.com/TwiN/gatus/v5/alerting/provider/plivo"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
+	"github.com/TwiN/gatus/v5/alerting/provider/resend"
 	"github.com/TwiN/gatus/v5/alerting/provider/rocketchat"
 	"github.com/TwiN/gatus/v5/alerting/provider/sendgrid"
 	"github.com/TwiN/gatus/v5/alerting/provider/signal"
@@ -129,6 +130,9 @@ type Config struct {
 
 	// Pushover is the configuration for the pushover alerting provider
 	Pushover *pushover.AlertProvider `yaml:"pushover,omitempty"`
+
+	// Resend is the configuration for the resend alerting provider
+	Resend *resend.AlertProvider `yaml:"resend,omitempty"`
 
 	// RocketChat is the configuration for the rocketchat alerting provider
 	RocketChat *rocketchat.AlertProvider `yaml:"rocketchat,omitempty"`
