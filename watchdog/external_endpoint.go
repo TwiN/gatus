@@ -8,19 +8,39 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
+	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/logr"
 )
 
 func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config.Config, extraLabels []string, ctx context.Context) {
-	ticker := time.NewTicker(ee.Heartbeat.Interval)
-	defer ticker.Stop()
+	// Calculate how long until the heartbeat deadline based on the last push stored in the DB.
+	// This ensures that a restart doesn't reset the clock — if a push was already overdue, we
+	// fire immediately rather than waiting a full interval from now.
+	initialDelay := ee.Heartbeat.Interval
+	if status, err := store.Get().GetEndpointStatusByKey(ee.Key(), paging.NewEndpointStatusParams().WithResults(1, 1)); err == nil && len(status.Results) > 0 {
+		lastSeen := status.Results[len(status.Results)-1].Timestamp
+		remaining := time.Until(lastSeen.Add(ee.Heartbeat.Interval))
+		if remaining <= 0 {
+			initialDelay = 0
+		} else {
+			initialDelay = remaining
+		}
+	}
+	if initialDelay == 0 {
+		// Already overdue — check immediately, then fall into the regular ticker cadence.
+		executeExternalEndpointHeartbeat(ee, cfg, extraLabels)
+		initialDelay = ee.Heartbeat.Interval
+	}
+	timer := time.NewTimer(initialDelay)
+	defer timer.Stop()
 	for {
 		select {
 		case <-ctx.Done():
 			logr.Warnf("[watchdog.monitorExternalEndpointHeartbeat] Canceling current execution of group=%s; endpoint=%s; key=%s", ee.Group, ee.Name, ee.Key())
 			return
-		case <-ticker.C:
+		case <-timer.C:
 			executeExternalEndpointHeartbeat(ee, cfg, extraLabels)
+			timer.Reset(ee.Heartbeat.Interval)
 		}
 	}
 }
