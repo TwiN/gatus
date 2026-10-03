@@ -97,10 +97,18 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 
 // AdaptiveCardBody represents the structure of an Adaptive Card
 type AdaptiveCardBody struct {
-	Type    string      `json:"type"`
-	Version string      `json:"version"`
-	Body    []CardBody  `json:"body"`
-	MSTeams MSTeamsBody `json:"msteams"`
+	Type    string          `json:"type"`
+	Version string          `json:"version"`
+	Body    []CardBody      `json:"body"`
+	MSTeams MSTeamsBody     `json:"msteams"`
+	Actions []OpenURLAction `json:"actions,omitempty"`
+}
+
+// OpenURLAction opens the monitored endpoint from an Adaptive Card.
+type OpenURLAction struct {
+	Type  string `json:"type"`
+	Title string `json:"title"`
+	URL   string `json:"url"`
 }
 
 // CardBody represents the body of the Adaptive Card
@@ -210,6 +218,10 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		MSTeams: MSTeamsBody{
 			Width: "Full",
 		},
+	}
+
+	if endpointURL := ep.NotificationURL(); endpointURL != "" {
+		cardContent.Actions = []OpenURLAction{{Type: "Action.OpenUrl", Title: "Open endpoint", URL: endpointURL}}
 	}
 
 	attachment := map[string]interface{}{
