@@ -20,6 +20,9 @@ import { generatePrettyTimeDifference } from '@/utils/time'
 import { formatDuration } from '@/utils/format'
 import Loading from './Loading.vue'
 
+// Chart values are in milliseconds, formatDuration expects nanoseconds
+const formatMilliseconds = (ms) => formatDuration(ms * 1000000)
+
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, TimeScale, annotationPlugin)
 
 const props = defineProps({
@@ -169,8 +172,7 @@ const chartOptions = computed(() => {
             return ''
           },
           label: (context) => {
-            const value = context.parsed.y
-            return formatDuration(value * 1000000)
+            return formatMilliseconds(context.parsed.y)
           }
         }
       },
@@ -250,7 +252,7 @@ const chartOptions = computed(() => {
         },
         ticks: {
           color: isDark.value ? '#9ca3af' : '#6b7280',
-          callback: (value) => formatDuration(value * 1000000)
+          callback: formatMilliseconds
         }
       }
     }
