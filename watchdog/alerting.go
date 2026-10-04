@@ -93,25 +93,32 @@ func handleAlertsToResolve(ep *endpoint.Endpoint, result *endpoint.Result, alert
 		if !endpointAlert.IsEnabled() || !endpointAlert.Triggered || isStillBelowSuccessThreshold {
 			continue
 		}
-		// Even if the alert provider returns an error, we still set the alert's Triggered variable to false.
-		// Further explanation can be found on Alert's Triggered field.
+		if endpointAlert.IsSendingOnResolved() {
+			alertProvider := alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type)
+			if alertProvider == nil {
+				logr.Warnf("[watchdog.handleAlertsToResolve] Keeping alert of type=%s for endpoint with key=%s pending because the provider wasn't configured properly", endpointAlert.Type, ep.Key())
+				continue
+			}
+			logr.Infof("[watchdog.handleAlertsToResolve] Sending %s alert because alert for endpoint with key=%s with description='%s' has been RESOLVED", endpointAlert.Type, ep.Key(), endpointAlert.GetDescription())
+			var err error
+			if os.Getenv("MOCK_ALERT_PROVIDER") == "true" {
+				if os.Getenv("MOCK_ALERT_PROVIDER_ERROR") == "true" {
+					err = errors.New("error")
+				}
+			} else {
+				err = alertProvider.Send(ep, endpointAlert, result, true)
+			}
+			if err != nil {
+				logr.Errorf("[watchdog.handleAlertsToResolve] Failed to send resolved alert for endpoint with key=%s; retrying on the next successful evaluation: %s", ep.Key(), err.Error())
+				continue
+			}
+		} else {
+			logr.Debugf("[watchdog.handleAlertsToResolve] Not sending request to provider of alert with type=%s for endpoint with key=%s despite being RESOLVED, because send-on-resolved is set to false", endpointAlert.Type, ep.Key())
+		}
+		// Clear only after delivery succeeds (or resolved notifications are disabled).
 		endpointAlert.Triggered = false
 		if err := store.Get().DeleteTriggeredEndpointAlert(ep, endpointAlert); err != nil {
 			logr.Errorf("[watchdog.handleAlertsToResolve] Failed to delete persisted triggered endpoint alert for endpoint with key=%s: %s", ep.Key(), err.Error())
-		}
-		if !endpointAlert.IsSendingOnResolved() {
-			logr.Debugf("[watchdog.handleAlertsToResolve] Not sending request to provider of alert with type=%s for endpoint with key=%s despite being RESOLVED, because send-on-resolved is set to false", endpointAlert.Type, ep.Key())
-			continue
-		}
-		alertProvider := alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type)
-		if alertProvider != nil {
-			logr.Infof("[watchdog.handleAlertsToResolve] Sending %s alert because alert for endpoint with key=%s with description='%s' has been RESOLVED", endpointAlert.Type, ep.Key(), endpointAlert.GetDescription())
-			err := alertProvider.Send(ep, endpointAlert, result, true)
-			if err != nil {
-				logr.Errorf("[watchdog.handleAlertsToResolve] Failed to send an alert for endpoint with key=%s: %s", ep.Key(), err.Error())
-			}
-		} else {
-			logr.Warnf("[watchdog.handleAlertsToResolve] Not sending alert of type=%s for endpoint with key=%s despite being RESOLVED, because the provider wasn't configured properly", endpointAlert.Type, ep.Key())
 		}
 	}
 	ep.NumberOfFailuresInARow = 0
