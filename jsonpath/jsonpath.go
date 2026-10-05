@@ -9,10 +9,7 @@ import (
 
 // Eval is a half-baked json path implementation that needs some love
 //
-// Beyond plain dotted keys and [N] array indices, it supports a single
-// gjson-style query segment for selecting one element out of an array of
-// objects by a field's value: arrayField.#(key=="value").remainingPath.
-// See queryArray for the exact syntax and its limitations.
+// Also supports #(key=="value") array queries; see queryArray.
 func Eval(path string, b []byte) (string, int, error) {
 	if len(path) == 0 && !(len(b) != 0 && b[0] == '[' && b[len(b)-1] == ']') {
 		// if there's no path AND the value is not a JSON array, then there's nothing to walk
@@ -106,7 +103,8 @@ func isQuerySegment(segment string) bool {
 // selecting all matches) -- just enough to pick a single named element (e.g.
 // a component) out of the kind of array returned by any Atlassian-
 // Statuspage-compatible components.json endpoint, which is the motivating
-// use case. Root-level array queries (a query as the very first path
+// use case. The comparison is on the field's fmt "%v" formatting, so 1 and 1.0
+// are indistinguishable, and unset or null fields never match. Root-level array queries (a query as the very first path
 // segment, with no preceding field name) aren't supported either -- in
 // practice a query always follows the array field it selects from.
 func queryArray(segment string, array []interface{}) (map[string]interface{}, error) {

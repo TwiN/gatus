@@ -271,6 +271,14 @@ func TestEval(t *testing.T) {
 			ExpectedError:        false,
 		},
 		{
+			Name:                 "query-followed-by-field-and-bracket-index",
+			Path:                 `components.#(name=="B").tags[1]`,
+			Data:                 `{"components": [{"name": "A", "tags": ["x"]}, {"name": "B", "tags": ["y", "z"]}]}`,
+			ExpectedOutput:       "z",
+			ExpectedOutputLength: 1,
+			ExpectedError:        false,
+		},
+		{
 			Name:                 "query-against-unset-field-does-not-match-nil",
 			Path:                 `components.#(status=="<nil>").name`,
 			Data:                 `{"components": [{"name": "A"}]}`,
