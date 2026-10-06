@@ -141,6 +141,7 @@ func TestParseTimestamp(t *testing.T) {
 		{"rfc3339-quoted", `"2026-09-27T12:30:45Z"`, "", expected, true},
 		{"epoch-seconds", "1790512245", "", expected, true},
 		{"epoch-seconds-scientific-notation", "1.790512245e+09", "", expected, true},
+		{"epoch-seconds-fractional", "1790512245.5", "", expected.Add(500 * time.Millisecond), true},
 		{"epoch-milliseconds", "1790512245000", "", expected, true},
 		{"custom-layout", "2026-09-27 12:30:45", "2006-01-02 15:04:05", expected, true},
 		{"custom-layout-with-timezone", "27/09/2026 14:30:45 +0200", "02/01/2006 15:04:05 -0700", expected, true},

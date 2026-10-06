@@ -260,6 +260,8 @@ func resolveJSONPathPlaceholder(placeholder string, fn functionType, originalPla
 }
 
 // resolveHeaderPlaceholder handles [HEADER].name placeholders
+//
+// If the header has multiple values, only the first one is used, like http.Header.Get
 func resolveHeaderPlaceholder(placeholder string, fn functionType, originalPlaceholder string, result *Result) string {
 	name := placeholder[len(HeaderPlaceholder)+1:]
 	values := result.Headers.Values(name)
@@ -276,6 +278,12 @@ func resolveHeaderPlaceholder(placeholder string, fn functionType, originalPlace
 // number of milliseconds elapsed since then
 func resolveAgeFunction(arguments, originalPlaceholder string, result *Result, ctx *gontext.Gontext) (string, error) {
 	placeholder, layout, _ := strings.Cut(arguments, ",")
+	// Other placeholders don't resolve into timestamps (e.g. [CERTIFICATE_EXPIRATION] is a duration), so the result
+	// would be meaningless
+	uppercasePlaceholder := strings.ToUpper(strings.TrimSpace(placeholder))
+	if !strings.HasPrefix(uppercasePlaceholder, BodyPlaceholder) && !strings.HasPrefix(uppercasePlaceholder, HeaderPlaceholder+".") && !strings.HasPrefix(uppercasePlaceholder, ContextPlaceholder+".") {
+		return originalPlaceholder + " " + InvalidConditionElementSuffix, fmt.Errorf("%s: %s only supports the %s, %s and %s placeholders", originalPlaceholder, strings.TrimSuffix(AgeFunctionPrefix, "("), BodyPlaceholder, HeaderPlaceholder, ContextPlaceholder)
+	}
 	value, err := ResolvePlaceholder(placeholder, result, ctx)
 	if err != nil || strings.HasSuffix(value, InvalidConditionElementSuffix) {
 		return originalPlaceholder + " " + InvalidConditionElementSuffix, err
@@ -303,12 +311,12 @@ func parseTimestamp(value, layout string) (time.Time, bool) {
 	}
 	// JSON numbers may be rendered in scientific notation (e.g. 1.7274e+09), so they're parsed as floats
 	if epoch, err := strconv.ParseFloat(value, 64); err == nil && epoch > 0 && !math.IsInf(epoch, 0) {
-		// Anything past year 33658 in seconds is assumed to be in milliseconds
+		// Values below 1e12 are assumed to be in seconds, and anything else in milliseconds: 1e12 seconds is around the
+		// year 33658, whereas 1e12 milliseconds is around the year 2001
 		if epoch >= 1e12 {
 			return time.UnixMilli(int64(epoch)), true
 		}
-		seconds, fraction := math.Modf(epoch)
-		return time.Unix(int64(seconds), int64(fraction*float64(time.Second))), true
+		return time.UnixMicro(int64(epoch * 1e6)), true
 	}
 	return time.Time{}, false
 }

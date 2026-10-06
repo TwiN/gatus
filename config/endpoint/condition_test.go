@@ -875,6 +875,7 @@ func TestCondition_evaluateWithHeaderAndAge(t *testing.T) {
 		"X-Garbage":     []string{"not-a-date"},
 		"X-Updated":     []string{fresh.UTC().Format("02/01/2006 15:04:05")},
 		"X-Updated-Old": []string{stale.UTC().Format("02/01/2006 15:04:05")},
+		"X-Multiple":    []string{stale.UTC().Format(http.TimeFormat), fresh.UTC().Format(http.TimeFormat)},
 	}
 	scenarios := []struct {
 		Name            string
@@ -1075,6 +1076,25 @@ func TestCondition_evaluateWithHeaderAndAge(t *testing.T) {
 			ExpectedOutput:  "age([BODY].updated_at, 2006-01-02) (INVALID) < 10m",
 		},
 		{
+			Name:            "header-multiple-values-uses-first",
+			Condition:       Condition("[HEADER].X-Multiple == " + stale.UTC().Format(http.TimeFormat)),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: true,
+		},
+		{
+			Name:            "age-header-multiple-values-uses-first",
+			Condition:       Condition("age([HEADER].X-Multiple) < 10m"),
+			Result:          &Result{Headers: headers},
+			ExpectedSuccess: false,
+		},
+		{
+			Name:            "age-unsupported-placeholder",
+			Condition:       Condition("age([CERTIFICATE_EXPIRATION]) < 10m"),
+			Result:          &Result{CertificateExpiration: time.Hour},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "age([CERTIFICATE_EXPIRATION]) (INVALID) < 10m",
+		},
+		{
 			Name:            "age-body-missing",
 			Condition:       Condition("age([BODY].updated_at) < 10m"),
 			Result:          &Result{Body: []byte(`{}`)},
@@ -1096,9 +1116,14 @@ func TestCondition_evaluateWithHeaderAndAge(t *testing.T) {
 }
 
 func TestCondition_ValidateWithHeaderAndAge(t *testing.T) {
-	for _, condition := range []Condition{"[HEADER].Content-Type == application/json", "age([HEADER].Last-Modified) < 10m", "age([BODY].updated_at, 2006-01-02 15:04:05) < 1h"} {
+	for _, condition := range []Condition{"[HEADER].Content-Type == application/json", "age([HEADER].Last-Modified) < 10m", "age([BODY].updated_at, 2006-01-02 15:04:05) < 1h", "age([BODY]) < 1h", "age([CONTEXT].updated_at) < 1h"} {
 		if err := condition.Validate(); err != nil {
 			t.Errorf("expected condition '%s' to be valid, got %v", condition, err)
+		}
+	}
+	for _, condition := range []Condition{"age([CERTIFICATE_EXPIRATION]) < 10m", "age([STATUS]) < 10m", "age([HEADER]) < 10m", "age(len([BODY].items)) < 10m", "age(2026-09-27T12:30:45Z) < 10m"} {
+		if err := condition.Validate(); err == nil {
+			t.Errorf("expected condition '%s' to be invalid", condition)
 		}
 	}
 }
