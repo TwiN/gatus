@@ -109,6 +109,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Remote instances (EXPERIMENTAL)](#remote-instances-experimental)
 - [Deployment](#deployment)
   - [Docker](#docker)
+    - [Health check](#health-check)
   - [Helm Chart](#helm-chart)
   - [Terraform](#terraform)
     - [Kubernetes](#kubernetes)
@@ -2946,6 +2947,28 @@ To build the image locally:
 ```console
 docker build . -t ghcr.io/twin/gatus:stable
 ```
+
+#### Health check
+The image is built from scratch, so it doesn't come with a shell, `curl` or `wget`. Instead, the `gatus` binary has a
+`healthcheck` subcommand, which reads the same configuration as the server to find out where it's listening (respecting
+`web.address`, `web.port` and `web.tls`), queries its `/health` endpoint and exits with `0` if it's healthy or `1` if not.
+
+The image already declares a `HEALTHCHECK` using that subcommand, so Docker reports the container's health out of the box.
+If you want to tune it, for instance with Docker Compose:
+```yaml
+services:
+  gatus:
+    image: ghcr.io/twin/gatus:stable
+    healthcheck:
+      test: ["CMD", "/gatus", "healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+```
+
+Note that the test must use the exec form (`CMD`) rather than the shell form (`CMD-SHELL`), since there's no shell in the image.
+If you use `GATUS_DELAY_START_SECONDS`, make sure `start_period` is longer than the delay.
 
 
 ### Helm Chart
