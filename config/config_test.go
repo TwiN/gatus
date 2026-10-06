@@ -2455,6 +2455,49 @@ suites:
 	}
 }
 
+func TestParseAndValidateConfigBytesWithSuitesAndDefaultAlert(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  custom:
+    url: "https://example.com/alert"
+    default-alert:
+      send-on-resolved: true
+      failure-threshold: 1
+      success-threshold: 1
+
+suites:
+  - name: my-suite
+    group: testing
+    endpoints:
+      - name: step1
+        url: https://example.com/step1
+        conditions:
+          - "[STATUS] == 200"
+        alerts:
+          - type: custom
+`))
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	suiteEndpoint := config.Suites[0].Endpoints[0]
+	if len(suiteEndpoint.Alerts) != 1 {
+		t.Fatalf("expected 1 alert, got %d", len(suiteEndpoint.Alerts))
+	}
+	suiteEndpointAlert := suiteEndpoint.Alerts[0]
+	if !suiteEndpointAlert.IsEnabled() {
+		t.Error("expected the suite endpoint alert to be enabled")
+	}
+	if !suiteEndpointAlert.IsSendingOnResolved() {
+		t.Error("expected the suite endpoint alert to inherit send-on-resolved from the default alert")
+	}
+	if suiteEndpointAlert.FailureThreshold != 1 {
+		t.Errorf("expected the suite endpoint alert to inherit a failure threshold of 1 from the default alert, got %d", suiteEndpointAlert.FailureThreshold)
+	}
+	if suiteEndpointAlert.SuccessThreshold != 1 {
+		t.Errorf("expected the suite endpoint alert to inherit a success threshold of 1 from the default alert, got %d", suiteEndpointAlert.SuccessThreshold)
+	}
+}
+
 func TestValidateTunnelingConfig(t *testing.T) {
 	tests := []struct {
 		name    string
