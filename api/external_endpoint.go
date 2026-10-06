@@ -42,7 +42,7 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			logr.Errorf("[api.CreateExternalEndpointResult] Invalid token for external endpoint with key=%s", key)
 			return c.Status(401).SendString("invalid token")
 		}
-		// Persist the result in the storage
+		// Build the result from the query parameters
 		result := &endpoint.Result{
 			Timestamp: time.Now(),
 			Success:   c.QueryBool("success"),
@@ -59,6 +59,12 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 		if errorFromQuery := c.Query("error"); !result.Success && len(errorFromQuery) > 0 {
 			result.AddError(errorFromQuery)
 		}
+		// Accept but ignore results pushed to a disabled endpoint
+		if !externalEndpoint.IsEnabled() {
+			logr.Debugf("[api.CreateExternalEndpointResult] Ignoring result for disabled external endpoint with key=%s", key)
+			return c.Status(200).SendString("ignored: endpoint disabled")
+		}
+		// Persist the result in the storage
 		convertedEndpoint := externalEndpoint.ToEndpoint()
 		if err := store.Get().InsertEndpointResult(convertedEndpoint, result); err != nil {
 			if errors.Is(err, common.ErrEndpointNotFound) {

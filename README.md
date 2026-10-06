@@ -327,7 +327,7 @@ For instance:
 | Parameter                                 | Description                                                                                                                       | Default        |
 |:------------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------|:---------------|
 | `external-endpoints`                      | List of endpoints to monitor.                                                                                                     | `[]`           |
-| `external-endpoints[].enabled`            | Whether to monitor the endpoint.                                                                                                  | `true`         |
+| `external-endpoints[].enabled`            | Whether to monitor the endpoint. Results pushed to a disabled endpoint are ignored.                                               | `true`         |
 | `external-endpoints[].name`               | Name of the endpoint. Can be anything.                                                                                            | Required `""`  |
 | `external-endpoints[].group`              | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).            | `""`           |
 | `external-endpoints[].token`              | Bearer token required to push status to.                                                                                          | Required `""`  |
