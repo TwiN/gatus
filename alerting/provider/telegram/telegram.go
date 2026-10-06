@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"net/url"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
@@ -107,12 +109,26 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	request.Header.Set("Content-Type", "application/json")
 	response, err := client.GetHTTPClient(cfg.ClientConfig).Do(request)
 	if err != nil {
-		return err
+		return redactTokenFromError(err, cfg.Token)
 	}
 	defer response.Body.Close()
 	if response.StatusCode > 399 {
 		body, _ := io.ReadAll(response.Body)
 		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
+	}
+	return err
+}
+
+// redactTokenFromError replaces the bot token in a *url.Error's URL (and its
+// message string) so the token is never exposed in log output.
+func redactTokenFromError(err error, token string) error {
+	if token == "" {
+		return err
+	}
+	var urlErr *url.Error
+	if errors.As(err, &urlErr) {
+		urlErr.URL = strings.ReplaceAll(urlErr.URL, token, "<redacted>")
+		return urlErr
 	}
 	return err
 }
