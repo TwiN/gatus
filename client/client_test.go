@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/netip"
 	"os"
 	"runtime"
@@ -15,6 +16,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	"github.com/TwiN/gatus/v5/pattern"
 	"github.com/TwiN/gatus/v5/test"
+	"github.com/gorilla/websocket"
 )
 
 func isIgnorableNetworkTestError(err error) bool {
@@ -398,6 +400,37 @@ func TestQueryWebSocket(t *testing.T) {
 	_, _, err = QueryWebSocket("ws://example.org", "body", nil, &Config{Timeout: 2 * time.Second})
 	if err == nil {
 		t.Error("expected an error due to the target not being websocket-friendly")
+	}
+}
+
+func TestQueryWebSocketWithServerThatNeverReplies(t *testing.T) {
+	t.Parallel()
+	upgrader := websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		for {
+			if _, _, err := conn.ReadMessage(); err != nil {
+				return
+			}
+		}
+	}))
+	defer server.Close()
+	done := make(chan error, 1)
+	go func() {
+		_, _, err := QueryWebSocket("ws"+strings.TrimPrefix(server.URL, "http"), "body", nil, &Config{Timeout: 500 * time.Millisecond})
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err == nil || !strings.Contains(err.Error(), "error reading websocket message") || !strings.Contains(err.Error(), "i/o timeout") {
+			t.Errorf("expected a read timeout error, got %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("QueryWebSocket did not return after the configured timeout elapsed")
 	}
 }
 
