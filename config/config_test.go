@@ -37,6 +37,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
 	"github.com/TwiN/gatus/v5/alerting/provider/plivo"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
+	"github.com/TwiN/gatus/v5/alerting/provider/resend"
 	"github.com/TwiN/gatus/v5/alerting/provider/rocketchat"
 	"github.com/TwiN/gatus/v5/alerting/provider/sendgrid"
 	"github.com/TwiN/gatus/v5/alerting/provider/signal"
@@ -1895,6 +1896,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		PagerDuty:             &pagerduty.AlertProvider{},
 		Plivo:                 &plivo.AlertProvider{},
 		Pushover:              &pushover.AlertProvider{},
+		Resend:                &resend.AlertProvider{},
 		RocketChat:            &rocketchat.AlertProvider{},
 		SendGrid:              &sendgrid.AlertProvider{},
 		Signal:                &signal.AlertProvider{},
@@ -1940,6 +1942,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypePagerDuty, expected: alertingConfig.PagerDuty},
 		{alertType: alert.TypePlivo, expected: alertingConfig.Plivo},
 		{alertType: alert.TypePushover, expected: alertingConfig.Pushover},
+		{alertType: alert.TypeResend, expected: alertingConfig.Resend},
 		{alertType: alert.TypeRocketChat, expected: alertingConfig.RocketChat},
 		{alertType: alert.TypeSendGrid, expected: alertingConfig.SendGrid},
 		{alertType: alert.TypeSignal, expected: alertingConfig.Signal},
