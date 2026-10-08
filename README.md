@@ -487,8 +487,23 @@ Here are some examples of conditions you can use:
 | `has([BODY].users) == true`      | JSONPath `$.users` exists                           | `{"users":[]}`             | `{}`             |
 | `[BODY].name == pat(john*)`      | String at JSONPath `$.name` matches pattern `john*` | `{"name":"john.doe"}`      | `{"name":"bob"}` |
 | `[BODY].id == any(1, 2)`         | Value at JSONPath `$.id` is equal to `1` or `2`     | 1, 2                       | 3, 4, 5          |
+| `[BODY].data[*].id == pat(a*)`   | Every element of `$.data` has an `id` matching `a*` | `{"data":[{"id":"a1"},{"id":"a2"}]}` | `{"data":[{"id":"a1"},{"id":"b2"}]}` |
 | `[CERTIFICATE_EXPIRATION] > 48h` | Certificate expiration is more than 48h away        | 49h, 50h, 123h             | 1h, 24h, ...     |
 | `[DOMAIN_EXPIRATION] > 720h`     | The domain must expire in more than 720h            | 4000h                      | 1h, 24h, ...     |
+
+#### Wildcards
+`[*]` can replace an array index in a `[BODY]` path. The condition is then evaluated once for every element of the array, and it only succeeds if **all** of them succeed:
+
+```yaml
+conditions:
+  - "[BODY].networks[*].uplinks[*].status == active"  # Every uplink of every network must be active
+  - "len([BODY].status.servers[*].servererror) == 0"  # Every server must have an empty servererror
+```
+
+- Wildcards can be nested, and `[BODY][*]` can be used when the body itself is an array.
+- An empty or missing array fails the condition, as a response with nothing to check shouldn't be considered healthy.
+- Only the failing elements are listed in the results (e.g. `[BODY].networks[1].uplinks[0].status (failed) == active`).
+- `== ""` doesn't compare against an empty string; use `len(...) == 0` instead.
 
 
 #### Placeholders
