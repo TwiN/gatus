@@ -3,6 +3,8 @@ package telegram
 import (
 	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -194,6 +196,41 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 				t.Error("expected body to be valid JSON, got error:", err.Error())
 			}
 		})
+	}
+}
+
+func TestAlertProvider_Send_TokenNotLeakedOnConnectionFailure(t *testing.T) {
+	t.Parallel()
+	const secretToken = "999999:SECRET-TOKEN-MUST-NOT-LEAK"
+	// Use a server that immediately closes the connection so client.Do returns a *url.Error.
+	ts := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hj, ok := w.(http.Hijacker)
+		if !ok {
+			http.Error(w, "hijack not supported", http.StatusInternalServerError)
+			return
+		}
+		conn, _, _ := hj.Hijack()
+		conn.Close()
+	}))
+	defer ts.Close()
+
+	provider := AlertProvider{DefaultConfig: Config{
+		Token:  secretToken,
+		ID:     "12345678",
+		ApiUrl: ts.URL,
+	}}
+	description := "test"
+	err := provider.Send(
+		&endpoint.Endpoint{Name: "endpoint-name"},
+		&alert.Alert{Description: &description, SuccessThreshold: 1, FailureThreshold: 1},
+		&endpoint.Result{ConditionResults: []*endpoint.ConditionResult{}},
+		false,
+	)
+	if err == nil {
+		t.Fatal("expected an error due to connection failure, got none")
+	}
+	if strings.Contains(err.Error(), secretToken) {
+		t.Errorf("error message must not contain the bot token, got: %s", err.Error())
 	}
 }
 
