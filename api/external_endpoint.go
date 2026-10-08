@@ -12,12 +12,12 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/watchdog"
 	"github.com/TwiN/logr"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 	extraLabels := cfg.GetUniqueExtraMetricLabels()
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		// Check if the success query parameter is present
 		success, exists := c.Queries()["success"]
 		if !exists || (success != "true" && success != "false") {
@@ -45,7 +45,7 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 		// Persist the result in the storage
 		result := &endpoint.Result{
 			Timestamp: time.Now(),
-			Success:   c.QueryBool("success"),
+			Success:   fiber.Query[bool](c, "success"),
 			Errors:    []string{},
 		}
 		if len(c.Query("duration")) > 0 {
