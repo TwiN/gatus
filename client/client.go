@@ -248,7 +248,7 @@ func CanPerformTLS(address string, body string, config *Config) (connected bool,
 
 // CanCreateSSHConnection checks whether a connection can be established and a command can be executed to an address
 // using the SSH protocol.
-func CanCreateSSHConnection(address, username, password, privateKey string, config *Config) (bool, *ssh.Client, error) {
+func CanCreateSSHConnection(address, username, password, privateKey string, passPhrase string, config *Config) (bool, *ssh.Client, error) {
 	var port string
 	if strings.Contains(address, ":") {
 		addressAndPort := strings.Split(address, ":")
@@ -264,11 +264,20 @@ func CanCreateSSHConnection(address, username, password, privateKey string, conf
 	// Build auth methods: prefer parsed private key if provided, fall back to password.
 	var authMethods []ssh.AuthMethod
 	if len(privateKey) > 0 {
-		if signer, err := ssh.ParsePrivateKey([]byte(privateKey)); err == nil {
-			authMethods = append(authMethods, ssh.PublicKeys(signer))
+		var signer ssh.Signer
+		var err error
+
+		if len(passPhrase) > 0 {
+			signer, err = ssh.ParsePrivateKeyWithPassphrase([]byte(privateKey), []byte(passPhrase))
 		} else {
-			return false, nil, fmt.Errorf("invalid private key: %w", err)
+			signer, err = ssh.ParsePrivateKey([]byte(privateKey))
 		}
+
+		if err != nil {
+			return false, nil, fmt.Errorf("invalid private key or passphrase: %w", err)
+		}
+
+		authMethods = append(authMethods, ssh.PublicKeys(signer))
 	}
 	if len(password) > 0 {
 		authMethods = append(authMethods, ssh.Password(password))
