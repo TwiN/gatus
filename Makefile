@@ -49,6 +49,11 @@ frontend-install:
 frontend-build:
 	npm --prefix web/app run build
 
+.PHONY: frontend-test
+frontend-test:
+	npm --prefix web/app run test:unit
+	npm --prefix web/app run lint
+
 .PHONY: frontend-dev
 frontend-dev:
 	npm --prefix web/app run serve
