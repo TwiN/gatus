@@ -1,10 +1,20 @@
 package api
 
 import (
+	"net/url"
 	"strconv"
 
 	"github.com/gofiber/fiber/v2"
 )
+
+func decodeEndpointKeyParam(c *fiber.Ctx) (string, error) {
+	key := c.Params("key")
+	decoded, err := url.PathUnescape(key)
+	if err != nil {
+		return "", err
+	}
+	return decoded, nil
+}
 
 const (
 	// DefaultPage is the default page to use if none is specified or an invalid value is provided
