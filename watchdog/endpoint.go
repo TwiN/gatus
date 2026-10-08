@@ -2,13 +2,23 @@ package watchdog
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/state"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/logr"
+)
+
+type maintenanceStatus int
+
+const (
+	noMaintenance maintenanceStatus = iota
+	endpointMaintenance
+	globalMaintenance
 )
 
 // monitorEndpoint a single endpoint in a loop
@@ -47,6 +57,11 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	}
 	logr.Debugf("[watchdog.executeEndpoint] Monitoring group=%s; endpoint=%s; key=%s", ep.Group, ep.Name, ep.Key())
 	result := ep.EvaluateHealth()
+	maintenanceState := GetMaintenanceStatus(ep, cfg)
+	if maintenanceState != noMaintenance && !result.Success {
+		result.State = state.DefaultMaintenanceStateName
+	}
+	// TODO#227 Evaluate result.Success based on set states' healthiness configuration once that config option is implemented
 	if cfg.Metrics {
 		metrics.PublishMetricsForEndpoint(ep, result, extraLabels)
 	}
@@ -56,19 +71,35 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	} else {
 		logr.Infof("[watchdog.executeEndpoint] Monitored group=%s; endpoint=%s; key=%s; success=%v; errors=%d; duration=%s", ep.Group, ep.Name, ep.Key(), result.Success, len(result.Errors), result.Duration.Round(time.Millisecond))
 	}
-	inEndpointMaintenanceWindow := false
-	for _, maintenanceWindow := range ep.MaintenanceWindows {
-		if maintenanceWindow.IsUnderMaintenance() {
-			logr.Debug("[watchdog.executeEndpoint] Under endpoint maintenance window")
-			inEndpointMaintenanceWindow = true
-		}
-	}
-	if !cfg.Maintenance.IsUnderMaintenance() && !inEndpointMaintenanceWindow {
+	if maintenanceState == noMaintenance {
 		HandleAlerting(ep, result, cfg.Alerting)
 	} else {
-		logr.Debug("[watchdog.executeEndpoint] Not handling alerting because currently in the maintenance window")
+		logr.Debug(fmt.Sprintf("[watchdog.executeEndpoint] Not handling alerting because currently in %s maintenance window", GetMaintenanceStatusName(maintenanceState))) // TODO#227 Not sure if fmt.Sprintf is a good idea here since is not used elsewhere
 	}
 	logr.Debugf("[watchdog.executeEndpoint] Waiting for interval=%s before monitoring group=%s endpoint=%s (key=%s) again", ep.Interval, ep.Group, ep.Name, ep.Key())
+}
+
+func GetMaintenanceStatus(ep *endpoint.Endpoint, cfg *config.Config) maintenanceStatus {
+	if cfg.Maintenance.IsUnderMaintenance() {
+		return globalMaintenance
+	}
+	for _, maintenanceWindow := range ep.MaintenanceWindows {
+		if maintenanceWindow.IsUnderMaintenance() {
+			return endpointMaintenance
+		}
+	}
+	return noMaintenance
+}
+
+func GetMaintenanceStatusName(status maintenanceStatus) string {
+	switch status {
+	case globalMaintenance:
+		return "global"
+	case endpointMaintenance:
+		return "endpoint"
+	default:
+		return "no"
+	}
 }
 
 // UpdateEndpointStatus persists the endpoint result in the storage

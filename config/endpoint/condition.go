@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/gontext"
+	"github.com/TwiN/gatus/v5/config/state"
 	"github.com/TwiN/gatus/v5/pattern"
 )
 
@@ -24,7 +25,7 @@ const (
 type Condition string
 
 // Validate checks if the Condition is valid
-func (c Condition) Validate() error {
+func (c Condition) Validate() error { // TODO#227 Validate conditions with linked states have valid states or just default to error state then?
 	r := &Result{}
 	c.evaluate(r, false, false, nil)
 	if len(r.Errors) != 0 {
@@ -37,6 +38,23 @@ func (c Condition) Validate() error {
 func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, resolveSuccessfulConditions bool, context *gontext.Gontext) bool {
 	condition := string(c)
 	success := false
+
+	var linkedStateName = state.DefaultUnhealthyStateName
+	if strings.Contains(condition, "::") {
+		conditionParts := strings.Split(condition, "::")
+		if len(conditionParts) != 2 { // TODO#227 Not sure if this makes sense. Checking that it is 2 or more should be enough. Then there is no character restriction in the remaining condition.
+			result.AddError(fmt.Sprintf("invalid condition: %s", condition))
+			return false
+		}
+		linkedStateName = strings.TrimSpace(conditionParts[0])
+		conditionPart := strings.TrimSpace(conditionParts[1])
+		if len(linkedStateName) == 0 || len(conditionPart) == 0 {
+			result.AddError(fmt.Sprintf("invalid condition: %s", condition))
+			return false
+		}
+		condition = conditionPart
+	}
+
 	conditionToDisplay := condition
 	shouldResolveCondition := func(success bool) bool {
 		if success {
@@ -87,7 +105,8 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, re
 	if !success {
 		//logr.Debugf("[Condition.evaluate] Condition '%s' did not succeed because '%s' is false", condition, condition)
 	}
-	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success})
+
+	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success, LinkedStateName: linkedStateName})
 	return success
 }
 

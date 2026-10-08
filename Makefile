@@ -6,7 +6,7 @@ install:
 
 .PHONY: run
 run:
-	ENVIRONMENT=dev GATUS_CONFIG_PATH=./config.yaml go run main.go
+	ENVIRONMENT=dev GATUS_LOG_LEVEL=debug GATUS_CONFIG_PATH=./config.yaml go run main.go
 
 .PHONY: run-binary
 run-binary:
