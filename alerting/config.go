@@ -36,6 +36,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/rocketchat"
 	"github.com/TwiN/gatus/v5/alerting/provider/sendgrid"
 	"github.com/TwiN/gatus/v5/alerting/provider/signal"
+	"github.com/TwiN/gatus/v5/alerting/provider/signalgrid"
 	"github.com/TwiN/gatus/v5/alerting/provider/signl4"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
 	"github.com/TwiN/gatus/v5/alerting/provider/splunk"
@@ -142,6 +143,9 @@ type Config struct {
 
 	// Signal is the configuration for the signal alerting provider
 	Signal *signal.AlertProvider `yaml:"signal,omitempty"`
+
+	// Signalgrid is the configuration for the signalgrid alerting provider
+	Signalgrid *signalgrid.AlertProvider `yaml:"signalgrid,omitempty"`
 
 	// SIGNL4 is the configuration for the signl4 alerting provider
 	SIGNL4 *signl4.AlertProvider `yaml:"signl4,omitempty"`
