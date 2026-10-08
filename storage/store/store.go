@@ -136,6 +136,9 @@ func Initialize(cfg *storage.Config) error {
 		logr.Infof("[store.Initialize] Creating storage provider of type=%s", cfg.Type)
 	}
 	ctx, cancelFunc = context.WithCancel(context.Background())
+	// Configure how long uptime data is retained (defaults to 30 days when unset).
+	sql.SetUptimeRetention(cfg.UptimeRetention)
+	memory.SetUptimeRetention(cfg.UptimeRetention)
 	switch cfg.Type {
 	case storage.TypeSQLite, storage.TypePostgres:
 		store, err = sql.NewStore(string(cfg.Type), cfg.Path, cfg.Caching, cfg.MaximumNumberOfResults, cfg.MaximumNumberOfEvents)
