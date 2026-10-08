@@ -1,9 +1,12 @@
 package client
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
+	"fmt"
 	"io"
+	"net"
 	"net/http"
 	"net/netip"
 	"os"
@@ -244,6 +247,74 @@ func TestCanPerformStartTLS(t *testing.T) {
 				t.Errorf("CanPerformStartTLS() connected=%v, wantConnected=%v", connected, tt.wantConnected)
 			}
 		})
+	}
+}
+
+func TestCanPerformStartTLSClosesConnectionGracefully(t *testing.T) {
+	// startTLSTestTimeout is used both as the client's dial/read timeout and as the deadline for
+	// observing the server-side close. It's generous enough to avoid flakiness on a slow CI runner
+	// while still failing the test quickly if the connection is never closed.
+	const startTLSTestTimeout = 5 * time.Second
+	cert, err := tls.LoadX509KeyPair("../testdata/cert.pem", "../testdata/cert.key")
+	if err != nil {
+		t.Fatal(err)
+	}
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+	// serverCloseErr receives the error observed by the server when reading from the connection
+	// after the STARTTLS handshake completes. A graceful shutdown (i.e. the client sending a TLS
+	// close_notify alert) surfaces as io.EOF. Any other error, or no error at all within the
+	// deadline, indicates the connection was not shut down properly.
+	serverCloseErr := make(chan error, 1)
+	go func() {
+		conn, err := listener.Accept()
+		if err != nil {
+			serverCloseErr <- err
+			return
+		}
+		defer conn.Close()
+		reader := bufio.NewReader(conn)
+		fmt.Fprint(conn, "220 localhost ESMTP\r\n")
+		if _, err := reader.ReadString('\n'); err != nil { // EHLO
+			serverCloseErr <- err
+			return
+		}
+		fmt.Fprint(conn, "250-localhost\r\n250 STARTTLS\r\n")
+		if _, err := reader.ReadString('\n'); err != nil { // STARTTLS
+			serverCloseErr <- err
+			return
+		}
+		fmt.Fprint(conn, "220 Ready to start TLS\r\n")
+		tlsConn := tls.Server(conn, &tls.Config{Certificates: []tls.Certificate{cert}})
+		defer tlsConn.Close()
+		tlsReader := bufio.NewReader(tlsConn)
+		if _, err := tlsReader.ReadString('\n'); err != nil { // EHLO sent again over TLS
+			serverCloseErr <- err
+			return
+		}
+		fmt.Fprint(tlsConn, "250 localhost\r\n")
+		buf := make([]byte, 1)
+		_, err = tlsConn.Read(buf)
+		serverCloseErr <- err
+	}()
+	address := listener.Addr().String()
+	connected, _, err := CanPerformStartTLS(address, &Config{Insecure: true, Timeout: startTLSTestTimeout})
+	if err != nil {
+		t.Fatalf("CanPerformStartTLS() unexpected error: %v", err)
+	}
+	if !connected {
+		t.Fatal("CanPerformStartTLS() expected connected=true")
+	}
+	select {
+	case err := <-serverCloseErr:
+		if err != io.EOF {
+			t.Errorf("expected the server to observe a graceful TLS shutdown (io.EOF), got: %v", err)
+		}
+	case <-time.After(startTLSTestTimeout):
+		t.Fatal("timed out waiting for the server to observe the connection being closed")
 	}
 }
 
