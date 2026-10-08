@@ -1,6 +1,7 @@
 package custom
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -321,6 +322,53 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholderAndResultConditions(
 				t.Error("expected body to be", scenario.ExpectedBody, "got", string(body))
 			}
 		})
+	}
+}
+
+func TestAlertProvider_buildHTTPRequestWithJSONBody(t *testing.T) {
+	body := `{"group": "[ENDPOINT_GROUP]", "name": "[ENDPOINT_NAME]", "description": "[ALERT_DESCRIPTION]", "url": "[ENDPOINT_URL]", "event": "[ALERT_TRIGGERED_OR_RESOLVED]", "errors": "[RESULT_ERRORS]", "conditions": "[RESULT_CONDITIONS]"}`
+	alertDescription := "a \"quoted\" description"
+	ep := &endpoint.Endpoint{Name: "name \\ with backslash", Group: "group", URL: "https://example.com/?a=1&b=<2>"}
+	result := &endpoint.Result{
+		Errors: []string{"error with \"quotes\"", "error with\nnewline"},
+		ConditionResults: []*endpoint.ConditionResult{
+			{Condition: "[BODY] (<!DOCTYPE html>\n<html lang=\"en\">\t...(truncated)) == pat(*ok*)", Success: false},
+			{Condition: "[STATUS] (200) == 200", Success: true},
+		},
+	}
+	expected := map[string]string{
+		"group":       "group",
+		"name":        "name \\ with backslash",
+		"description": "a \"quoted\" description",
+		"url":         "https://example.com/?a=1&b=<2>",
+		"event":       "TRIGGERED",
+		"errors":      "error with \"quotes\",error with\nnewline",
+		"conditions":  "❌ - `[BODY] (<!DOCTYPE html>\n<html lang=\"en\">\t...(truncated)) == pat(*ok*)`, ✅ - `[STATUS] (200) == 200`",
+	}
+	for _, contentType := range []string{"application/json", "application/json; charset=utf-8", "application/vnd.api+json"} {
+		for _, headerName := range []string{"Content-Type", "content-type"} {
+			t.Run(headerName+"-"+contentType, func(t *testing.T) {
+				alertProvider := &AlertProvider{DefaultConfig: Config{URL: "https://example.com", Body: body, Headers: map[string]string{headerName: contentType}}}
+				request := alertProvider.buildHTTPRequest(&alertProvider.DefaultConfig, ep, &alert.Alert{Description: &alertDescription}, result, false)
+				rawBody, _ := io.ReadAll(request.Body)
+				var decoded map[string]string
+				if err := json.Unmarshal(rawBody, &decoded); err != nil {
+					t.Fatalf("expected the body to be valid JSON, got error %v for body %s", err, rawBody)
+				}
+				for key, value := range expected {
+					if decoded[key] != value {
+						t.Errorf("expected %s to be %q, got %q", key, value, decoded[key])
+					}
+				}
+			})
+		}
+	}
+	// A body that is not sent as JSON gets the values as before.
+	alertProvider := &AlertProvider{DefaultConfig: Config{URL: "https://example.com", Body: "[ENDPOINT_NAME],[RESULT_ERRORS]", Headers: map[string]string{"Content-Type": "text/plain"}}}
+	request := alertProvider.buildHTTPRequest(&alertProvider.DefaultConfig, ep, &alert.Alert{Description: &alertDescription}, result, false)
+	rawBody, _ := io.ReadAll(request.Body)
+	if expectedBody := "name \\ with backslash,error with \\\"quotes\\\",error with\nnewline"; string(rawBody) != expectedBody {
+		t.Errorf("expected body to be %q, got %q", expectedBody, rawBody)
 	}
 }
 
