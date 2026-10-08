@@ -3,7 +3,9 @@ package endpoint
 import (
 	"errors"
 	"fmt"
+	"reflect"
 	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -860,5 +862,155 @@ func TestConditionEvaluateWithMixedValidAndInvalidContext(t *testing.T) {
 	expectedDisplay := "[RESPONSE_TIME] (100) < [CONTEXT].invalid_key (0)"
 	if actualDisplay != expectedDisplay {
 		t.Errorf("Incorrect condition display\nExpected: %s\nActual:   %s", expectedDisplay, actualDisplay)
+	}
+}
+
+func TestCondition_evaluateWithWildcard(t *testing.T) {
+	servers := func(errs ...string) []byte {
+		items := make([]string, len(errs))
+		for i, e := range errs {
+			items[i] = fmt.Sprintf(`{"name":"s%d","servererror":%q}`, i, e)
+		}
+		return []byte(`{"status":{"servers":[` + strings.Join(items, ",") + `]}}`)
+	}
+	scenarios := []struct {
+		Name                        string
+		Condition                   Condition
+		Result                      *Result
+		DontResolveFailedConditions bool
+		ResolveSuccessfulConditions bool
+		ExpectedSuccess             bool
+		ExpectedOutputs             []string
+	}{
+		{
+			Name:            "all-elements-match",
+			Condition:       Condition(`len([BODY].status.servers[*].servererror) == 0`),
+			Result:          &Result{Body: servers("", "", "")},
+			ExpectedSuccess: true,
+			ExpectedOutputs: []string{`len([BODY].status.servers[*].servererror) == 0`},
+		},
+		{
+			Name:                        "all-elements-match-and-resolve-successful",
+			Condition:                   Condition(`len([BODY].status.servers[*].servererror) == 0`),
+			Result:                      &Result{Body: servers("", "")},
+			ResolveSuccessfulConditions: true,
+			ExpectedSuccess:             true,
+			ExpectedOutputs:             []string{`len([BODY].status.servers[*].servererror) == 0 (2 elements)`},
+		},
+		{
+			Name:            "only-failing-elements-are-reported",
+			Condition:       Condition(`len([BODY].status.servers[*].servererror) == 0`),
+			Result:          &Result{Body: servers("", "boom", "", "bang")},
+			ExpectedSuccess: false,
+			ExpectedOutputs: []string{
+				`len([BODY].status.servers[1].servererror) (4) == 0`,
+				`len([BODY].status.servers[3].servererror) (4) == 0`,
+			},
+		},
+		{
+			Name:                        "failing-elements-dont-resolve",
+			Condition:                   Condition(`len([BODY].status.servers[*].servererror) == 0`),
+			Result:                      &Result{Body: servers("", "boom")},
+			DontResolveFailedConditions: true,
+			ExpectedSuccess:             false,
+			ExpectedOutputs:             []string{`len([BODY].status.servers[1].servererror) == 0`},
+		},
+		{
+			Name:            "empty-array-fails",
+			Condition:       Condition(`len([BODY].status.servers[*].servererror) == 0`),
+			Result:          &Result{Body: servers()},
+			ExpectedSuccess: false,
+			ExpectedOutputs: []string{`len([BODY].status.servers[*].servererror) == 0 (no elements matched)`},
+		},
+		{
+			Name:            "missing-array-fails",
+			Condition:       Condition(`len([BODY].status.nope[*].servererror) == 0`),
+			Result:          &Result{Body: servers("")},
+			ExpectedSuccess: false,
+			ExpectedOutputs: []string{`len([BODY].status.nope[*].servererror) == 0 (no elements matched)`},
+		},
+		{
+			Name:            "no-body-fails",
+			Condition:       Condition(`len([BODY].status.servers[*].servererror) == 0`),
+			Result:          &Result{},
+			ExpectedSuccess: false,
+			ExpectedOutputs: []string{`len([BODY].status.servers[*].servererror) == 0 (no elements matched)`},
+		},
+		{
+			Name:            "root-array",
+			Condition:       Condition(`[BODY][*].ok == true`),
+			Result:          &Result{Body: []byte(`[{"ok":true},{"ok":true}]`)},
+			ExpectedSuccess: true,
+			ExpectedOutputs: []string{`[BODY][*].ok == true`},
+		},
+		{
+			Name:            "root-array-failure",
+			Condition:       Condition(`[BODY][*].ok == true`),
+			Result:          &Result{Body: []byte(`[{"ok":true},{"ok":false}]`)},
+			ExpectedSuccess: false,
+			ExpectedOutputs: []string{`[BODY][1].ok (false) == true`},
+		},
+		{
+			Name:            "nested-wildcards",
+			Condition:       Condition(`[BODY].networks[*].uplinks[*].status == active`),
+			Result:          &Result{Body: []byte(`{"networks":[{"uplinks":[{"status":"active"},{"status":"active"}]},{"uplinks":[{"status":"active"}]}]}`)},
+			ExpectedSuccess: true,
+			ExpectedOutputs: []string{`[BODY].networks[*].uplinks[*].status == active`},
+		},
+		{
+			Name:            "nested-wildcards-failure",
+			Condition:       Condition(`[BODY].networks[*].uplinks[*].status == active`),
+			Result:          &Result{Body: []byte(`{"networks":[{"uplinks":[{"status":"active"},{"status":"failed"}]},{"uplinks":[{"status":"active"}]}]}`)},
+			ExpectedSuccess: false,
+			ExpectedOutputs: []string{`[BODY].networks[0].uplinks[1].status (failed) == active`},
+		},
+		{
+			Name:            "with-pattern",
+			Condition:       Condition(`[BODY].status.servers[*].name == pat(s*)`),
+			Result:          &Result{Body: servers("", "")},
+			ExpectedSuccess: true,
+			ExpectedOutputs: []string{`[BODY].status.servers[*].name == pat(s*)`},
+		},
+		{
+			Name:            "lowercase-placeholder",
+			Condition:       Condition(`len([body].status.servers[*].servererror) == 0`),
+			Result:          &Result{Body: servers("", "")},
+			ExpectedSuccess: true,
+			ExpectedOutputs: []string{`len([body].status.servers[*].servererror) == 0`},
+		},
+		{
+			Name:            "wildcard-without-body-placeholder-is-left-untouched",
+			Condition:       Condition(`[STATUS] == pat([*])`),
+			Result:          &Result{HTTPStatus: 200},
+			ExpectedSuccess: false,
+			ExpectedOutputs: []string{`[STATUS] (200) == pat([*])`},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			success := scenario.Condition.evaluate(scenario.Result, scenario.DontResolveFailedConditions, scenario.ResolveSuccessfulConditions, nil)
+			if success != scenario.ExpectedSuccess {
+				t.Errorf("Condition '%s' should have been success=%v", scenario.Condition, scenario.ExpectedSuccess)
+			}
+			if len(scenario.Result.Errors) != 0 {
+				t.Errorf("Condition '%s' should not have added errors, got %v", scenario.Condition, scenario.Result.Errors)
+			}
+			var outputs []string
+			for _, conditionResult := range scenario.Result.ConditionResults {
+				outputs = append(outputs, conditionResult.Condition)
+				if conditionResult.Success != scenario.ExpectedSuccess {
+					t.Errorf("ConditionResult '%s' should have been success=%v", conditionResult.Condition, scenario.ExpectedSuccess)
+				}
+			}
+			if !reflect.DeepEqual(outputs, scenario.ExpectedOutputs) {
+				t.Errorf("expected condition results %q, got %q", scenario.ExpectedOutputs, outputs)
+			}
+		})
+	}
+}
+
+func TestCondition_ValidateWithWildcard(t *testing.T) {
+	if err := Condition(`len([BODY].servers[*].error) == 0`).Validate(); err != nil {
+		t.Errorf("a condition using a wildcard should be valid, got %v", err)
 	}
 }

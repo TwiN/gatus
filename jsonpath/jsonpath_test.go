@@ -226,3 +226,36 @@ func TestEval(t *testing.T) {
 		})
 	}
 }
+
+func TestArrayLen(t *testing.T) {
+	scenarios := []struct {
+		Name          string
+		Path          string
+		Data          string
+		ExpectedLen   int
+		ExpectedError bool
+	}{
+		{Name: "root-array", Path: "", Data: `[{"a":1},{"a":2},{"a":3}]`, ExpectedLen: 3},
+		{Name: "root-empty-array", Path: "", Data: `[]`, ExpectedLen: 0},
+		{Name: "key", Path: "servers", Data: `{"servers":[1,2]}`, ExpectedLen: 2},
+		{Name: "nested-key", Path: "status.servers", Data: `{"status":{"servers":[1,2,3,4]}}`, ExpectedLen: 4},
+		{Name: "key-after-index", Path: "data[1].items", Data: `{"data":[{"items":[1]},{"items":[1,2]}]}`, ExpectedLen: 2},
+		{Name: "empty-array", Path: "servers", Data: `{"servers":[]}`, ExpectedLen: 0},
+		{Name: "missing-key", Path: "servers", Data: `{}`, ExpectedError: true},
+		{Name: "not-an-array-string", Path: "servers", Data: `{"servers":"abc"}`, ExpectedError: true},
+		{Name: "not-an-array-object", Path: "servers", Data: `{"servers":{"a":1}}`, ExpectedError: true},
+		{Name: "root-not-an-array", Path: "", Data: `{"a":1}`, ExpectedError: true},
+		{Name: "invalid-json", Path: "servers", Data: `not json`, ExpectedError: true},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			length, err := ArrayLen(scenario.Path, []byte(scenario.Data))
+			if (err != nil) != scenario.ExpectedError {
+				t.Fatalf("expected error=%v, got %v", scenario.ExpectedError, err)
+			}
+			if length != scenario.ExpectedLen {
+				t.Errorf("expected length %d, got %d", scenario.ExpectedLen, length)
+			}
+		})
+	}
+}

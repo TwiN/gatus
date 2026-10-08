@@ -20,8 +20,30 @@ func Eval(path string, b []byte) (string, int, error) {
 	return walk(path, object)
 }
 
-// walk traverses the object and returns the value as a string as well as its length
-func walk(path string, object interface{}) (string, int, error) {
+// ArrayLen returns the number of elements of the JSON array found at path.
+// An empty path refers to the root of the document.
+func ArrayLen(path string, b []byte) (int, error) {
+	var object interface{}
+	if err := json.Unmarshal(b, &object); err != nil {
+		return 0, err
+	}
+	if len(path) != 0 {
+		for _, key := range splitKeys(path) {
+			object = extractValue(key, object)
+			if object == nil {
+				return 0, fmt.Errorf("couldn't walk through '%s'", key)
+			}
+		}
+	}
+	array, ok := object.([]interface{})
+	if !ok {
+		return 0, fmt.Errorf("expected an array at '%s', but got '%T'", path, object)
+	}
+	return len(array), nil
+}
+
+// splitKeys splits a path into its keys, ignoring dots located inside brackets
+func splitKeys(path string) []string {
 	var keys []string
 	startOfCurrentKey, bracketDepth := 0, 0
 	for i := range path {
@@ -39,6 +61,12 @@ func walk(path string, object interface{}) (string, int, error) {
 	if startOfCurrentKey <= len(path) {
 		keys = append(keys, path[startOfCurrentKey:])
 	}
+	return keys
+}
+
+// walk traverses the object and returns the value as a string as well as its length
+func walk(path string, object interface{}) (string, int, error) {
+	keys := splitKeys(path)
 	currentKey := keys[0]
 	switch value := extractValue(currentKey, object).(type) {
 	case map[string]interface{}:
