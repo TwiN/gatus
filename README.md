@@ -790,6 +790,12 @@ endpoints:
 
 
 ### Alerting
+
+Slack, Discord, Teams Workflows, email and PagerDuty trigger notifications include
+an endpoint link for HTTP(S) monitors. Hidden URLs (`ui.hide-url: true`) and URLs
+containing user credentials, query parameters or fragments are not linked. URLs
+with secrets in their path must use `ui.hide-url: true`. The custom webhook
+provider's explicit `[ENDPOINT_URL]` placeholder is unchanged.
 Gatus supports multiple alerting providers, such as Slack and PagerDuty, and supports different alerts for each
 individual endpoints with configurable descriptions and thresholds.
 

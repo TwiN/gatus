@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
@@ -101,11 +102,12 @@ type Body struct {
 }
 
 type Attachment struct {
-	Title  string  `json:"title"`
-	Text   string  `json:"text"`
-	Short  bool    `json:"short"`
-	Color  string  `json:"color"`
-	Fields []Field `json:"fields,omitempty"`
+	Title    string   `json:"title"`
+	Text     string   `json:"text"`
+	Short    bool     `json:"short"`
+	Color    string   `json:"color"`
+	Fields   []Field  `json:"fields,omitempty"`
+	MrkdwnIn []string `json:"mrkdwn_in,omitempty"`
 }
 
 type Field struct {
@@ -156,6 +158,14 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		body.Attachments[0].Fields = append(body.Attachments[0].Fields, Field{
 			Title: "Condition results",
 			Value: formattedConditionResults,
+			Short: false,
+		})
+	}
+	if endpointURL := ep.NotificationURL(); endpointURL != "" {
+		body.Attachments[0].MrkdwnIn = []string{"fields"}
+		body.Attachments[0].Fields = append(body.Attachments[0].Fields, Field{
+			Title: "Endpoint",
+			Value: "<" + strings.ReplaceAll(endpointURL, "&", "&amp;") + "|Open endpoint>",
 			Short: false,
 		})
 	}
