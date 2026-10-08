@@ -11,19 +11,31 @@ import (
 
 func TestOIDCConfig_ValidateAndSetDefaults(t *testing.T) {
 	c := &OIDCConfig{
-		IssuerURL:       "https://sso.gatus.io/",
-		RedirectURL:     "http://localhost:80/authorization-code/callback",
-		ClientID:        "client-id",
-		ClientSecret:    "client-secret",
-		Scopes:          []string{"openid"},
-		AllowedSubjects: []string{"user1@example.com"},
-		SessionTTL:      0, // Not set! ValidateAndSetDefaults should set it to DefaultOIDCSessionTTL
+		IssuerURL:          "https://sso.gatus.io/",
+		RedirectURL:        "http://localhost:80/authorization-code/callback",
+		ClientID:           "client-id",
+		ClientSecret:       "client-secret",
+		Scopes:             []string{"openid"},
+		AllowedSubjects:    []string{"user1@example.com"},
+		SessionTTL:         0,  // Not set! ValidateAndSetDefaults should set it to DefaultOIDCSessionTTL
+		AllowedGroupsClaim: "", // Not set! ValidateAndSetDefaults should set it to DefaultOIDCAllowedGroupsClaim
 	}
 	if !c.ValidateAndSetDefaults() {
 		t.Error("OIDCConfig should be valid")
 	}
 	if c.SessionTTL != DefaultOIDCSessionTTL {
 		t.Error("expected SessionTTL to be set to DefaultOIDCSessionTTL")
+	}
+	if c.AllowedGroupsClaim != DefaultOIDCAllowedGroupsClaim {
+		t.Error("expected AllowedGroupsClaim to be set to DefaultOIDCAllowedGroupsClaim")
+	}
+	c.AllowedGroups = []string{"administrators"}
+	if c.ValidateAndSetDefaults() {
+		t.Error("OIDCConfig should be invalid with allowed-groups and allowed-subjects set")
+	}
+	c.AllowedSubjects = []string{}
+	if !c.ValidateAndSetDefaults() {
+		t.Error("OIDCConfig should be valid with only allowed-groups set")
 	}
 }
 
