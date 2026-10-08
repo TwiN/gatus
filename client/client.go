@@ -428,6 +428,11 @@ func QueryWebSocket(address, body string, headers map[string]string, config *Con
 		return false, nil, fmt.Errorf("error dialing websocket: %w", err)
 	}
 	defer ws.Close()
+	// DialContext clears the conn deadline once the handshake completes
+	if deadline, ok := ctx.Deadline(); ok {
+		ws.SetWriteDeadline(deadline)
+		ws.SetReadDeadline(deadline)
+	}
 	body = parseLocalAddressPlaceholder(body, ws.LocalAddr())
 	// Write message
 	if err := ws.WriteMessage(websocket.TextMessage, []byte(body)); err != nil {
