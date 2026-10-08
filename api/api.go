@@ -4,6 +4,7 @@ import (
 	"io/fs"
 	"net/http"
 	"os"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/ui"
@@ -63,15 +64,35 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	// Middlewares
 	app.Use(recover.New())
 	app.Use(compress.New())
+	// basePath is the reverse-proxy subpath under which the UI and API are served
+	// natively (e.g. "/gatus"). It is empty when web.base-path is "/" (the default),
+	// which keeps everything mounted at the root. Unlike a "strip-prefix" reverse
+	// proxy setup, Gatus registers its routes under this prefix itself, so it works
+	// standalone and only needs a plain pass-through proxy (if any) in front of it.
+	// cfg.Web.BasePath is normalized to start and end with a "/", so trimming the
+	// trailing slash yields "" for the default or e.g. "/gatus" for a subpath.
+	basePath := strings.TrimSuffix(cfg.Web.BasePath, "/")
 	// Define metrics handler, if necessary
 	if cfg.Metrics {
 		metricsHandler := promhttp.InstrumentMetricHandler(prometheus.DefaultRegisterer, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
 			DisableCompression: true,
 		}))
-		app.Get("/metrics", adaptor.HTTPHandler(metricsHandler))
+		app.Get(basePath+"/metrics", adaptor.HTTPHandler(metricsHandler))
+	}
+	// Health endpoint
+	healthHandler := health.Handler().WithJSON(true)
+	app.Get(basePath+"/health", func(c *fiber.Ctx) error {
+		statusCode, body := healthHandler.GetResponseStatusCodeAndBody()
+		return c.Status(statusCode).Send(body)
+	})
+	// When served under a subpath, redirect the root to the base path for convenience.
+	if basePath != "" {
+		app.Get("/", func(c *fiber.Ctx) error {
+			return c.Redirect(basePath+"/", fiber.StatusFound)
+		})
 	}
 	// Define main router
-	apiRouter := app.Group("/api")
+	apiRouter := app.Group(basePath + "/api")
 	////////////////////////
 	// UNPROTECTED ROUTES //
 	////////////////////////
@@ -88,21 +109,15 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	// This endpoint requires authz with bearer token, so technically it is protected
 	unprotectedAPIRouter.Post("/v1/endpoints/:key/external", CreateExternalEndpointResult(cfg))
 	// SPA
-	app.Get("/", SinglePageApplication(cfg.UI))
-	app.Get("/endpoints/:key", SinglePageApplication(cfg.UI))
-	app.Get("/suites/:key", SinglePageApplication(cfg.UI))
-	// Health endpoint
-	healthHandler := health.Handler().WithJSON(true)
-	app.Get("/health", func(c *fiber.Ctx) error {
-		statusCode, body := healthHandler.GetResponseStatusCodeAndBody()
-		return c.Status(statusCode).Send(body)
-	})
+	app.Get(basePath+"/", SinglePageApplication(cfg.UI))
+	app.Get(basePath+"/endpoints/:key", SinglePageApplication(cfg.UI))
+	app.Get(basePath+"/suites/:key", SinglePageApplication(cfg.UI))
 	// Custom CSS
-	app.Get("/css/custom.css", CustomCSSHandler{customCSS: cfg.UI.CustomCSS}.GetCustomCSS)
+	app.Get(basePath+"/css/custom.css", CustomCSSHandler{customCSS: cfg.UI.CustomCSS}.GetCustomCSS)
 	// Everything else falls back on static content
 	app.Use(redirect.New(redirect.Config{
 		Rules: map[string]string{
-			"/index.html": "/",
+			basePath + "/index.html": basePath + "/",
 		},
 		StatusCode: 301,
 	}))
@@ -110,7 +125,7 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	if err != nil {
 		panic(err)
 	}
-	app.Use("/", fiberfs.New(fiberfs.Config{
+	app.Use(basePath+"/", fiberfs.New(fiberfs.Config{
 		Root:   http.FS(staticFileSystem),
 		Index:  "index.html",
 		Browse: true,
@@ -121,7 +136,9 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	// ORDER IS IMPORTANT: all routes applied AFTER the security middleware will require authn
 	protectedAPIRouter := apiRouter.Group("/")
 	if cfg.Security != nil {
-		if err := cfg.Security.RegisterHandlers(app); err != nil {
+		// Register the OIDC login/callback handlers under the base path so that they
+		// line up with the cookie paths and redirect URLs derived from web.base-path.
+		if err := cfg.Security.RegisterHandlers(app.Group(basePath)); err != nil {
 			panic(err)
 		}
 		if err := cfg.Security.ApplySecurityMiddleware(protectedAPIRouter); err != nil {
