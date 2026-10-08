@@ -14,8 +14,8 @@
           </h3>
         </div>
 
-        <!-- Announcements for this date or empty state -->
-        <div v-if="group.length > 0" class="space-y-3">
+        <!-- Announcements for this date -->
+        <div class="space-y-3">
           <div
             v-for="(announcement, index) in group"
             :key="`${date}-${index}-${announcement.timestamp}`"
@@ -48,13 +48,6 @@
             </div>
           </div>
         </div>
-
-        <!-- Empty state for dates without announcements -->
-        <div v-else class="py-2">
-          <p class="text-sm italic text-muted-foreground/60">
-            No incidents reported on this day
-          </p>
-        </div>
       </div>
 
       <!-- View Older Announcements Link -->
@@ -70,6 +63,7 @@
 
 <script setup>
 import { ref, computed } from 'vue'
+import { subDays } from 'date-fns'
 import { XCircle, AlertTriangle, Info, CheckCircle, Circle, ChevronDown } from 'lucide-vue-next'
 import { formatAnnouncementMessage } from '@/utils/markdown'
 
@@ -150,15 +144,16 @@ const displayedAnnouncements = computed(() => {
   const today = normalizeDate(new Date())
   const endDate = showAllAnnouncements.value
     ? normalizeDate(oldest)
-    : new Date(today.getTime() - 14 * 24 * 60 * 60 * 1000)
+    : subDays(today, 14)
 
   // Build result: today (if has announcements) + yesterday backwards
   const result = {}
   const todayKey = today.toDateString()
   if (grouped[todayKey]) result[todayKey] = grouped[todayKey]
 
-  for (let date = new Date(today.getTime() - 24 * 60 * 60 * 1000); date >= endDate; date.setDate(date.getDate() - 1)) {
-    result[date.toDateString()] = grouped[date.toDateString()] || []
+  for (let date = subDays(today, 1); date >= endDate; date.setDate(date.getDate() - 1)) {
+    const dateKey = date.toDateString()
+    if (grouped[dateKey]) result[dateKey] = grouped[dateKey]
   }
 
   return result
@@ -167,7 +162,7 @@ const displayedAnnouncements = computed(() => {
 // Check if there are announcements older than 14 days
 const hasOlderAnnouncements = computed(() => {
   if (!props.announcements?.length) return false
-  const fourteenDaysAgo = new Date(normalizeDate(new Date()).getTime() - 14 * 24 * 60 * 60 * 1000)
+  const fourteenDaysAgo = subDays(normalizeDate(new Date()), 14)
   return props.announcements.some(a => new Date(a.timestamp) < fourteenDaysAgo)
 })
 
