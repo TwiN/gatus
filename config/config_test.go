@@ -1835,6 +1835,68 @@ endpoints:
 	}
 }
 
+func TestParseAndValidateConfigBytesWithAPITokensAndMetricsSecurityConfig(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+security:
+  metrics:
+    protected: true
+    tokens:
+      - "metrics-token"
+  oidc:
+    issuer-url: "https://auth.example.com/application/o/gatus/"
+    client-id: "client-id"
+    client-secret: "client-secret"
+    redirect-url: "https://status.example.com/authorization-code/callback"
+    scopes: [openid]
+    api-tokens:
+      - "oidc-api-token"
+  basic:
+    username: "john.doe"
+    password-bcrypt-base64: "JDJhJDEwJHRiMnRFakxWazZLdXBzRERQazB1TE8vckRLY05Yb1hSdnoxWU0yQ1FaYXZRSW1McmladDYu"
+    api-tokens:
+      - "basic-api-token"
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if config.Security == nil || config.Security.Basic == nil || config.Security.OIDC == nil || config.Security.Metrics == nil {
+		t.Fatal("config.Security.Basic, config.Security.OIDC and config.Security.Metrics shouldn't have been nil")
+	}
+	if len(config.Security.Basic.APITokens) != 1 || config.Security.Basic.APITokens[0] != "basic-api-token" {
+		t.Errorf("config.Security.Basic.APITokens should've been [basic-api-token], but was %v", config.Security.Basic.APITokens)
+	}
+	if len(config.Security.OIDC.APITokens) != 1 || config.Security.OIDC.APITokens[0] != "oidc-api-token" {
+		t.Errorf("config.Security.OIDC.APITokens should've been [oidc-api-token], but was %v", config.Security.OIDC.APITokens)
+	}
+	if !config.Security.Metrics.Protected {
+		t.Error("config.Security.Metrics.Protected should've been true")
+	}
+	if len(config.Security.Metrics.Tokens) != 1 || config.Security.Metrics.Tokens[0] != "metrics-token" {
+		t.Errorf("config.Security.Metrics.Tokens should've been [metrics-token], but was %v", config.Security.Metrics.Tokens)
+	}
+}
+
+func TestParseAndValidateConfigBytesWithProtectedMetricsWithoutSecurityProvider(t *testing.T) {
+	_, err := parseAndValidateConfigBytes([]byte(`
+security:
+  metrics:
+    protected: true
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if !errors.Is(err, ErrInvalidSecurityConfig) {
+		t.Errorf("expected error %v, got %v", ErrInvalidSecurityConfig, err)
+	}
+}
+
 func TestParseAndValidateConfigBytesWithLiteralDollarSign(t *testing.T) {
 	os.Setenv("GATUS_TestParseAndValidateConfigBytesWithLiteralDollarSign", "whatever")
 	config, err := parseAndValidateConfigBytes([]byte(`

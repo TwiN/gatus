@@ -103,8 +103,10 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Security](#security)
     - [Basic Authentication](#basic-authentication)
     - [OIDC](#oidc)
+    - [API Tokens](#api-tokens)
   - [TLS Encryption](#tls-encryption)
   - [Metrics](#metrics)
+    - [Protecting Metrics](#protecting-metrics)
     - [Custom Labels](#custom-labels)
   - [Connectivity](#connectivity)
   - [Remote instances (EXPERIMENTAL)](#remote-instances-experimental)
@@ -2811,11 +2813,12 @@ endpoints:
 
 
 ### Security
-| Parameter        | Description                  | Default |
-|:-----------------|:-----------------------------|:--------|
-| `security`       | Security configuration       | `{}`    |
-| `security.basic` | HTTP Basic configuration     | `{}`    |
-| `security.oidc`  | OpenID Connect configuration | `{}`    |
+| Parameter          | Description                                                       | Default |
+|:-------------------|:------------------------------------------------------------------|:--------|
+| `security`         | Security configuration                                            | `{}`    |
+| `security.basic`   | HTTP Basic configuration                                          | `{}`    |
+| `security.oidc`    | OpenID Connect configuration                                      | `{}`    |
+| `security.metrics` | Metrics protection. See [Protecting Metrics](#protecting-metrics) | `{}`    |
 
 
 #### Basic Authentication
@@ -2824,6 +2827,7 @@ endpoints:
 | `security.basic`                        | HTTP Basic configuration                                                           | `{}`          |
 | `security.basic.username`               | Username for Basic authentication.                                                 | Required `""` |
 | `security.basic.password-bcrypt-base64` | Password hashed with Bcrypt and then encoded with base64 for Basic authentication. | Required `""` |
+| `security.basic.api-tokens`             | List of bearer tokens that can access the API. See [API Tokens](#api-tokens).      | `[]`          |
 
 The example below will require that you authenticate with the username `john.doe` and the password `hunter2`:
 ```yaml
@@ -2838,16 +2842,17 @@ security:
 
 
 #### OIDC
-| Parameter                        | Description                                                    | Default       |
-|:---------------------------------|:---------------------------------------------------------------|:--------------|
-| `security.oidc`                  | OpenID Connect configuration                                   | `{}`          |
-| `security.oidc.issuer-url`       | Issuer URL                                                     | Required `""` |
-| `security.oidc.redirect-url`     | Redirect URL. Must end with `/authorization-code/callback`     | Required `""` |
-| `security.oidc.client-id`        | Client id                                                      | Required `""` |
-| `security.oidc.client-secret`    | Client secret                                                  | Required `""` |
-| `security.oidc.scopes`           | Scopes to request. The only scope you need is `openid`.        | Required `[]` |
-| `security.oidc.allowed-subjects` | List of subjects to allow. If empty, all subjects are allowed. | `[]`          |
-| `security.oidc.session-ttl`      | Session time-to-live (e.g. `8h`, `1h30m`, `2h`).               | `8h`          |
+| Parameter                        | Description                                                                   | Default       |
+|:---------------------------------|:------------------------------------------------------------------------------|:--------------|
+| `security.oidc`                  | OpenID Connect configuration                                                  | `{}`          |
+| `security.oidc.issuer-url`       | Issuer URL                                                                    | Required `""` |
+| `security.oidc.redirect-url`     | Redirect URL. Must end with `/authorization-code/callback`                    | Required `""` |
+| `security.oidc.client-id`        | Client id                                                                     | Required `""` |
+| `security.oidc.client-secret`    | Client secret                                                                 | Required `""` |
+| `security.oidc.scopes`           | Scopes to request. The only scope you need is `openid`.                       | Required `[]` |
+| `security.oidc.allowed-subjects` | List of subjects to allow. If empty, all subjects are allowed.                | `[]`          |
+| `security.oidc.session-ttl`      | Session time-to-live (e.g. `8h`, `1h30m`, `2h`).                              | `8h`          |
+| `security.oidc.api-tokens`       | List of bearer tokens that can access the API. See [API Tokens](#api-tokens). | `[]`          |
 
 ```yaml
 security:
@@ -2864,6 +2869,24 @@ security:
 ```
 
 Confused? Read [Securing Gatus with OIDC using Auth0](https://twin.sh/articles/56/securing-gatus-with-oidc-using-auth0).
+
+
+#### API Tokens
+If you have Basic or OIDC authentication configured, you can also set `api-tokens` on it to access the protected API
+routes with a bearer token instead, which is useful for things like dashboard widgets and scripts:
+```yaml
+security:
+  oidc:
+    # ...
+    api-tokens:
+      - "${API_TOKEN}"
+```
+
+```bash
+curl -H "Authorization: Bearer $API_TOKEN" https://status.example.com/api/v1/endpoints/statuses
+```
+
+API tokens do not grant access to `/metrics`. See [Protecting Metrics](#protecting-metrics) for that.
 
 
 ### TLS Encryption
@@ -2894,6 +2917,23 @@ endpoint on the same port your application is configured to run on (`web.port`).
 | gatus_results_endpoint_success               | gauge   | Displays whether or not the endpoint was a success (0 failure, 1 success)  | key, group, name, type          | All                     |
 
 See [examples/docker-compose-grafana-prometheus](.examples/docker-compose-grafana-prometheus) for further documentation as well as an example.
+
+#### Protecting Metrics
+By default, `/metrics` is not protected, even if [security](#security) is configured.
+
+| Parameter                    | Description                                                                           | Default |
+|:-----------------------------|:--------------------------------------------------------------------------------------|:--------|
+| `security.metrics.protected` | Whether `/metrics` requires Basic or OIDC authentication. Implied if `tokens` is set. | `false` |
+| `security.metrics.tokens`    | List of bearer tokens that can access `/metrics`. Can be used without Basic or OIDC.  | `[]`    |
+
+```yaml
+security:
+  metrics:
+    tokens:
+      - "${METRICS_TOKEN}"
+```
+
+If you want to use the same token for the API and metrics, you can use [YAML anchors](#keeping-your-configuration-small).
 
 #### Custom Labels
 
