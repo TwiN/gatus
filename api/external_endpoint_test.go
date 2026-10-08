@@ -1,6 +1,7 @@
 package api
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -174,6 +175,56 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 			t.Errorf("expected 0 successes in a row but got %d", externalEndpointFromConfig.NumberOfSuccessesInARow)
 		}
 	})
+}
+
+func TestCreateExternalEndpointResultForDisabledEndpoint(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+	disabled := false
+	externalEndpoint := &endpoint.ExternalEndpoint{
+		Enabled: &disabled,
+		Name:    "n",
+		Group:   "g",
+		Token:   "token",
+		Alerts: []*alert.Alert{
+			{
+				Type:             alert.TypeDiscord,
+				FailureThreshold: 1,
+				SuccessThreshold: 1,
+			},
+		},
+	}
+	cfg := &config.Config{
+		Alerting: &alerting.Config{
+			Discord: &discord.AlertProvider{},
+		},
+		ExternalEndpoints: []*endpoint.ExternalEndpoint{externalEndpoint},
+		Maintenance:       &maintenance.Config{},
+	}
+	router := New(cfg).Router()
+	request := httptest.NewRequest("POST", "/api/v1/endpoints/g_n/external?success=false", http.NoBody)
+	request.Header.Set("Authorization", "Bearer token")
+	response, err := router.Test(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != 200 {
+		t.Fatalf("expected 200, got %d", response.StatusCode)
+	}
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if string(body) != "ignored: endpoint disabled" {
+		t.Errorf("expected body to be 'ignored: endpoint disabled', got '%s'", string(body))
+	}
+	if externalEndpoint.NumberOfFailuresInARow != 0 {
+		t.Errorf("expected alerting to be skipped because the endpoint is disabled, but NumberOfFailuresInARow is %d", externalEndpoint.NumberOfFailuresInARow)
+	}
+	if _, err := store.Get().GetEndpointStatus("g", "n", paging.NewEndpointStatusParams().WithResults(1, 1)); err == nil {
+		t.Error("expected no result to be stored because the endpoint is disabled")
+	}
 }
 
 func TestCreateExternalEndpointResultUnderEndpointMaintenanceWindow(t *testing.T) {
