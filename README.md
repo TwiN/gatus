@@ -489,6 +489,9 @@ Here are some examples of conditions you can use:
 | `[BODY].id == any(1, 2)`         | Value at JSONPath `$.id` is equal to `1` or `2`     | 1, 2                       | 3, 4, 5          |
 | `[CERTIFICATE_EXPIRATION] > 48h` | Certificate expiration is more than 48h away        | 49h, 50h, 123h             | 1h, 24h, ...     |
 | `[DOMAIN_EXPIRATION] > 720h`     | The domain must expire in more than 720h            | 4000h                      | 1h, 24h, ...     |
+| `[HEADER].Content-Type == pat(*json*)` | Response header `Content-Type` contains `json`      | `application/json`         | `text/html`      |
+| `age([HEADER].Last-Modified) < 10m` | Header `Last-Modified` is less than 10m old         | 5m ago                     | 11m ago, missing |
+| `age([BODY].updated_at) < 1h`    | Timestamp at JSONPath `$.updated_at` is less than 1h old | 30m ago                    | 2h ago, missing  |
 
 
 #### Placeholders
@@ -502,6 +505,7 @@ Here are some examples of conditions you can use:
 | `[CERTIFICATE_EXPIRATION]` | Resolves into the duration before certificate expiration (valid units are "s", "m", "h".) | `24h`, `48h`, 0 (if not protocol with certs) |
 | `[DOMAIN_EXPIRATION]`      | Resolves into the duration before the domain expires (valid units are "s", "m", "h".)     | `24h`, `48h`, `1234h56m78s`                  |
 | `[DNS_RCODE]`              | Resolves into the DNS status of the response                                              | `NOERROR`                                    |
+| `[HEADER]`                 | Resolves into the value of an HTTP response header, e.g. `[HEADER].Last-Modified`. Header names are case-insensitive. If the header is present multiple times, only the first value is used. | `Sun, 27 Sep 2026 12:30:45 GMT`              |
 
 
 #### Functions
@@ -511,6 +515,7 @@ Here are some examples of conditions you can use:
 | `has`    | Returns `true` or `false` based on whether a given path is valid. Works only with the `[BODY]` placeholder.                                                                                                                         | `has([BODY].errors) == false`      |
 | `pat`    | Specifies that the string passed as parameter should be evaluated as a pattern. Works only with `==` and `!=`.                                                                                                                      | `[IP] == pat(192.168.*)`           |
 | `any`    | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.                                                                                                                          | `[BODY].ip == any(127.0.0.1, ::1)` |
+| `age`    | Returns the time elapsed since the timestamp in the given placeholder. Accepts HTTP dates, RFC 3339 and Unix epochs, or a Go time layout as second parameter. Works only with the `[BODY]`, `[HEADER]` and `[CONTEXT]` placeholders, and only with `<`, `<=`, `>` and `>=`. | `age([HEADER].Last-Modified) < 1h` |
 
 > 💡 Use `pat` only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
 
