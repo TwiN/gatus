@@ -50,6 +50,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		if cfg.Favicon.Size32x32 != defaultFavicon32 {
 			t.Errorf("expected favicon to be %s, got %s", defaultFavicon32, cfg.Favicon.Size32x32)
 		}
+		if cfg.Favicon.AppleTouchIcon != defaultAppleTouchIcon {
+			t.Errorf("expected apple-touch-icon to be %s, got %s", defaultAppleTouchIcon, cfg.Favicon.AppleTouchIcon)
+		}
 		if cfg.LoginSubtitle != defaultLoginSubtitle {
 			t.Errorf("expected LoginSubtitle to be %s, got %s", defaultLoginSubtitle, cfg.LoginSubtitle)
 		}
