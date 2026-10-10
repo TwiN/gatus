@@ -29,6 +29,11 @@ func TestAlertProvider_Validate(t *testing.T) {
 			expected: nil,
 		},
 		{
+			name:     "valid-with-alias-emoji-avatar",
+			provider: AlertProvider{DefaultConfig: Config{WebhookURL: "https://rocketchat.com/hooks/123/abc", Alias: "Gatus Bot", Emoji: ":rotating_light:", Avatar: "https://example.com/avatar.png"}},
+			expected: nil,
+		},
+		{
 			name:     "invalid-webhook-url",
 			provider: AlertProvider{DefaultConfig: Config{}},
 			expected: ErrWebhookURLNotSet,
@@ -99,6 +104,32 @@ func TestAlertProvider_Send(t *testing.T) {
 			expectedError: false,
 		},
 		{
+			name: "triggered-with-alias-emoji-avatar",
+			provider: AlertProvider{DefaultConfig: Config{
+				WebhookURL: "https://rocketchat.com/hooks/123/abc",
+				Alias:      "Gatus Bot",
+				Emoji:      ":rotating_light:",
+				Avatar:     "https://example.com/avatar.png",
+			}},
+			alert:    alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			resolved: false,
+			mockRoundTripper: test.MockRoundTripper(func(r *http.Request) *http.Response {
+				body := make(map[string]interface{})
+				json.NewDecoder(r.Body).Decode(&body)
+				if body["alias"] != "Gatus Bot" {
+					t.Errorf("expected alias to be 'Gatus Bot', got %v", body["alias"])
+				}
+				if body["emoji"] != ":rotating_light:" {
+					t.Errorf("expected emoji to be ':rotating_light:', got %v", body["emoji"])
+				}
+				if body["avatar"] != "https://example.com/avatar.png" {
+					t.Errorf("expected avatar to be 'https://example.com/avatar.png', got %v", body["avatar"])
+				}
+				return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+			}),
+			expectedError: false,
+		},
+		{
 			name:     "resolved",
 			provider: AlertProvider{DefaultConfig: Config{WebhookURL: "https://rocketchat.com/hooks/123/abc"}},
 			alert:    alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
@@ -149,6 +180,71 @@ func TestAlertProvider_Send(t *testing.T) {
 			}
 			if !scenario.expectedError && err != nil {
 				t.Error("expected no error, got", err.Error())
+			}
+		})
+	}
+}
+
+func TestAlertProvider_GetConfig(t *testing.T) {
+	scenarios := []struct {
+		Name           string
+		Provider       AlertProvider
+		InputGroup     string
+		InputAlert     alert.Alert
+		ExpectedOutput Config
+	}{
+		{
+			Name: "provider-no-override-specify-no-group-should-default",
+			Provider: AlertProvider{
+				DefaultConfig: Config{WebhookURL: "https://rocketchat.com/hooks/123/abc"},
+				Overrides:     nil,
+			},
+			InputGroup:     "",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{WebhookURL: "https://rocketchat.com/hooks/123/abc"},
+		},
+		{
+			Name: "provider-with-override-specify-group-should-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{WebhookURL: "https://rocketchat.com/hooks/123/abc"},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{WebhookURL: "https://rocketchat.com/hooks/456/def", Channel: "#group-alerts", Alias: "Group Bot", Emoji: ":fire:", Avatar: "https://example.com/group.png"},
+					},
+				},
+			},
+			InputGroup: "group",
+			InputAlert: alert.Alert{},
+			ExpectedOutput: Config{
+				WebhookURL: "https://rocketchat.com/hooks/456/def",
+				Channel:    "#group-alerts",
+				Alias:      "Group Bot",
+				Emoji:      ":fire:",
+				Avatar:     "https://example.com/group.png",
+			},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			output, err := scenario.Provider.GetConfig(scenario.InputGroup, &scenario.InputAlert)
+			if err != nil {
+				t.Errorf("unexpected error: %v", err)
+			}
+			if output.WebhookURL != scenario.ExpectedOutput.WebhookURL {
+				t.Errorf("expected webhook-url %s, got %s", scenario.ExpectedOutput.WebhookURL, output.WebhookURL)
+			}
+			if output.Channel != scenario.ExpectedOutput.Channel {
+				t.Errorf("expected channel %s, got %s", scenario.ExpectedOutput.Channel, output.Channel)
+			}
+			if output.Alias != scenario.ExpectedOutput.Alias {
+				t.Errorf("expected alias %s, got %s", scenario.ExpectedOutput.Alias, output.Alias)
+			}
+			if output.Emoji != scenario.ExpectedOutput.Emoji {
+				t.Errorf("expected emoji %s, got %s", scenario.ExpectedOutput.Emoji, output.Emoji)
+			}
+			if output.Avatar != scenario.ExpectedOutput.Avatar {
+				t.Errorf("expected avatar %s, got %s", scenario.ExpectedOutput.Avatar, output.Avatar)
 			}
 		})
 	}
