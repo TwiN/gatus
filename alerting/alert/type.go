@@ -23,6 +23,9 @@ const (
 	// TypeEmail is the Type for the email alerting provider
 	TypeEmail Type = "email"
 
+	// TypeFlowtriq is the Type for the flowtriq alerting provider
+	TypeFlowtriq Type = "flowtriq"
+
 	// TypeGitHub is the Type for the github alerting provider
 	TypeGitHub Type = "github"
 
