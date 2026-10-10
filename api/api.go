@@ -77,14 +77,14 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	////////////////////////
 	unprotectedAPIRouter := apiRouter.Group("/")
 	unprotectedAPIRouter.Get("/v1/config", ConfigHandler{securityConfig: cfg.Security, config: cfg}.GetConfig)
-	unprotectedAPIRouter.Get("/v1/endpoints/:key/health/badge.svg", HealthBadge)
-	unprotectedAPIRouter.Get("/v1/endpoints/:key/health/badge.shields", HealthBadgeShields)
-	unprotectedAPIRouter.Get("/v1/endpoints/:key/uptimes/:duration", UptimeRaw)
-	unprotectedAPIRouter.Get("/v1/endpoints/:key/uptimes/:duration/badge.svg", UptimeBadge)
-	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration", ResponseTimeRaw)
-	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration/badge.svg", ResponseTimeBadge(cfg))
-	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration/chart.svg", ResponseTimeChart)
-	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration/history", ResponseTimeHistory)
+	unprotectedAPIRouter.Get("/v1/endpoints/:key/health/badge.svg", queryRemoteOrLocalHandler(cfg, HealthBadge, "HealthBadge"))
+	unprotectedAPIRouter.Get("/v1/endpoints/:key/health/badge.shields", queryRemoteOrLocalHandler(cfg, HealthBadgeShields, "HealthBadgeShields"))
+	unprotectedAPIRouter.Get("/v1/endpoints/:key/uptimes/:duration", queryRemoteOrLocalHandler(cfg, UptimeRaw, "UptimeRaw"))
+	unprotectedAPIRouter.Get("/v1/endpoints/:key/uptimes/:duration/badge.svg", queryRemoteOrLocalHandler(cfg, UptimeBadge, "UptimeBadge"))
+	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration", queryRemoteOrLocalHandler(cfg, ResponseTimeRaw, "ResponseTimeRaw"))
+	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration/badge.svg", queryRemoteOrLocalHandlerWithCfg(cfg, ResponseTimeBadge, "ResponseTimeBadge"))
+	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration/chart.svg", queryRemoteOrLocalHandler(cfg, ResponseTimeChart, "ResponseTimeChart"))
+	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration/history", queryRemoteOrLocalHandler(cfg, ResponseTimeHistory, "ResponseTimeHistory"))
 	// This endpoint requires authz with bearer token, so technically it is protected
 	unprotectedAPIRouter.Post("/v1/endpoints/:key/external", CreateExternalEndpointResult(cfg))
 	// SPA
@@ -129,8 +129,10 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 		}
 	}
 	protectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
+	// Remote endpoint statuses cannot be proxied as-is because we
+	// need to edit the JSON on the go to replace local key with remote key
 	protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus(cfg))
 	protectedAPIRouter.Get("/v1/suites/statuses", SuiteStatuses(cfg))
-	protectedAPIRouter.Get("/v1/suites/:key/statuses", SuiteStatus(cfg))
+	protectedAPIRouter.Get("/v1/suites/:key/statuses", queryRemoteOrLocalHandlerWithCfg(cfg, SuiteStatus, "SuiteStatus"))
 	return app
 }
