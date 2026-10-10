@@ -131,9 +131,9 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	for _, conditionResult := range result.ConditionResults {
 		var prefix string
 		if conditionResult.Success {
-			prefix = ":white_check_mark:"
+			prefix = "✅"
 		} else {
-			prefix = ":x:"
+			prefix = "❌"
 		}
 		formattedConditionResults += fmt.Sprintf("%s - `%s`\n", prefix, conditionResult.Condition)
 	}
