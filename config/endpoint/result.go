@@ -51,6 +51,12 @@ type Result struct {
 	// It is used for health evaluation as well as debugging purposes.
 	Body []byte `json:"-"`
 
+	// HTTPResponseHeaders contains the HTTP response headers.
+	//
+	// Note that this field is not persisted in the storage.
+	// It is used for health evaluation as well as debugging purposes.
+	HTTPResponseHeaders map[string][]string `json:"-"`
+
 	///////////////////////////////////////////////////////////////////////
 	// Below is used only for the UI and is not persisted in the storage //
 	///////////////////////////////////////////////////////////////////////
