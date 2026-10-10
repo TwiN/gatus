@@ -46,8 +46,8 @@ const (
 )
 
 var (
-	// ErrNoEndpointOrSuiteInConfig is an error returned when a configuration file or directory has no endpoints configured
-	ErrNoEndpointOrSuiteInConfig = errors.New("configuration should contain at least one endpoint or suite")
+	// ErrNoEndpointOrSuiteOrRemoteInConfig is an error returned when a configuration file or directory has no endpoints configured
+	ErrNoEndpointOrSuiteOrRemoteInConfig = errors.New("configuration should contain at least one endpoint or suite or remote")
 
 	// ErrConfigFileNotFound is an error returned when a configuration file could not be found
 	ErrConfigFileNotFound = errors.New("configuration file not found")
@@ -292,8 +292,8 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		return
 	}
 	// Check if the configuration file at least has endpoints configured
-	if config == nil || (len(config.Endpoints) == 0 && len(config.Suites) == 0) {
-		err = ErrNoEndpointOrSuiteInConfig
+	if config == nil || (len(config.Endpoints) == 0 && len(config.Suites) == 0 && (config.Remote == nil || len(config.Remote.Instances) == 0)) {
+		err = ErrNoEndpointOrSuiteOrRemoteInConfig
 	} else {
 		// XXX: Remove this in v6.0.0
 		if config.Debug {
