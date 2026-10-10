@@ -17,7 +17,11 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import annotationPlugin from 'chartjs-plugin-annotation'
 import 'chartjs-adapter-date-fns'
 import { generatePrettyTimeDifference } from '@/utils/time'
+import { formatDuration } from '@/utils/format'
 import Loading from './Loading.vue'
+
+// Chart values are in milliseconds, formatDuration expects nanoseconds
+const formatMilliseconds = (ms) => formatDuration(ms * 1000000)
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, TimeScale, annotationPlugin)
 
@@ -168,8 +172,7 @@ const chartOptions = computed(() => {
             return ''
           },
           label: (context) => {
-            const value = context.parsed.y
-            return `${value}ms`
+            return formatMilliseconds(context.parsed.y)
           }
         }
       },
@@ -249,7 +252,7 @@ const chartOptions = computed(() => {
         },
         ticks: {
           color: isDark.value ? '#9ca3af' : '#6b7280',
-          callback: (value) => `${value}ms`
+          callback: formatMilliseconds
         }
       }
     }
