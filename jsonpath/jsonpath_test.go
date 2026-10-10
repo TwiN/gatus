@@ -63,6 +63,14 @@ func TestEval(t *testing.T) {
 			ExpectedError:        false,
 		},
 		{
+			Name:                 "key-with-index-on-top-level-array",
+			Path:                 "foo[0]",
+			Data:                 `[1, 2, 3]`,
+			ExpectedOutput:       "",
+			ExpectedOutputLength: 0,
+			ExpectedError:        true,
+		},
+		{
 			Name:                 "array-of-values-with-no-path",
 			Path:                 "",
 			Data:                 `[1, 2]`,
