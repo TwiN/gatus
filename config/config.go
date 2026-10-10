@@ -83,6 +83,10 @@ type Config struct {
 	// Defaults to DefaultConcurrency. Set to 0 for unlimited concurrency.
 	Concurrency int `yaml:"concurrency,omitempty"`
 
+	// UsePrivilegedPing enables privileged pings in upstream pinging library,
+	// requiring CAP_NET_RAW+ep on most GNU/Linux systems.
+	UsePrivilegedPing bool `yaml:"use-privileged-ping,omitempty"`
+
 	// Security is the configuration for securing access to Gatus
 	Security *security.Config `yaml:"security,omitempty"`
 
@@ -339,6 +343,7 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 			return nil, err
 		}
 		ValidateAndSetConcurrencyDefaults(config)
+		client.UsePrivilegedPing.Set(config.UsePrivilegedPing)
 		// Cross-config changes
 		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
 	}
