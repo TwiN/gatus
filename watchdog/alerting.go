@@ -113,6 +113,7 @@ func handleAlertsToResolve(ep *endpoint.Endpoint, result *endpoint.Result, alert
 				continue
 			}
 		} else {
+			// No resolved notification was requested, so clear the alert without sending.
 			logr.Debugf("[watchdog.handleAlertsToResolve] Not sending request to provider of alert with type=%s for endpoint with key=%s despite being RESOLVED, because send-on-resolved is set to false", endpointAlert.Type, ep.Key())
 		}
 		// Clear only after delivery succeeds (or resolved notifications are disabled).
