@@ -33,7 +33,7 @@ const props = defineProps({
   },
   serverUrl: {
     type: String,
-    default: '..'
+    default: ''
   },
   events: {
     type: Array,
@@ -260,7 +260,7 @@ const fetchData = async () => {
   loading.value = true
   error.value = null
   try {
-    const response = await fetch(`${props.serverUrl}/api/v1/endpoints/${props.endpointKey}/response-times/${props.duration}/history`, {
+    const response = await fetch(`${props.serverUrl}api/v1/endpoints/${props.endpointKey}/response-times/${props.duration}/history`, {
       credentials: 'include'
     })
     if (response.status === 200) {

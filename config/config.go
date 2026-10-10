@@ -341,6 +341,10 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		ValidateAndSetConcurrencyDefaults(config)
 		// Cross-config changes
 		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
+		config.UI.BasePath = config.Web.BasePath
+		if config.Security != nil && config.Security.OIDC != nil {
+			config.Security.OIDC.BasePath = config.Web.BasePath
+		}
 	}
 	return
 }
