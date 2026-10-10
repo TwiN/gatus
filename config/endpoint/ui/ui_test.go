@@ -41,6 +41,30 @@ func TestValidateAndSetDefaults(t *testing.T) {
 			config:  &Config{},
 			wantErr: nil,
 		},
+		{
+			name: "with-valid-links",
+			config: &Config{
+				Links: []Link{
+					{Name: "Repository", Value: "https://github.com/example/example"},
+					{Name: "Staging", Value: "https://staging.example.org"},
+				},
+			},
+			wantErr: nil,
+		},
+		{
+			name: "with-link-missing-name",
+			config: &Config{
+				Links: []Link{{Value: "https://example.org"}},
+			},
+			wantErr: ErrInvalidLinkConfig,
+		},
+		{
+			name: "with-link-missing-value",
+			config: &Config{
+				Links: []Link{{Name: "Example"}},
+			},
+			wantErr: ErrInvalidLinkConfig,
+		},
 	}
 
 	for _, tt := range tests {
