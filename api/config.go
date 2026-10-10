@@ -33,6 +33,10 @@ func (handler ConfigHandler) GetConfig(c *fiber.Ctx) error {
 	} else {
 		response["announcements"] = []interface{}{}
 	}
+	// Expose the storage result limit so the frontend can use it as the page size
+	if handler.config != nil && handler.config.Storage != nil {
+		response["maximum-number-of-results"] = handler.config.Storage.MaximumNumberOfResults
+	}
 
 	// Return the config as JSON
 	c.Set("Content-Type", "application/json")
