@@ -165,16 +165,10 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 			// It shouldn't happen, but if it does, we'll log it... Better safe than sorry ;)
 			logr.Errorf("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error: %s", err.Error())
 		} else {
-			dialer := &net.Dialer{
-				Resolver: &net.Resolver{
-					PreferGo: true,
-					Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
-						d := net.Dialer{}
-						return d.DialContext(ctx, dnsResolver.Protocol, dnsResolver.Host+":"+dnsResolver.Port)
-					},
-				},
-			}
-			connection, err = dialer.DialContext(context.Background(), "tcp", address)
+			dialer := newAbsoluteLookupDialer(dnsResolver)
+			// FQDN lookup through the custom resolver: one query per family,
+			// no system search-list expansion (#1769).
+			connection, err = absoluteLookupDialContext(context.Background(), dialer, dnsResolver, "tcp", address)
 			if err != nil {
 				return
 			}
