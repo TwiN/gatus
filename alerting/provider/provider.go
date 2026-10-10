@@ -2,6 +2,7 @@ package provider
 
 import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/provider/alertmanager"
 	"github.com/TwiN/gatus/v5/alerting/provider/awsses"
 	"github.com/TwiN/gatus/v5/alerting/provider/clickup"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
@@ -93,6 +94,7 @@ func MergeProviderDefaultAlertIntoEndpointAlert(providerDefaultAlert, endpointAl
 
 var (
 	// Validate provider interface implementation on compile
+	_ AlertProvider = (*alertmanager.AlertProvider)(nil)
 	_ AlertProvider = (*awsses.AlertProvider)(nil)
 	_ AlertProvider = (*clickup.AlertProvider)(nil)
 	_ AlertProvider = (*custom.AlertProvider)(nil)
@@ -136,6 +138,7 @@ var (
 	_ AlertProvider = (*zulip.AlertProvider)(nil)
 
 	// Validate config interface implementation on compile
+	_ Config[alertmanager.Config]   = (*alertmanager.Config)(nil)
 	_ Config[awsses.Config]         = (*awsses.Config)(nil)
 	_ Config[clickup.Config]        = (*clickup.Config)(nil)
 	_ Config[custom.Config]         = (*custom.Config)(nil)
