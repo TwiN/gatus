@@ -1,0 +1,53 @@
+services:
+  gatus:
+    image: twinproduction/gatus:latest
+    ports:
+      - "8080:8080"
+    environment:
+      GATUS_CONFIG_BASE64: false
+      GATUS_CONFIG: |
+        storage:
+          type: sqlite
+          path: /data/data.db
+
+        endpoints:
+          - name: back-end
+            group: core
+            url: "https://example.org/"
+            interval: 5m
+            conditions:
+              - "[STATUS] == 200"
+              - "[CERTIFICATE_EXPIRATION] > 48h"
+
+          - name: monitoring
+            group: internal
+            url: "https://example.org/"
+            interval: 5m
+            conditions:
+              - "[STATUS] == 200"
+
+          - name: nas
+            group: internal
+            url: "https://example.org/"
+            interval: 5m
+            conditions:
+              - "[STATUS] == 200"
+
+          - name: example-dns-query
+            url: "8.8.8.8" # Address of the DNS server to use
+            interval: 5m
+            dns:
+              query-name: "example.com"
+              query-type: "A"
+            conditions:
+              - "[BODY] == 93.184.215.14"
+              - "[DNS_RCODE] == NOERROR"
+
+          - name: icmp-ping
+            url: "icmp://example.org"
+            interval: 1m
+            conditions:
+              - "[CONNECTED] == true"
+
+    volumes:
+      - ./data:/data/
