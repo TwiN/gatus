@@ -57,6 +57,7 @@ func (cfg *Config) Validate() error {
 	if cfg.Priority < 1 || cfg.Priority > 5 {
 		return ErrInvalidPriority
 	}
+	// ResolvedPriority must be in [0, 5], where 0 represents unset/default (falling back to Priority)
 	if cfg.ResolvedPriority < 0 || cfg.ResolvedPriority > 5 {
 		return ErrInvalidPriority
 	}
@@ -73,6 +74,7 @@ func (cfg *Config) Merge(override *Config) {
 	if override.Priority > 0 {
 		cfg.Priority = override.Priority
 	}
+	// Note: 0 is treated as unset and will not override an inherited value.
 	if override.ResolvedPriority > 0 {
 		cfg.ResolvedPriority = override.ResolvedPriority
 	}
@@ -124,10 +126,11 @@ func (provider *AlertProvider) Validate() error {
 			if len(override.Token) > 0 && !strings.HasPrefix(override.Token, TokenPrefix) {
 				return ErrDuplicateGroupOverride
 			}
-			if override.Priority < 0 || override.Priority >= 6 {
+			// Valid priority range is [0, 5], where 0 represents unset/default
+			if override.Priority < 0 || override.Priority > 5 {
 				return ErrDuplicateGroupOverride
 			}
-			if override.ResolvedPriority < 0 || override.ResolvedPriority >= 6 {
+			if override.ResolvedPriority < 0 || override.ResolvedPriority > 5 {
 				return ErrDuplicateGroupOverride
 			}
 			registeredGroups[override.Group] = true
