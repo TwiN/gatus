@@ -13,6 +13,7 @@ import (
 )
 
 // HandleAlerting takes care of alerts to resolve and alerts to trigger based on result success or failure
+// Callers must serialize evaluations for the same endpoint and any shared alerts until this function returns.
 func HandleAlerting(ep *endpoint.Endpoint, result *endpoint.Result, alertingConfig *alerting.Config) {
 	if alertingConfig == nil {
 		return

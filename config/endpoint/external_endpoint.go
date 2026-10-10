@@ -2,6 +2,7 @@ package endpoint
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -22,6 +23,9 @@ var (
 // said endpoints are not monitored by Gatus itself; Gatus only displays their results and takes
 // care of alerting
 type ExternalEndpoint struct {
+	// Mutex serializes pushed results and heartbeat evaluations, including alert delivery.
+	sync.Mutex `yaml:"-" json:"-"`
+
 	// Enabled defines whether to enable the monitoring of the endpoint
 	Enabled *bool `yaml:"enabled,omitempty"`
 
@@ -92,6 +96,7 @@ func (externalEndpoint *ExternalEndpoint) Key() string {
 }
 
 // ToEndpoint converts the ExternalEndpoint to an Endpoint
+// Callers must hold the mutex when runtime alert state may change concurrently.
 func (externalEndpoint *ExternalEndpoint) ToEndpoint() *Endpoint {
 	endpoint := &Endpoint{
 		Enabled:                 externalEndpoint.Enabled,
