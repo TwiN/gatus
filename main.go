@@ -1,6 +1,7 @@
 package main
 
 import (
+	"math/rand"
 	"os"
 	"os/signal"
 	"strconv"
@@ -102,7 +103,8 @@ func loadConfiguration() (*config.Config, error) {
 func initializeStorage(cfg *config.Config) {
 	const (
 		maxRetries = 5
-		retryDelay = 2 * time.Second
+		baseDelay  = time.Second
+		maxDelay   = 16 * time.Second
 	)
 	var err error
 	for attempt := 1; attempt <= maxRetries; attempt++ {
@@ -111,8 +113,14 @@ func initializeStorage(cfg *config.Config) {
 			break
 		}
 		if attempt < maxRetries {
-			logr.Warnf("[main.initializeStorage] Storage initialization attempt %d/%d failed: %v. Retrying in %v...", attempt, maxRetries, err, retryDelay)
-			time.Sleep(retryDelay)
+			backoff := baseDelay * time.Duration(1<<(attempt-1))
+			if backoff > maxDelay {
+				backoff = maxDelay
+			}
+			jitter := time.Duration(rand.Int63n(int64(baseDelay)))
+			sleepDuration := backoff + jitter
+			logr.Warnf("[main.initializeStorage] Storage initialization attempt %d/%d failed: %v. Retrying in %v...", attempt, maxRetries, err, sleepDuration)
+			time.Sleep(sleepDuration)
 		}
 	}
 	if err != nil {
