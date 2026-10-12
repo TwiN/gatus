@@ -1033,19 +1033,30 @@ endpoints:
 | `alerting.discord`                   | Configuration for alerts of type `discord`                                                 | `{}`                                |
 | `alerting.discord.webhook-url`       | Discord Webhook URL                                                                        | Required `""`                       |
 | `alerting.discord.title`             | Title of the notification                                                                  | `":helmet_with_white_cross: Gatus"` |
-| `alerting.discord.message-content`   | Message content to send before the embed (useful for pinging users/roles, e.g. `<@123>`)   | `""`                                |
+| `alerting.discord.message-content`   | Message content to send before the embed. Supports the placeholders below and user/role mentions (e.g. `<@123>`) | `""`                  |
 | `alerting.discord.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                 |
 | `alerting.discord.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                                |
 | `alerting.discord.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                                |
 | `alerting.discord.overrides[].*`     | See `alerting.discord.*` parameters                                                        | `{}`                                |
 
+The `message-content` parameter supports these placeholders, including in group and alert overrides:
+
+| Placeholder | Value |
+|:------------|:------|
+| `[ENDPOINT_NAME]` | Endpoint name |
+| `[ENDPOINT_GROUP]` | Endpoint group (empty if unset) |
+| `[ALERT_DESCRIPTION]` | Alert description (empty if unset) |
+| `[ALERT_TRIGGERED_OR_RESOLVED]` | `TRIGGERED` or `RESOLVED` |
+
 ```yaml
 alerting:
   discord:
     webhook-url: "https://discord.com/api/webhooks/**********/**********"
+    message-content: "[ALERT_TRIGGERED_OR_RESOLVED] · [ENDPOINT_GROUP]/[ENDPOINT_NAME]"
 
 endpoints:
   - name: website
+    group: external
     url: "https://twin.sh/health"
     interval: 5m
     conditions:
@@ -1057,6 +1068,9 @@ endpoints:
         description: "healthcheck failed"
         send-on-resolved: true
 ```
+
+This sends `TRIGGERED · external/website` before the embed when the alert fires and
+`RESOLVED · external/website` when it recovers. Static message content and the embed format are unchanged.
 
 
 #### Configuring Email alerts

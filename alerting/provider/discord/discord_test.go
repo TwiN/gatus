@@ -3,6 +3,7 @@ package discord
 import (
 	"encoding/json"
 	"net/http"
+	"reflect"
 	"testing"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -10,6 +11,109 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/test"
 )
+
+func TestAlertProvider_MessageContentPlaceholders(t *testing.T) {
+	t.Parallel()
+	description := "healthcheck failed"
+	escapedDescription := "Unavailable\n[ALERT_TRIGGERED_OR_RESOLVED]"
+	scenarios := []struct {
+		name        string
+		config      Config
+		endpoint    endpoint.Endpoint
+		alert       alert.Alert
+		resolved    bool
+		wantContent string
+	}{
+		{
+			name:        "triggered",
+			config:      Config{MessageContent: "<@123> [ALERT_TRIGGERED_OR_RESOLVED] · [ENDPOINT_GROUP]/[ENDPOINT_NAME]: [ALERT_DESCRIPTION]"},
+			endpoint:    endpoint.Endpoint{Name: "website", Group: "external"},
+			alert:       alert.Alert{Description: &description},
+			wantContent: "<@123> TRIGGERED · external/website: healthcheck failed",
+		},
+		{
+			name:        "resolved",
+			config:      Config{MessageContent: "[ALERT_TRIGGERED_OR_RESOLVED] · [ENDPOINT_GROUP]/[ENDPOINT_NAME]"},
+			endpoint:    endpoint.Endpoint{Name: "website", Group: "external"},
+			resolved:    true,
+			wantContent: "RESOLVED · external/website",
+		},
+		{
+			name:        "empty-optional-values-and-unknown-placeholder",
+			config:      Config{MessageContent: "[ENDPOINT_NAME]|[ENDPOINT_GROUP]|[ALERT_DESCRIPTION]|[UNKNOWN]"},
+			endpoint:    endpoint.Endpoint{Name: "website"},
+			wantContent: "website|||[UNKNOWN]",
+		},
+		{
+			name:        "json-escaping-and-single-pass-replacement",
+			config:      Config{MessageContent: "[ENDPOINT_NAME] [ENDPOINT_NAME] [ENDPOINT_GROUP] [ALERT_DESCRIPTION]"},
+			endpoint:    endpoint.Endpoint{Name: "\"website\"\\server\n[ENDPOINT_GROUP]", Group: "external"},
+			alert:       alert.Alert{Description: &escapedDescription},
+			wantContent: "\"website\"\\server\n[ENDPOINT_GROUP] \"website\"\\server\n[ENDPOINT_GROUP] external Unavailable\n[ALERT_TRIGGERED_OR_RESOLVED]",
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+			provider := AlertProvider{}
+			originalConfig := scenario.config
+			var body, baseline Body
+			if err := json.Unmarshal(provider.buildRequestBody(&scenario.config, &scenario.endpoint, &scenario.alert, &endpoint.Result{}, scenario.resolved), &body); err != nil {
+				t.Fatal(err)
+			}
+			if body.Content != scenario.wantContent {
+				t.Errorf("expected content %q, got %q", scenario.wantContent, body.Content)
+			}
+			if scenario.config != originalConfig {
+				t.Error("building a message changed the configuration")
+			}
+			if err := json.Unmarshal(provider.buildRequestBody(&Config{}, &scenario.endpoint, &scenario.alert, &endpoint.Result{}, scenario.resolved), &baseline); err != nil {
+				t.Fatal(err)
+			}
+			if !reflect.DeepEqual(body.Embeds, baseline.Embeds) {
+				t.Error("message content changed the embeds")
+			}
+		})
+	}
+}
+
+func TestAlertProvider_MessageContentPlaceholderOverrides(t *testing.T) {
+	t.Parallel()
+	provider := AlertProvider{
+		DefaultConfig: Config{WebhookURL: "http://example.com", MessageContent: "default [ENDPOINT_NAME]"},
+		Overrides: []Override{{Group: "external", Config: Config{
+			WebhookURL: "http://example.com", MessageContent: "group [ENDPOINT_GROUP]/[ENDPOINT_NAME]",
+		}}},
+	}
+	scenarios := []struct {
+		name        string
+		group       string
+		alert       alert.Alert
+		wantContent string
+	}{
+		{name: "default", wantContent: "default website"},
+		{name: "group", group: "external", wantContent: "group external/website"},
+		{name: "alert", group: "external", alert: alert.Alert{ProviderOverride: map[string]any{
+			"message-content": "alert [ALERT_TRIGGERED_OR_RESOLVED] [ENDPOINT_NAME]",
+		}}, wantContent: "alert TRIGGERED website"},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+			cfg, err := provider.GetConfig(scenario.group, &scenario.alert)
+			if err != nil {
+				t.Fatal(err)
+			}
+			var body Body
+			if err := json.Unmarshal(provider.buildRequestBody(cfg, &endpoint.Endpoint{Name: "website", Group: scenario.group}, &scenario.alert, &endpoint.Result{}, false), &body); err != nil {
+				t.Fatal(err)
+			}
+			if body.Content != scenario.wantContent {
+				t.Errorf("expected content %q, got %q", scenario.wantContent, body.Content)
+			}
+		})
+	}
+}
 
 func TestAlertProvider_Validate(t *testing.T) {
 	invalidProvider := AlertProvider{DefaultConfig: Config{WebhookURL: ""}}
