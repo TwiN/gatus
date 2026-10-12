@@ -361,6 +361,95 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
 	})
 }
 
+// TestConfig_UpdateLastFileModTimeStopsReprocessingInvalidConfig is a regression
+// test for the fix in fix/skip-invalid-config-restart. It verifies that once an
+// invalid config update is detected and UpdateLastFileModTime is called (as the
+// main loop does when skip-invalid-config-update is true), the same on-disk
+// content no longer appears modified — preventing a repeated reload/log loop.
+// It also confirms that the original Config's endpoints remain intact, i.e. the
+// old configuration is not stopped when the invalid update is skipped.
+func TestConfig_UpdateLastFileModTimeStopsReprocessingInvalidConfig(t *testing.T) {
+	t.Parallel()
+	dir := t.TempDir()
+	configFilePath := filepath.Join(dir, "config.yaml")
+
+	validConfigYAML := []byte(`
+skip-invalid-config-update: true
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`)
+	if err := os.WriteFile(configFilePath, validConfigYAML, 0o644); err != nil {
+		t.Fatalf("failed to write initial config: %v", err)
+	}
+
+	cfg, err := LoadConfiguration(configFilePath)
+	if err != nil {
+		t.Fatalf("failed to load initial configuration: %v", err)
+	}
+
+	// Confirm that the loaded config has the expected endpoint and SkipInvalidConfigUpdate flag.
+	if !cfg.SkipInvalidConfigUpdate {
+		t.Fatal("expected SkipInvalidConfigUpdate to be true")
+	}
+	if len(cfg.Endpoints) == 0 {
+		t.Fatal("expected at least one endpoint in the initial configuration")
+	}
+	endpointName := cfg.Endpoints[0].Name
+
+	// Sanity-check: immediately after loading, the file should not appear modified.
+	if cfg.HasLoadedConfigurationBeenModified() {
+		t.Error("expected HasLoadedConfigurationBeenModified() to be false right after loading")
+	}
+
+	// Simulate writing an invalid config update (e.g. no endpoints, which fails validation).
+	invalidConfigYAML := []byte(`
+skip-invalid-config-update: true
+endpoints: []
+`)
+	if err := os.WriteFile(configFilePath, invalidConfigYAML, 0o644); err != nil {
+		t.Fatalf("failed to write invalid config: %v", err)
+	}
+	// Place the invalid file's mod time one second in the past.  This ensures
+	// it is earlier than what UpdateLastFileModTime() will record (≈ time.Now())
+	// while still being after the lastFileModTime we set below, so the change
+	// is detected before UpdateLastFileModTime is called.
+	pastModTime := time.Now().Add(-1 * time.Second)
+	if err := os.Chtimes(configFilePath, pastModTime, pastModTime); err != nil {
+		t.Fatalf("failed to set config file mod time: %v", err)
+	}
+	// Wind the tracked mod time back further so HasLoadedConfigurationBeenModified
+	// sees the file as newer.  The test is in the same package, giving access to
+	// the unexported field, which avoids sleeping between writes.
+	cfg.lastFileModTime = pastModTime.Add(-1 * time.Second)
+
+	// The main loop would detect this change.
+	if !cfg.HasLoadedConfigurationBeenModified() {
+		t.Error("expected HasLoadedConfigurationBeenModified() to be true after writing invalid config")
+	}
+
+	// The main loop detects that the new config is invalid and calls UpdateLastFileModTime
+	// instead of stopping and reloading. Simulate that call.
+	cfg.UpdateLastFileModTime()
+
+	// After UpdateLastFileModTime the same on-disk content must no longer appear as a
+	// new change — this is what prevents the repeated reload / log loop.
+	if cfg.HasLoadedConfigurationBeenModified() {
+		t.Error("expected HasLoadedConfigurationBeenModified() to be false after UpdateLastFileModTime: the invalid config must not be reprocessed")
+	}
+
+	// The old configuration must still be intact — UpdateLastFileModTime must not
+	// clear or modify the running config's endpoints.
+	if len(cfg.Endpoints) == 0 {
+		t.Fatal("expected cfg.Endpoints to remain non-empty after an invalid update was skipped")
+	}
+	if cfg.Endpoints[0].Name != endpointName {
+		t.Errorf("expected endpoint name %q to be preserved, got %q", endpointName, cfg.Endpoints[0].Name)
+	}
+}
+
 func TestParseAndValidateConfigBytes(t *testing.T) {
 	file := t.TempDir() + "/test.db"
 	config, err := parseAndValidateConfigBytes([]byte(fmt.Sprintf(`
