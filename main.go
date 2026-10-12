@@ -223,25 +223,26 @@ func closeTunnels(cfg *config.Config) {
 	}
 }
 
-// tryLoadNewConfig attempts to load a new configuration using loadFn. If the load
-// fails and cfg.SkipInvalidConfigUpdate is true, it marks the current file
-// modification time (so the same invalid file is not retried) and returns
-// (nil, nil) — signalling that the caller must NOT stop the currently running
-// config. Any other load failure is returned verbatim. On success the newly
-// loaded *Config is returned.
-func tryLoadNewConfig(cfg *config.Config, loadFn func() (*config.Config, error)) (*config.Config, error) {
+// tryLoadNewConfig attempts to load a new configuration using loadFn. stopFn is
+// called (with the old cfg) only when the load succeeds — i.e. only when there is
+// a valid replacement ready. If the load fails and cfg.SkipInvalidConfigUpdate is
+// true, it marks the current file modification time (so the same invalid file is
+// not retried) and returns (nil, nil) without invoking stopFn — the old config
+// stays running. Any other load failure is returned verbatim.
+func tryLoadNewConfig(cfg *config.Config, stopFn func(*config.Config), loadFn func() (*config.Config, error)) (*config.Config, error) {
 	newCfg, err := loadFn()
 	if err != nil {
 		if cfg.SkipInvalidConfigUpdate {
 			logr.Errorf("[main.listenToConfigurationFileChanges] Failed to load new configuration: %s", err.Error())
 			logr.Error("[main.listenToConfigurationFileChanges] The configuration file was updated, but it is not valid. The old configuration will continue being used.")
 			// Mark the mod time so the same invalid file is not retried on the next iteration.
-			// We intentionally do NOT stop the running configuration here — the old config remains active.
+			// We intentionally do NOT call stopFn here — the old config remains active.
 			cfg.UpdateLastFileModTime()
 			return nil, nil
 		}
 		return nil, err
 	}
+	stopFn(cfg)
 	return newCfg, nil
 }
 
@@ -250,14 +251,13 @@ func listenToConfigurationFileChanges(cfg *config.Config) {
 		time.Sleep(30 * time.Second)
 		if cfg.HasLoadedConfigurationBeenModified() {
 			logr.Info("[main.listenToConfigurationFileChanges] Configuration file has been modified")
-			updatedConfig, err := tryLoadNewConfig(cfg, loadConfiguration)
+			updatedConfig, err := tryLoadNewConfig(cfg, stop, loadConfiguration)
 			if err != nil {
 				panic(err)
 			}
 			if updatedConfig == nil {
 				continue // invalid config skipped; old config keeps running
 			}
-			stop(cfg)
 			time.Sleep(time.Second) // Wait a bit to make sure everything is done.
 			save()
 			store.Get().Close()
