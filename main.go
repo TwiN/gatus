@@ -154,6 +154,13 @@ func initializeStorage(cfg *config.Config) {
 			if exists {
 				alert.Triggered, alert.ResolveKey = true, resolveKey
 				ep.NumberOfSuccessesInARow, ep.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
+				// Seed LastReminderSent so the minimum-reminder-interval is measured from
+				// startup rather than from the zero value (#1854). LastReminderSent is
+				// yaml:"-" and is never written to storage, so it is always zero after a
+				// restart even when the triggered alert is successfully restored.
+				if ep.LastReminderSent.IsZero() {
+					ep.LastReminderSent = time.Now()
+				}
 				numberOfPersistedTriggeredAlertsLoaded++
 			}
 		}
@@ -179,6 +186,9 @@ func initializeStorage(cfg *config.Config) {
 			if exists {
 				alert.Triggered, alert.ResolveKey = true, resolveKey
 				ee.NumberOfSuccessesInARow, ee.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
+				if ee.LastReminderSent.IsZero() {
+					ee.LastReminderSent = time.Now()
+				}
 				numberOfPersistedTriggeredAlertsLoaded++
 			}
 		}
@@ -205,6 +215,9 @@ func initializeStorage(cfg *config.Config) {
 				if exists {
 					alert.Triggered, alert.ResolveKey = true, resolveKey
 					ep.NumberOfSuccessesInARow, ep.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
+					if ep.LastReminderSent.IsZero() {
+						ep.LastReminderSent = time.Now()
+					}
 					numberOfPersistedTriggeredAlertsLoaded++
 				}
 			}

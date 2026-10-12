@@ -749,3 +749,50 @@ func TestHandleAlertingOnExternalEndpointConversionPreservesReminderInterval(t *
 		t.Fatal("the overdue reminder should have refreshed LastReminderSent")
 	}
 }
+
+// TestHandleAlertingRestoredTriggeredAlertDoesNotSendImmediateReminder reproduces #1854:
+// after a restart the persisted alert is restored (Triggered=true) but LastReminderSent
+// is zero because it is yaml:"-" and never written to storage. A zero LastReminderSent
+// makes time.Since(zero) >> MinimumReminderInterval, so a reminder fires immediately on
+// the first failed check after startup. The fix must suppress that spurious send.
+func TestHandleAlertingRestoredTriggeredAlertDoesNotSendImmediateReminder(t *testing.T) {
+	t.Parallel()
+	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
+	defer os.Unsetenv("MOCK_ALERT_PROVIDER")
+
+	cfg := &config.Config{
+		Alerting: &alerting.Config{
+			Custom: &custom.AlertProvider{
+				DefaultConfig: custom.Config{
+					URL:    "https://twin.sh/health",
+					Method: "GET",
+				},
+			},
+		},
+	}
+	enabled := true
+	ep := &endpoint.Endpoint{
+		URL: "https://example.com",
+		Alerts: []*alert.Alert{
+			{
+				Type:                    alert.TypeCustom,
+				Enabled:                 &enabled,
+				FailureThreshold:        2,
+				SuccessThreshold:        3,
+				Triggered:               true, // restored from storage
+				MinimumReminderInterval: time.Hour,
+			},
+		},
+	}
+	ep.NumberOfFailuresInARow = 2 // past the threshold, as it would be after restore
+	// ep.LastReminderSent is the zero value – exactly what happens after a restart
+	// because LastReminderSent is yaml:"-" and is never persisted.
+
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
+
+	// A reminder must NOT be sent on the first evaluation after restart.
+	// If LastReminderSent was updated (non-zero), a spurious reminder was sent.
+	if !ep.LastReminderSent.IsZero() {
+		t.Fatal("spurious reminder sent immediately after restart: LastReminderSent was zero (not persisted) but got updated, violating minimum-reminder-interval")
+	}
+}
