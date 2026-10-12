@@ -2808,6 +2808,22 @@ endpoints:
         duration: 1h
         timezone: "Europe/Berlin"
 ```
+Endpoint-level `maintenance-windows` **add to** the global `maintenance` setting rather than replacing it.
+Alerting is suppressed for an endpoint whenever the global maintenance window is active, any of the endpoint's own maintenance windows are active, or both.
+```yaml
+maintenance:
+  start: 02:00
+  duration: 1h
+endpoints:
+  - name: endpoint-1
+    url: "https://example.org"
+    conditions:
+      - "[STATUS] == 200"
+    maintenance-windows:
+      - start: "06:00"
+        duration: 30m
+    # Alerts are suppressed during 02:00-03:00 (global) AND 06:00-06:30 (endpoint-specific)
+```
 
 
 ### Security
