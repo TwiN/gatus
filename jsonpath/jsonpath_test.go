@@ -1,6 +1,7 @@
 package jsonpath
 
 import (
+	"encoding/json"
 	"testing"
 )
 
@@ -257,5 +258,27 @@ func TestArrayLen(t *testing.T) {
 				t.Errorf("expected length %d, got %d", scenario.ExpectedLen, length)
 			}
 		})
+	}
+}
+
+func TestFromObjectVariantsMatchBytesVariants(t *testing.T) {
+	data := []byte(`{"status":{"servers":[{"name":"a"},{"name":"b"}]},"count":2}`)
+	var object interface{}
+	if err := json.Unmarshal(data, &object); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"count", "status.servers[1].name", "status.servers", "status.nope"} {
+		expectedValue, expectedLength, expectedErr := Eval(path, data)
+		value, length, err := EvalFromObject(path, object)
+		if value != expectedValue || length != expectedLength || (err != nil) != (expectedErr != nil) {
+			t.Errorf("EvalFromObject(%q) = (%q, %d, %v), want (%q, %d, %v)", path, value, length, err, expectedValue, expectedLength, expectedErr)
+		}
+	}
+	for _, path := range []string{"status.servers", "status.nope", "count"} {
+		expectedLength, expectedErr := ArrayLen(path, data)
+		length, err := ArrayLenFromObject(path, object)
+		if length != expectedLength || (err != nil) != (expectedErr != nil) {
+			t.Errorf("ArrayLenFromObject(%q) = (%d, %v), want (%d, %v)", path, length, err, expectedLength, expectedErr)
+		}
 	}
 }

@@ -920,21 +920,21 @@ func TestCondition_evaluateWithWildcard(t *testing.T) {
 			Condition:       Condition(`len([BODY].status.servers[*].servererror) == 0`),
 			Result:          &Result{Body: servers()},
 			ExpectedSuccess: false,
-			ExpectedOutputs: []string{`len([BODY].status.servers[*].servererror) == 0 (no elements matched)`},
+			ExpectedOutputs: []string{`len([BODY].status.servers[*].servererror) == 0 (array at [BODY].status.servers is empty)`},
 		},
 		{
 			Name:            "missing-array-fails",
 			Condition:       Condition(`len([BODY].status.nope[*].servererror) == 0`),
 			Result:          &Result{Body: servers("")},
 			ExpectedSuccess: false,
-			ExpectedOutputs: []string{`len([BODY].status.nope[*].servererror) == 0 (no elements matched)`},
+			ExpectedOutputs: []string{`len([BODY].status.nope[*].servererror) == 0 (no array found at [BODY].status.nope)`},
 		},
 		{
 			Name:            "no-body-fails",
 			Condition:       Condition(`len([BODY].status.servers[*].servererror) == 0`),
 			Result:          &Result{},
 			ExpectedSuccess: false,
-			ExpectedOutputs: []string{`len([BODY].status.servers[*].servererror) == 0 (no elements matched)`},
+			ExpectedOutputs: []string{`len([BODY].status.servers[*].servererror) == 0 (no array found at [BODY].status.servers)`},
 		},
 		{
 			Name:            "root-array",
@@ -963,6 +963,13 @@ func TestCondition_evaluateWithWildcard(t *testing.T) {
 			Result:          &Result{Body: []byte(`{"networks":[{"uplinks":[{"status":"active"},{"status":"failed"}]},{"uplinks":[{"status":"active"}]}]}`)},
 			ExpectedSuccess: false,
 			ExpectedOutputs: []string{`[BODY].networks[0].uplinks[1].status (failed) == active`},
+		},
+		{
+			Name:            "nested-wildcards-empty-inner-array",
+			Condition:       Condition(`[BODY].networks[*].uplinks[*].status == active`),
+			Result:          &Result{Body: []byte(`{"networks":[{"uplinks":[{"status":"active"}]},{"uplinks":[]}]}`)},
+			ExpectedSuccess: false,
+			ExpectedOutputs: []string{`[BODY].networks[1].uplinks[*].status == active (array at [BODY].networks[1].uplinks is empty)`},
 		},
 		{
 			Name:            "with-pattern",

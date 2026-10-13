@@ -20,6 +20,13 @@ func Eval(path string, b []byte) (string, int, error) {
 	return walk(path, object)
 }
 
+// EvalFromObject is like Eval, but takes a document that has already been decoded with json.Unmarshal.
+//
+// Unlike Eval, the path must not be empty.
+func EvalFromObject(path string, object interface{}) (string, int, error) {
+	return walk(path, object)
+}
+
 // ArrayLen returns the number of elements of the JSON array found at path.
 // An empty path refers to the root of the document.
 func ArrayLen(path string, b []byte) (int, error) {
@@ -27,6 +34,11 @@ func ArrayLen(path string, b []byte) (int, error) {
 	if err := json.Unmarshal(b, &object); err != nil {
 		return 0, err
 	}
+	return ArrayLenFromObject(path, object)
+}
+
+// ArrayLenFromObject is like ArrayLen, but takes a document that has already been decoded with json.Unmarshal.
+func ArrayLenFromObject(path string, object interface{}) (int, error) {
 	if len(path) != 0 {
 		for _, key := range splitKeys(path) {
 			object = extractValue(key, object)

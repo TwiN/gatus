@@ -501,9 +501,9 @@ conditions:
 ```
 
 - Wildcards can be nested, and `[BODY][*]` can be used when the body itself is an array.
-- An empty or missing array fails the condition, as a response with nothing to check shouldn't be considered healthy.
+- An empty or missing array fails the condition, as a response with nothing to check shouldn't be considered healthy. The result tells which one it is (`no array found at ...` or `array at ... is empty`).
 - Only the failing elements are listed in the results (e.g. `[BODY].networks[1].uplinks[0].status (failed) == active`).
-- `== ""` doesn't compare against an empty string; use `len(...) == 0` instead.
+- `== ""` doesn't compare against an empty string, because the right-hand side is taken literally and `""` is two quote characters. Use `len(...) == 0` instead.
 
 
 #### Placeholders
