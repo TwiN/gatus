@@ -13,9 +13,10 @@ import (
 // SuiteStatuses handles requests to retrieve all suite statuses
 func SuiteStatuses(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		userAuthenticated := cfg.Security == nil || cfg.Security.IsAuthenticated(c)
 		page, pageSize := extractPageAndPageSizeFromRequest(c, 100)
 		params := paging.NewSuiteStatusParams().WithPagination(page, pageSize)
-		suiteStatuses, err := store.Get().GetAllSuiteStatuses(params)
+		suiteStatuses, err := store.Get().GetAllSuiteStatuses(!userAuthenticated, params)
 		if err != nil {
 			return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
 				"error": fmt.Sprintf("Failed to retrieve suite statuses: %v", err),
@@ -25,7 +26,10 @@ func SuiteStatuses(cfg *config.Config) fiber.Handler {
 		if len(suiteStatuses) == 0 {
 			for _, s := range cfg.Suites {
 				if s.IsEnabled() {
-					suiteStatuses = append(suiteStatuses, suite.NewStatus(s))
+					// Only include suites that match the visibility filter
+					if userAuthenticated || s.Visibility.Public {
+						suiteStatuses = append(suiteStatuses, suite.NewStatus(s))
+					}
 				}
 			}
 		}
@@ -36,16 +40,19 @@ func SuiteStatuses(cfg *config.Config) fiber.Handler {
 // SuiteStatus handles requests to retrieve a single suite's status
 func SuiteStatus(cfg *config.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
+		userAuthenticated := cfg.Security == nil || cfg.Security.IsAuthenticated(c)
 		page, pageSize := extractPageAndPageSizeFromRequest(c, 100)
 		key := c.Params("key")
 		params := paging.NewSuiteStatusParams().WithPagination(page, pageSize)
-		status, err := store.Get().GetSuiteStatusByKey(key, params)
+		status, err := store.Get().GetSuiteStatusByKey(key, !userAuthenticated, params)
 		if err != nil || status == nil {
 			// Try to find the suite in config
 			for _, s := range cfg.Suites {
 				if s.Key() == key {
-					status = suite.NewStatus(s)
-					break
+					if userAuthenticated || s.Visibility.Public {
+						status = suite.NewStatus(s)
+						break
+					}
 				}
 			}
 			if status == nil {
