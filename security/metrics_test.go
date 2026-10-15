@@ -73,6 +73,12 @@ func TestMetricsConfig_isValid(t *testing.T) {
 			ExpectValid: true,
 		},
 		{
+			Name:        "whitespace-token",
+			Config:      &MetricsConfig{Tokens: []string{"my token"}},
+			HasProvider: true,
+			ExpectValid: false,
+		},
+		{
 			Name:        "empty-token",
 			Config:      &MetricsConfig{Tokens: []string{"token", ""}},
 			HasProvider: true,

@@ -2844,7 +2844,7 @@ security:
 curl -H "Authorization: Bearer $API_TOKEN" https://status.example.com/api/v1/endpoints/statuses
 ```
 
-API tokens do not grant access to `/metrics`. See [Protecting Metrics](#protecting-metrics) for that.
+Tokens must not contain whitespace. API tokens do not grant access to `/metrics`. See [Protecting Metrics](#protecting-metrics) for that.
 
 
 ### TLS Encryption
@@ -2891,7 +2891,7 @@ security:
       - "${METRICS_TOKEN}"
 ```
 
-If you want to use the same token for the API and metrics, you can use [YAML anchors](#keeping-your-configuration-small).
+Tokens must not contain whitespace. If you want to use the same token for the API and metrics, you can use [YAML anchors](#keeping-your-configuration-small).
 
 #### Custom Labels
 

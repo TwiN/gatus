@@ -1880,6 +1880,25 @@ endpoints:
 	}
 }
 
+func TestParseAndValidateConfigBytesWithWhitespaceInAPIToken(t *testing.T) {
+	_, err := parseAndValidateConfigBytes([]byte(`
+security:
+  basic:
+    username: "john.doe"
+    password-bcrypt-base64: "JDJhJDEwJHRiMnRFakxWazZLdXBzRERQazB1TE8vckRLY05Yb1hSdnoxWU0yQ1FaYXZRSW1McmladDYu"
+    api-tokens:
+      - "my token"
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if !errors.Is(err, ErrInvalidSecurityConfig) {
+		t.Errorf("expected error %v, got %v", ErrInvalidSecurityConfig, err)
+	}
+}
+
 func TestParseAndValidateConfigBytesWithProtectedMetricsWithoutSecurityProvider(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(`
 security:

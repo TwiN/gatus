@@ -28,6 +28,36 @@ func TestValidateTokens(t *testing.T) {
 			Tokens:      []string{"token1", ""},
 			ExpectValid: false,
 		},
+		{
+			Name:        "leading-whitespace",
+			Tokens:      []string{" token"},
+			ExpectValid: false,
+		},
+		{
+			Name:        "trailing-whitespace",
+			Tokens:      []string{"token "},
+			ExpectValid: false,
+		},
+		{
+			Name:        "interior-whitespace",
+			Tokens:      []string{"my token"},
+			ExpectValid: false,
+		},
+		{
+			Name:        "trailing-newline",
+			Tokens:      []string{"token\n"},
+			ExpectValid: false,
+		},
+		{
+			Name:        "tab",
+			Tokens:      []string{"to\tken"},
+			ExpectValid: false,
+		},
+		{
+			Name:        "whitespace-only",
+			Tokens:      []string{"   "},
+			ExpectValid: false,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {

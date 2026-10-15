@@ -4,13 +4,16 @@ import (
 	"crypto/subtle"
 	"slices"
 	"strings"
+	"unicode"
 
 	"github.com/gofiber/fiber/v2"
 )
 
-// validateTokens returns whether none of the tokens are empty
+// validateTokens returns whether none of the tokens are empty or contain whitespace
 func validateTokens(tokens []string) bool {
-	return !slices.Contains(tokens, "")
+	return !slices.ContainsFunc(tokens, func(token string) bool {
+		return len(token) == 0 || strings.ContainsFunc(token, unicode.IsSpace)
+	})
 }
 
 // hasValidBearerToken returns whether the request has a bearer token matching one of the tokens passed
