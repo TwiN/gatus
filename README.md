@@ -502,6 +502,7 @@ Here are some examples of conditions you can use:
 | `[CERTIFICATE_EXPIRATION]` | Resolves into the duration before certificate expiration (valid units are "s", "m", "h".) | `24h`, `48h`, 0 (if not protocol with certs) |
 | `[DOMAIN_EXPIRATION]`      | Resolves into the duration before the domain expires (valid units are "s", "m", "h".)     | `24h`, `48h`, `1234h56m78s`                  |
 | `[DNS_RCODE]`              | Resolves into the DNS status of the response                                              | `NOERROR`                                    |
+| `[DNS_ANSWER]`             | Resolves into the DNS answer returned by the query                                         | `93.184.215.14`                              |
 
 
 #### Functions
@@ -3240,8 +3241,8 @@ endpoints:
       - "[DNS_RCODE] == NOERROR"
 ```
 
-There are two placeholders that can be used in the conditions for endpoints of type DNS:
-- The placeholder `[BODY]` resolves to the output of the query. For instance, a query of type `A` would return an IPv4.
+There are three placeholders that can be used in the conditions for endpoints of type DNS:
+- The placeholder `[DNS_ANSWER]` (or `[BODY]`) resolves to the output of the query. For instance, a query of type `A` would return an IPv4.
 - The placeholder `[DNS_RCODE]` resolves to the name associated to the response code returned by the query, such as
 `NOERROR`, `FORMERR`, `SERVFAIL`, `NXDOMAIN`, etc.
 
