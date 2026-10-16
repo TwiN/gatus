@@ -35,10 +35,12 @@ func (c *Config) ValidateAndSetDefaults() bool {
 func (c *Config) RegisterHandlers(router fiber.Router) error {
 	if c.OIDC != nil {
 		if err := c.OIDC.initialize(); err != nil {
+			logr.Errorf("[security.RegisterHandlers] Failed to initialize OIDC provider: %s", err.Error())
 			return err
 		}
 		router.All("/oidc/login", c.OIDC.loginHandler)
 		router.All("/authorization-code/callback", adaptor.HTTPHandlerFunc(c.OIDC.callbackHandler))
+		logr.Infof("[security.RegisterHandlers] Registered OIDC routes (/oidc/login, /authorization-code/callback)")
 	}
 	return nil
 }
@@ -103,7 +105,16 @@ func (c *Config) IsAuthenticated(ctx *fiber.Ctx) bool {
 			return false
 		}
 		token := c.gate.ExtractTokenFromRequest(request)
-		_, hasSession := sessions.Get(token)
+		if len(token) == 0 {
+			logr.Debug("[security.IsAuthenticated] No session token found in request")
+			return false
+		}
+		subject, hasSession := sessions.Get(token)
+		if hasSession {
+			logr.Debugf("[security.IsAuthenticated] Active session found for subject '%s'", subject)
+		} else {
+			logr.Debug("[security.IsAuthenticated] Session token expired or invalid")
+		}
 		return hasSession
 	}
 	return false
