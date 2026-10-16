@@ -40,10 +40,13 @@ func (c *OIDCConfig) ValidateAndSetDefaults() bool {
 }
 
 func (c *OIDCConfig) initialize() error {
+	logr.Infof("[security.OIDCConfig.initialize] Connecting to OIDC provider at '%s'", c.IssuerURL)
 	provider, err := oidc.NewProvider(context.Background(), c.IssuerURL)
 	if err != nil {
+		logr.Errorf("[security.OIDCConfig.initialize] Failed to query OIDC provider '%s': %s", c.IssuerURL, err.Error())
 		return err
 	}
+	logr.Infof("[security.OIDCConfig.initialize] Successfully discovered OIDC provider at '%s'", c.IssuerURL)
 	c.verifier = provider.Verifier(&oidc.Config{ClientID: c.ClientID})
 	// Configure an OpenID Connect aware OAuth2 client.
 	c.oauth2Config = oauth2.Config{
@@ -74,65 +77,80 @@ func (c *OIDCConfig) loginHandler(ctx *fiber.Ctx) error {
 		SameSite: "lax",
 		HTTPOnly: true,
 	})
-	return ctx.Redirect(c.oauth2Config.AuthCodeURL(state, oidc.Nonce(nonce)), http.StatusFound)
+	authURL := c.oauth2Config.AuthCodeURL(state, oidc.Nonce(nonce))
+	logr.Debugf("[security.OIDCConfig.loginHandler] Initiating login, redirecting to: %s", authURL)
+	return ctx.Redirect(authURL, http.StatusFound)
 }
 
 func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) { // TODO: Migrate to a native fiber handler
+	logr.Debug("[security.OIDCConfig.callbackHandler] Received callback from OIDC provider")
 	// Check if there's an error
 	if len(r.URL.Query().Get("error")) > 0 {
-		http.Error(w, r.URL.Query().Get("error")+": "+r.URL.Query().Get("error_description"), http.StatusBadRequest)
+		errParam := r.URL.Query().Get("error")
+		errDesc := r.URL.Query().Get("error_description")
+		logr.Errorf("[security.OIDCConfig.callbackHandler] OIDC provider returned error: %s: %s", errParam, errDesc)
+		http.Error(w, errParam+": "+errDesc, http.StatusBadRequest)
 		return
 	}
 	// Ensure that the state has the expected value
 	state, err := r.Cookie(cookieNameState)
 	if err != nil {
+		logr.Errorf("[security.OIDCConfig.callbackHandler] State cookie not found in callback request: %v", err)
 		http.Error(w, "state not found", http.StatusBadRequest)
 		return
 	}
 	if r.URL.Query().Get("state") != state.Value {
+		logr.Errorf("[security.OIDCConfig.callbackHandler] State did not match (expected '%s', got '%s')", state.Value, r.URL.Query().Get("state"))
 		http.Error(w, "state did not match", http.StatusBadRequest)
 		return
 	}
 	// Validate token
 	oauth2Token, err := c.oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"))
 	if err != nil {
+		logr.Errorf("[security.OIDCConfig.callbackHandler] Failed to exchange code for token: %v", err)
 		http.Error(w, "Error exchanging token: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	rawIDToken, ok := oauth2Token.Extra("id_token").(string)
 	if !ok {
+		logr.Errorf("[security.OIDCConfig.callbackHandler] Missing 'id_token' field in token response")
 		http.Error(w, "Missing 'id_token' in oauth2 token", http.StatusInternalServerError)
 		return
 	}
 	idToken, err := c.verifier.Verify(r.Context(), rawIDToken)
 	if err != nil {
+		logr.Errorf("[security.OIDCConfig.callbackHandler] Failed to verify ID Token: %v", err)
 		http.Error(w, "Failed to verify id_token: "+err.Error(), http.StatusInternalServerError)
 		return
 	}
 	// Validate nonce
 	nonce, err := r.Cookie(cookieNameNonce)
 	if err != nil {
+		logr.Errorf("[security.OIDCConfig.callbackHandler] Nonce cookie not found in callback request: %v", err)
 		http.Error(w, "nonce not found", http.StatusBadRequest)
 		return
 	}
 	if idToken.Nonce != nonce.Value {
+		logr.Errorf("[security.OIDCConfig.callbackHandler] Nonce did not match (expected '%s', got '%s')", nonce.Value, idToken.Nonce)
 		http.Error(w, "nonce did not match", http.StatusBadRequest)
 		return
 	}
 	if len(c.AllowedSubjects) == 0 {
 		// If there's no allowed subjects, all subjects are allowed.
+		logr.Infof("[security.OIDCConfig.callbackHandler] Successfully authenticated subject '%s'", idToken.Subject)
 		c.setSessionCookie(w, idToken)
 		http.Redirect(w, r, "/", http.StatusFound)
 		return
 	}
 	for _, subject := range c.AllowedSubjects {
 		if strings.ToLower(subject) == strings.ToLower(idToken.Subject) {
+			logr.Infof("[security.OIDCConfig.callbackHandler] Successfully authenticated allowed subject '%s'", idToken.Subject)
 			c.setSessionCookie(w, idToken)
 			http.Redirect(w, r, "/", http.StatusFound)
 			return
 		}
 	}
-	logr.Debugf("[security.callbackHandler] Subject %s is not in the list of allowed subjects", idToken.Subject)
+	logr.Warnf("[security.OIDCConfig.callbackHandler] Subject '%s' is not in the list of allowed subjects", idToken.Subject)
 	http.Redirect(w, r, "/?error=access_denied", http.StatusFound)
 }
 
