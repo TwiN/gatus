@@ -41,11 +41,14 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alert
 		sendInitialAlert := !endpointAlert.Triggered
 		// Determine if a reminder should be sent.
 		// LastReminderSent is yaml:"-" and is never persisted; after a restart it is the zero value even when a
-		// triggered alert has been restored from storage. A zero lastReminderSent must not be treated as "interval
-		// elapsed" or a spurious reminder fires on the very first check after startup (#1854). initializeStorage
-		// seeds LastReminderSent to time.Now() for every restored alert so that post-restart reminders resume
-		// correctly after MinimumReminderInterval; the !IsZero() guard here is the safety net for any code path
-		// that sets Triggered=true without also setting LastReminderSent.
+		// triggered alert has been restored from storage. time.Since on a zero time.Time is well-defined: it
+		// returns a huge positive duration (elapsed since year 1) and never panics, so a zero lastReminderSent
+		// would otherwise be treated as "interval elapsed" and a spurious reminder would fire on the first
+		// check after startup (#1854). initializeStorage seeds LastReminderSent to time.Now() for every restored
+		// alert so that post-restart reminders resume after MinimumReminderInterval from process start. After
+		// that seed, !IsZero() is true for restored alerts and this guard does not fire for them. The !IsZero()
+		// check is the safety net for any path that sets Triggered=true without also setting LastReminderSent
+		// (tests, and any restore helper that does not go through initializeStorage).
 		sendReminder := endpointAlert.Triggered && endpointAlert.MinimumReminderInterval > 0 && !lastReminderSent.IsZero() && time.Since(lastReminderSent) >= endpointAlert.MinimumReminderInterval
 		// If neither initial alert nor reminder needs to be sent, skip to the next alert
 		if !sendInitialAlert && !sendReminder {

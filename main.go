@@ -154,13 +154,7 @@ func initializeStorage(cfg *config.Config) {
 			if exists {
 				alert.Triggered, alert.ResolveKey = true, resolveKey
 				ep.NumberOfSuccessesInARow, ep.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
-				// Seed LastReminderSent so the minimum-reminder-interval is measured from
-				// startup rather than from the zero value (#1854). LastReminderSent is
-				// yaml:"-" and is never written to storage, so it is always zero after a
-				// restart even when the triggered alert is successfully restored.
-				if ep.LastReminderSent.IsZero() {
-					ep.LastReminderSent = time.Now()
-				}
+				seedLastReminderSentOnRestore(&ep.LastReminderSent)
 				numberOfPersistedTriggeredAlertsLoaded++
 			}
 		}
@@ -186,9 +180,7 @@ func initializeStorage(cfg *config.Config) {
 			if exists {
 				alert.Triggered, alert.ResolveKey = true, resolveKey
 				ee.NumberOfSuccessesInARow, ee.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
-				if ee.LastReminderSent.IsZero() {
-					ee.LastReminderSent = time.Now()
-				}
+				seedLastReminderSentOnRestore(&ee.LastReminderSent)
 				numberOfPersistedTriggeredAlertsLoaded++
 			}
 		}
@@ -215,9 +207,7 @@ func initializeStorage(cfg *config.Config) {
 				if exists {
 					alert.Triggered, alert.ResolveKey = true, resolveKey
 					ep.NumberOfSuccessesInARow, ep.NumberOfFailuresInARow = numberOfSuccessesInARow, alert.FailureThreshold
-					if ep.LastReminderSent.IsZero() {
-						ep.LastReminderSent = time.Now()
-					}
+					seedLastReminderSentOnRestore(&ep.LastReminderSent)
 					numberOfPersistedTriggeredAlertsLoaded++
 				}
 			}
@@ -225,6 +215,26 @@ func initializeStorage(cfg *config.Config) {
 	}
 	if numberOfPersistedTriggeredAlertsLoaded > 0 {
 		logr.Infof("[main.initializeStorage] Loaded %d persisted triggered alerts", numberOfPersistedTriggeredAlertsLoaded)
+	}
+}
+
+// seedLastReminderSentOnRestore sets LastReminderSent to now when a triggered
+// alert is restored from storage and the clock is still the zero value.
+//
+// LastReminderSent is yaml:"-" and is never written to storage, so after a
+// restart it is always zero even when Triggered is successfully restored.
+// Seeding to time.Now() makes minimum-reminder-interval start from process
+// start rather than from year 1 (#1854).
+//
+// Tradeoff: the first reminder after a restart is delayed by the full
+// MinimumReminderInterval, even if a reminder was sent moments before
+// shutdown. For a process that has been up for weeks that gap is effectively
+// unbounded. Persisting LastReminderSent (or a dedicated lastReminderAt)
+// would be more accurate but requires a storage-format change; this in-memory
+// seed is the approximation used here.
+func seedLastReminderSentOnRestore(lastReminderSent *time.Time) {
+	if lastReminderSent.IsZero() {
+		*lastReminderSent = time.Now()
 	}
 }
 
