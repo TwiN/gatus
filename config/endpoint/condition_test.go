@@ -862,3 +862,29 @@ func TestConditionEvaluateWithMixedValidAndInvalidContext(t *testing.T) {
 		t.Errorf("Incorrect condition display\nExpected: %s\nActual:   %s", expectedDisplay, actualDisplay)
 	}
 }
+
+func TestFormatDuration(t *testing.T) {
+	scenarios := []struct {
+		name     string
+		duration time.Duration
+		expected string
+	}{
+		{name: "zero", duration: 0, expected: "0s"},
+		{name: "seconds-only", duration: 45 * time.Second, expected: "45s"},
+		{name: "seconds-ending-in-zero", duration: 30 * time.Second, expected: "30s"},
+		{name: "minutes-only", duration: 50 * time.Minute, expected: "50m"},
+		{name: "minutes-and-zero-seconds", duration: 30 * time.Minute, expected: "30m"},
+		{name: "hours-and-zero-minutes", duration: 336 * time.Hour, expected: "336h"},
+		{name: "hours-and-minutes-ending-in-zero", duration: time.Hour + 30*time.Minute, expected: "1h30m"},
+		{name: "hours-and-minutes", duration: 2*time.Hour + 10*time.Minute, expected: "2h10m"},
+		{name: "hours-zero-minutes-and-seconds", duration: time.Hour + 15*time.Second, expected: "1h0m15s"},
+		{name: "all-components", duration: time.Hour + 30*time.Minute + 15*time.Second, expected: "1h30m15s"},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			if output := formatDuration(scenario.duration); output != scenario.expected {
+				t.Errorf("expected formatDuration(%s) to be %q, got %q", scenario.duration, scenario.expected, output)
+			}
+		})
+	}
+}

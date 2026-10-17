@@ -246,11 +246,17 @@ func formatDuration(d time.Duration) string {
 	if s == "0s" {
 		return "0s"
 	}
-	// Remove trailing "0s" if present
-	if strings.HasSuffix(s, "0s") {
+	// Remove a trailing zero-seconds component, e.g. "1h30m0s" -> "1h30m".
+	// We match "m0s" (rather than just "0s") so that we only strip a genuine
+	// zero-seconds component and not the trailing zero of a value like "30s".
+	if strings.HasSuffix(s, "m0s") {
 		s = strings.TrimSuffix(s, "0s")
-		// Remove trailing "0m" if present after removing "0s"
-		s = strings.TrimSuffix(s, "0m")
+		// Then remove a trailing zero-minutes component, e.g. "336h0m" -> "336h".
+		// We match "h0m" (rather than just "0m") so that we don't strip the
+		// trailing zero of a value like "30m" (turning "1h30m" into "1h3").
+		if strings.HasSuffix(s, "h0m") {
+			s = strings.TrimSuffix(s, "0m")
+		}
 	}
 	return s
 }
