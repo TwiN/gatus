@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"slices"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config"
@@ -71,11 +73,26 @@ func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*end
 			continue
 		}
 		_ = response.Body.Close()
+
+		ignoredEndpoints := []string{}
 		for _, endpointStatus := range endpointStatuses {
+			if len(instance.FilterGroups) > 0 && !slices.Contains(instance.FilterGroups, endpointStatus.Group) {
+				ignoredEndpoints = append(ignoredEndpoints, endpointStatus.Name)
+				continue
+			}
 			endpointStatus.Name = instance.EndpointPrefix + endpointStatus.Name
+			endpointStatusesFromAllRemotes = append(endpointStatusesFromAllRemotes, endpointStatus)
 		}
-		endpointStatusesFromAllRemotes = append(endpointStatusesFromAllRemotes, endpointStatuses...)
+
+		if len(ignoredEndpoints) > 0 {
+			logr.Debugf(
+				"[api.getEndpointStatusesFromRemoteInstances] Ignored remote endpoints which are not in the filtered groups (%s): %s",
+				strings.Join(instance.FilterGroups, ", "),
+				strings.Join(ignoredEndpoints, ", "),
+			)
+		}
 	}
+
 	// Only return nil, error if no remote instances were successfully processed
 	if len(endpointStatusesFromAllRemotes) == 0 && remoteConfig.Instances != nil {
 		return nil, fmt.Errorf("failed to retrieve endpoint statuses from all remote instances")
