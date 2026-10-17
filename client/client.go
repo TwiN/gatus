@@ -174,7 +174,7 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 					},
 				},
 			}
-			connection, err = dialer.DialContext(context.Background(), "tcp", address)
+			connection, err = dialer.DialContext(context.Background(), "tcp", absoluteDialAddress(address))
 			if err != nil {
 				return
 			}
