@@ -790,6 +790,10 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
+> [!NOTE]
+> As with [SSH endpoints](#monitoring-an-endpoint-using-ssh), password authentication also works with
+> servers that only offer the `keyboard-interactive` authentication method.
+
 > ⚠️ **WARNING**:: Tunneling may introduce additional latency, especially if the connection to the tunnel is retried frequently.
 > This may lead to inaccurate response time measurements.
 
@@ -3299,6 +3303,12 @@ endpoints:
       - "[CONNECTED] == true"
       - "[STATUS] == 0"
 ```
+
+> [!NOTE]
+> When a password is provided, Gatus authenticates using both the `password` and the `keyboard-interactive`
+> SSH authentication methods, using whichever the server offers. This means servers with `PasswordAuthentication no`
+> but `KbdInteractiveAuthentication yes` (e.g. PAM-based password prompts) are supported, just like with the OpenSSH CLI.
+> Every keyboard-interactive prompt is answered with the configured password, so multi-factor prompts (e.g. OTP) are not supported.
 
 you can also use no authentication to monitor the endpoint by not specifying the username,
 password and private key fields.
