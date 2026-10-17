@@ -41,7 +41,7 @@ func executeEndpoint(ep *endpoint.Endpoint, cfg *config.Config, extraLabels []st
 	}
 	defer monitoringSemaphore.Release(1)
 	// If there's a connectivity checker configured, check if Gatus has internet connectivity
-	if cfg.Connectivity != nil && cfg.Connectivity.Checker != nil && !cfg.Connectivity.Checker.IsConnected() {
+	if cfg.Connectivity != nil && cfg.Connectivity.Checker != nil && !cfg.Connectivity.Checker.IsConnected() && !ep.IgnoreConnectivity {
 		logr.Infof("[watchdog.executeEndpoint] No connectivity; skipping execution")
 		return
 	}
