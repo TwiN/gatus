@@ -301,7 +301,12 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 			logr.Warn("WARNING: Please use the GATUS_LOG_LEVEL environment variable instead")
 		}
 		// XXX: End of v6.0.0 removals
-		ValidateAlertingConfig(config.Alerting, config.Endpoints, config.ExternalEndpoints)
+		// Suite endpoints must also receive the provider default alerts
+		endpointsWithAlerts := slices.Clone(config.Endpoints)
+		for _, s := range config.Suites {
+			endpointsWithAlerts = append(endpointsWithAlerts, s.Endpoints...)
+		}
+		ValidateAlertingConfig(config.Alerting, endpointsWithAlerts, config.ExternalEndpoints)
 		if err := ValidateSecurityConfig(config); err != nil {
 			return nil, err
 		}
