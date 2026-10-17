@@ -8,6 +8,9 @@ const (
 	// TypeAWSSES is the Type for the awsses alerting provider
 	TypeAWSSES Type = "aws-ses"
 
+	// TypeBark is the Type for the bark alerting provider
+	TypeBark Type = "bark"
+
 	// TypeClickUp is the Type for the clickup alerting provider
 	TypeClickUp Type = "clickup"
 
