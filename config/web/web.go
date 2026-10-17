@@ -25,10 +25,15 @@ const (
 // Config is the structure which supports the configuration of the server listening to requests
 type Config struct {
 	// Address to listen on (defaults to 0.0.0.0 specified by DefaultAddress)
+	// Does not have any effect if Socket is set.
 	Address string `yaml:"address"`
 
 	// Port to listen on (default to 8080 specified by DefaultPort)
+	// Does not have any effect if Socket is set.
 	Port int `yaml:"port"`
+
+	// Unix domain socket to listen on. If unset, the default Port will be used instead.
+	Socket string `yaml:"socket,omitempty"`
 
 	// ReadBufferSize sets fiber.Config.ReadBufferSize, which is the buffer size for reading requests coming from a
 	// single connection and also acts as a limit for the maximum header size.
