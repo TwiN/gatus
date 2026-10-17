@@ -17,6 +17,7 @@ import { Chart as ChartJS, CategoryScale, LinearScale, PointElement, LineElement
 import annotationPlugin from 'chartjs-plugin-annotation'
 import 'chartjs-adapter-date-fns'
 import { generatePrettyTimeDifference } from '@/utils/time'
+import { endpointApiUrl } from '@/utils/api'
 import Loading from './Loading.vue'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Legend, Filler, TimeScale, annotationPlugin)
@@ -260,7 +261,7 @@ const fetchData = async () => {
   loading.value = true
   error.value = null
   try {
-    const response = await fetch(`${props.serverUrl}/api/v1/endpoints/${props.endpointKey}/response-times/${props.duration}/history`, {
+    const response = await fetch(endpointApiUrl(props.endpointKey, `/response-times/${props.duration}/history`), {
       credentials: 'include'
     })
     if (response.status === 200) {
