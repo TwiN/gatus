@@ -2,8 +2,11 @@ package endpoint
 
 import (
 	"fmt"
+	"math"
+	"net/http"
 	"strconv"
 	"strings"
+	"time"
 
 	"github.com/TwiN/gatus/v5/config/gontext"
 	"github.com/TwiN/gatus/v5/jsonpath"
@@ -49,6 +52,11 @@ const (
 	// DomainExpirationPlaceholder is a placeholder for the duration before the domain expires, in milliseconds.
 	DomainExpirationPlaceholder = "[DOMAIN_EXPIRATION]"
 
+	// HeaderPlaceholder is a placeholder for the value of an HTTP response header.
+	// Header names are case-insensitive.
+	// Usage: [HEADER].Content-Type
+	HeaderPlaceholder = "[HEADER]"
+
 	// ContextPlaceholder is a placeholder for suite context values
 	// Usage: [CONTEXT].path.to.value
 	ContextPlaceholder = "[CONTEXT]"
@@ -65,6 +73,14 @@ const (
 	//
 	// Usage: has([BODY].errors) == true
 	HasFunctionPrefix = "has("
+
+	// AgeFunctionPrefix is the prefix for the age function, which returns the number of milliseconds elapsed since
+	// the timestamp resolved from the wrapped placeholder. By default, supported timestamp formats are HTTP dates
+	// (RFC 1123, RFC 850, ANSI C), RFC 3339 and Unix epochs in seconds or milliseconds. A Go time layout may be passed
+	// as second argument to parse any other format; timestamps without a timezone are interpreted as UTC.
+	//
+	// Usage: age([HEADER].Last-Modified) < 10m, age([BODY].updated_at, 2006-01-02 15:04:05) < 1h
+	AgeFunctionPrefix = "age("
 
 	// PatternFunctionPrefix is the prefix for the pattern function
 	//
@@ -90,12 +106,13 @@ const (
 type functionType int
 
 const (
-	// Note that not all functions are handled here. Only len() and has() directly impact the handler
+	// Note that not all functions are handled here. Only len(), has() and age() directly impact the handler
 	// e.g. "len([BODY].name) > 0" vs pat() or any(), which would be used like "[BODY].name == pat(john*)"
 
 	noFunction functionType = iota
 	functionLen
 	functionHas
+	functionAge
 )
 
 // ResolvePlaceholder resolves all types of placeholders to their string values.
@@ -110,11 +127,13 @@ const (
 //   - [DOMAIN_EXPIRATION]: Domain expiration time in milliseconds
 //   - [BODY]: Full response body
 //   - [BODY].path: JSONPath expression on response body (e.g., [BODY].status, [BODY].data[0].name)
+//   - [HEADER].name: HTTP response header value (e.g., [HEADER].Content-Type)
 //   - [CONTEXT].path: Suite context values (e.g., [CONTEXT].user_id, [CONTEXT].session_token)
 //
 // Function wrappers:
 //   - len(placeholder): Returns the length of the resolved value
 //   - has(placeholder): Returns "true" if the placeholder exists and is non-empty, "false" otherwise
+//   - age(placeholder[, layout]): Parses the placeholder's value as a timestamp and returns the milliseconds elapsed since then
 //
 // Examples:
 //   - ResolvePlaceholder("[STATUS]", result, nil) → "200"
@@ -130,6 +149,9 @@ func ResolvePlaceholder(placeholder string, result *Result, ctx *gontext.Gontext
 	// Extract function wrapper if present
 	fn, innerPlaceholder := extractFunctionWrapper(placeholder)
 	placeholder = innerPlaceholder
+	if fn == functionAge {
+		return resolveAgeFunction(placeholder, originalPlaceholder, result, ctx)
+	}
 
 	// Handle CONTEXT placeholders
 	uppercasePlaceholder := strings.ToUpper(placeholder)
@@ -171,6 +193,11 @@ func ResolvePlaceholder(placeholder string, result *Result, ctx *gontext.Gontext
 		return body, nil
 	}
 
+	// Handle HEADER placeholders
+	if strings.HasPrefix(uppercasePlaceholder, HeaderPlaceholder+".") {
+		return resolveHeaderPlaceholder(placeholder, fn, originalPlaceholder, result), nil
+	}
+
 	// Handle JSONPath expressions on BODY (including array indexing)
 	if strings.HasPrefix(uppercasePlaceholder, BodyPlaceholder+".") || strings.HasPrefix(uppercasePlaceholder, BodyPlaceholder+"[") {
 		return resolveJSONPathPlaceholder(placeholder, fn, originalPlaceholder, result)
@@ -190,7 +217,7 @@ func ResolvePlaceholder(placeholder string, result *Result, ctx *gontext.Gontext
 	return originalPlaceholder, nil
 }
 
-// extractFunctionWrapper detects and extracts function wrappers (len, has)
+// extractFunctionWrapper detects and extracts function wrappers (len, has, age)
 func extractFunctionWrapper(placeholder string) (functionType, string) {
 	if strings.HasPrefix(placeholder, LengthFunctionPrefix) && strings.HasSuffix(placeholder, FunctionSuffix) {
 		inner := strings.TrimSuffix(strings.TrimPrefix(placeholder, LengthFunctionPrefix), FunctionSuffix)
@@ -199,6 +226,10 @@ func extractFunctionWrapper(placeholder string) (functionType, string) {
 	if strings.HasPrefix(placeholder, HasFunctionPrefix) && strings.HasSuffix(placeholder, FunctionSuffix) {
 		inner := strings.TrimSuffix(strings.TrimPrefix(placeholder, HasFunctionPrefix), FunctionSuffix)
 		return functionHas, inner
+	}
+	if strings.HasPrefix(placeholder, AgeFunctionPrefix) && strings.HasSuffix(placeholder, FunctionSuffix) {
+		inner := strings.TrimSuffix(strings.TrimPrefix(placeholder, AgeFunctionPrefix), FunctionSuffix)
+		return functionAge, inner
 	}
 	return noFunction, placeholder
 }
@@ -226,6 +257,68 @@ func resolveJSONPathPlaceholder(placeholder string, fn functionType, originalPla
 		return strconv.Itoa(resolvedLength), nil
 	}
 	return resolvedValue, nil
+}
+
+// resolveHeaderPlaceholder handles [HEADER].name placeholders
+//
+// If the header has multiple values, only the first one is used, like http.Header.Get
+func resolveHeaderPlaceholder(placeholder string, fn functionType, originalPlaceholder string, result *Result) string {
+	name := placeholder[len(HeaderPlaceholder)+1:]
+	values := result.Headers.Values(name)
+	if fn == functionHas {
+		return strconv.FormatBool(len(values) > 0)
+	}
+	if len(values) == 0 {
+		return originalPlaceholder + " " + InvalidConditionElementSuffix
+	}
+	return formatWithFunction(values[0], fn)
+}
+
+// resolveAgeFunction handles age(placeholder) by resolving the wrapped placeholder to a timestamp and returning the
+// number of milliseconds elapsed since then
+func resolveAgeFunction(arguments, originalPlaceholder string, result *Result, ctx *gontext.Gontext) (string, error) {
+	placeholder, layout, _ := strings.Cut(arguments, ",")
+	// Other placeholders don't resolve into timestamps (e.g. [CERTIFICATE_EXPIRATION] is a duration), so the result
+	// would be meaningless
+	uppercasePlaceholder := strings.ToUpper(strings.TrimSpace(placeholder))
+	if !strings.HasPrefix(uppercasePlaceholder, BodyPlaceholder) && !strings.HasPrefix(uppercasePlaceholder, HeaderPlaceholder+".") && !strings.HasPrefix(uppercasePlaceholder, ContextPlaceholder+".") {
+		return originalPlaceholder + " " + InvalidConditionElementSuffix, fmt.Errorf("%s: %s only supports the %s, %s and %s placeholders", originalPlaceholder, strings.TrimSuffix(AgeFunctionPrefix, "("), BodyPlaceholder, HeaderPlaceholder, ContextPlaceholder)
+	}
+	value, err := ResolvePlaceholder(placeholder, result, ctx)
+	if err != nil || strings.HasSuffix(value, InvalidConditionElementSuffix) {
+		return originalPlaceholder + " " + InvalidConditionElementSuffix, err
+	}
+	timestamp, ok := parseTimestamp(value, strings.TrimSpace(layout))
+	if !ok {
+		return originalPlaceholder + " " + InvalidConditionElementSuffix, nil
+	}
+	return strconv.FormatInt(time.Since(timestamp).Milliseconds(), 10), nil
+}
+
+// parseTimestamp parses a timestamp using the given Go time layout or, if no layout is provided, as an HTTP date, an
+// RFC 3339 timestamp or a Unix epoch in seconds or milliseconds
+func parseTimestamp(value, layout string) (time.Time, bool) {
+	value = strings.Trim(strings.TrimSpace(value), `"`)
+	if layout != "" {
+		t, err := time.Parse(layout, value)
+		return t, err == nil
+	}
+	if t, err := http.ParseTime(value); err == nil {
+		return t, true
+	}
+	if t, err := time.Parse(time.RFC3339Nano, value); err == nil {
+		return t, true
+	}
+	// JSON numbers may be rendered in scientific notation (e.g. 1.7274e+09), so they're parsed as floats
+	if epoch, err := strconv.ParseFloat(value, 64); err == nil && epoch > 0 && !math.IsInf(epoch, 0) {
+		// Values below 1e12 are assumed to be in seconds, and anything else in milliseconds: 1e12 seconds is around the
+		// year 33658, whereas 1e12 milliseconds is around the year 2001
+		if epoch >= 1e12 {
+			return time.UnixMilli(int64(epoch)), true
+		}
+		return time.UnixMicro(int64(epoch * 1e6)), true
+	}
+	return time.Time{}, false
 }
 
 // resolveContextPlaceholder handles [CONTEXT] placeholder resolution
