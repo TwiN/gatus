@@ -252,6 +252,7 @@ If you want to test it locally, see [Docker](#docker).
 | Parameter                    | Description                                                                                                                              | Default       |
 |:-----------------------------|:-----------------------------------------------------------------------------------------------------------------------------------------|:--------------|
 | `metrics`                    | Whether to expose metrics at `/metrics`.                                                                                                 | `false`       |
+| `disable-zeroconf`           | Whether to disable zeroconf service autodiscovery.                                                                                       | `false`       |
 | `storage`                    | [Storage configuration](#storage).                                                                                                       | `{}`          |
 | `alerting`                   | [Alerting configuration](#alerting).                                                                                                     | `{}`          |
 | `announcements`              | [Announcements configuration](#announcements).                                                                                           | `[]`          |
