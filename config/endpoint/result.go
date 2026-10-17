@@ -56,6 +56,9 @@ type Result struct {
 	///////////////////////////////////////////////////////////////////////
 	port string `yaml:"-"` // used for endpoints[].ui.hide-port
 
+	// bodyObject is Body decoded as JSON, only set while evaluating a condition with a wildcard
+	bodyObject interface{}
+
 	///////////////////////////////////
 	// BELOW IS ONLY USED FOR SUITES //
 	///////////////////////////////////
