@@ -56,6 +56,9 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Client configuration](#client-configuration)
   - [Tunneling](#tunneling)
   - [Alerting](#alerting)
+    <details>
+    <summary>Show links to all alerting providers</summary>
+
     - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring ClickUp alerts](#configuring-clickup-alerts)
     - [Configuring Datadog alerts](#configuring-datadog-alerts)
@@ -99,6 +102,8 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Zulip alerts](#configuring-zulip-alerts)
     - [Configuring custom alerts](#configuring-custom-alerts)
     - [Setting a default alert](#setting-a-default-alert)
+
+    </details>
   - [Maintenance](#maintenance)
   - [Security](#security)
     - [Basic Authentication](#basic-authentication)
@@ -116,6 +121,9 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
 - [Running the tests](#running-the-tests)
 - [Using in Production](#using-in-production)
 - [FAQ](#faq)
+  <details>
+  <summary>Show links to all FAQ questions</summary>
+
   - [Sending a GraphQL request](#sending-a-graphql-request)
   - [Recommended interval](#recommended-interval)
   - [Default timeouts](#default-timeouts)
@@ -155,6 +163,8 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
       - [Response Time](#response-time-1)
   - [Installing as binary](#installing-as-binary)
   - [High level design overview](#high-level-design-overview)
+
+  </details>
 
 
 ## Why Gatus?
