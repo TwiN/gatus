@@ -251,6 +251,11 @@ const filteredEndpoints = computed(() => {
     })
   }
   
+  // Sort by name if selected
+  if (sortBy.value === 'name') {
+    filtered.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
   // Sort by health if selected
   if (sortBy.value === 'health') {
     filtered.sort((a, b) => {
@@ -293,7 +298,12 @@ const filteredSuites = computed(() => {
       return suite.results.some(result => !result.success)
     })
   }
-  
+
+  // Sort by name if selected
+  if (sortBy.value === 'name') {
+    filtered.sort((a, b) => a.name.localeCompare(b.name))
+  }
+
   // Sort by health if selected
   if (sortBy.value === 'health') {
     filtered.sort((a, b) => {
