@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
@@ -120,7 +121,9 @@ type Field struct {
 func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message string
 	var colorCode int
+	alertState := "TRIGGERED"
 	if resolved {
+		alertState = "RESOLVED"
 		message = fmt.Sprintf("An alert for **%s** has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 		colorCode = 3066993
 	} else {
@@ -146,7 +149,12 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		title = cfg.Title
 	}
 	body := Body{
-		Content: cfg.MessageContent,
+		Content: strings.NewReplacer(
+			"[ENDPOINT_NAME]", ep.Name,
+			"[ENDPOINT_GROUP]", ep.Group,
+			"[ALERT_DESCRIPTION]", alert.GetDescription(),
+			"[ALERT_TRIGGERED_OR_RESOLVED]", alertState,
+		).Replace(cfg.MessageContent),
 		Embeds: []Embed{
 			{
 				Title:       title,
