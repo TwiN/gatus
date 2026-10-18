@@ -2852,6 +2852,7 @@ security:
 | `security.oidc.scopes`           | Scopes to request. The only scope you need is `openid`.        | Required `[]` |
 | `security.oidc.allowed-subjects` | List of subjects to allow. If empty, all subjects are allowed. | `[]`          |
 | `security.oidc.session-ttl`      | Session time-to-live (e.g. `8h`, `1h30m`, `2h`).               | `8h`          |
+| `security.oidc.pkce`             | Use PKCE (RFC 7636, `S256`) on the authorization code flow.    | `false`       |
 
 ```yaml
 security:
@@ -2865,6 +2866,8 @@ security:
     #allowed-subjects: ["johndoe@example.com"]
     # You may optionally specify a session time-to-live. If this is not specified, defaults to 8 hours.
     #session-ttl: 8h
+    # You may optionally enable PKCE (RFC 7636, S256). Your identity provider must support it. Defaults to false.
+    #pkce: true
 ```
 
 Confused? Read [Securing Gatus with OIDC using Auth0](https://twin.sh/articles/56/securing-gatus-with-oidc-using-auth0).
