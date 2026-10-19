@@ -21,8 +21,20 @@
         </span>
       </div>
 
+      <!-- Merged bucket of results -->
+      <div v-if="result.bucket">
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Time Range</div>
+        <div class="font-mono text-xs">{{ prettifyTimestamp(result.bucket.from) }}</div>
+        <div class="font-mono text-xs">{{ prettifyTimestamp(result.bucket.to) }}</div>
+        <div class="font-mono text-xs mt-1">
+          {{ result.bucket.count }} checks,
+          <span :class="result.bucket.failures ? 'text-red-500' : 'text-green-500'">{{ result.bucket.failures }} failed</span>
+        </div>
+        <div v-if="result.bucket.failures" class="text-xs text-muted-foreground mt-1">Details below are from the first failure</div>
+      </div>
+
       <!-- Timestamp -->
-      <div>
+      <div v-else>
         <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Timestamp</div>
         <div class="font-mono text-xs">{{ prettifyTimestamp(result.timestamp) }}</div>
       </div>
@@ -57,7 +69,7 @@
       <!-- Response Time -->
       <div>
         <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-          {{ isSuiteResult ? 'Total Duration' : 'Response Time' }}
+          {{ isSuiteResult ? 'Total Duration' : result.bucket ? 'Avg Response Time' : 'Response Time' }}
         </div>
         <div class="font-mono text-xs">
           {{ Math.trunc(result.duration / 1000000) }}ms

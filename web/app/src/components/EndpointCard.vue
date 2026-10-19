@@ -33,7 +33,7 @@
             <div class="flex-1"></div>
             <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">{{ formattedResponseTime }}</p>
           </div>
-          <div class="flex gap-0.5">
+          <div :class="['flex', displayResults.length > 100 ? 'gap-px' : 'gap-0.5']">
             <div
               v-for="(result, index) in displayResults"
               :key="index"
@@ -87,6 +87,8 @@ const props = defineProps({
 
 const emit = defineEmits(['showTooltip'])
 
+const MAX_BARS = 200
+
 // Track selected data point
 const selectedResultIndex = ref(null)
 
@@ -111,7 +113,28 @@ const displayResults = computed(() => {
   while (results.length < props.maxResults) {
     results.unshift(null)
   }
-  return results.slice(-props.maxResults)
+  const padded = results.slice(-props.maxResults)
+  if (padded.length <= MAX_BARS) return padded
+  // Too many bars to see/hover: merge consecutive results into at most MAX_BARS buckets
+  const size = Math.ceil(padded.length / MAX_BARS)
+  const buckets = []
+  for (let i = 0; i < padded.length; i += size) {
+    const chunk = padded.slice(i, i + size).filter(Boolean)
+    if (chunk.length === 0) {
+      buckets.push(null)
+      continue
+    }
+    const failures = chunk.filter((r) => !r.success).length
+    // Show a failed result's details if any, so failures are never hidden by the merge
+    const representative = chunk.find((r) => !r.success) || chunk[chunk.length - 1]
+    buckets.push({
+      ...representative,
+      success: failures === 0,
+      duration: chunk.reduce((sum, r) => sum + (r.duration || 0), 0) / chunk.length,
+      bucket: { count: chunk.length, failures, from: chunk[0].timestamp, to: chunk[chunk.length - 1].timestamp }
+    })
+  }
+  return buckets
 })
 
 const formattedResponseTime = computed(() => {

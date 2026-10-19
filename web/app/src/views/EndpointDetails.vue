@@ -63,6 +63,14 @@
               <div class="flex items-center justify-between">
                 <CardTitle>Recent Checks</CardTitle>
                 <div class="flex items-center gap-2">
+                  <select
+                    v-model="selectedRange"
+                    @change="fetchData"
+                    title="Time range to display"
+                    class="text-sm bg-background border rounded-md px-3 py-1 focus:outline-none focus:ring-2 focus:ring-ring"
+                  >
+                    <option v-for="(label, range) in rangeOptions" :key="range" :value="range">{{ label }}</option>
+                  </select>
                   <Button 
                     variant="ghost" 
                     size="icon"
@@ -89,14 +97,11 @@
                 <EndpointCard 
                   v-if="endpointStatus"
                   :endpoint="endpointStatus"
-                  :maxResults="resultPageSize"
+                  :maxResults="endpointStatus.results?.length || 0"
                   :showAverageResponseTime="showAverageResponseTime"
                   @showTooltip="showTooltip"
                   class="border-0 shadow-none bg-transparent p-0"
                 />
-                <div v-if="endpointStatus && endpointStatus.key" class="pt-4 border-t">
-                  <Pagination @page="changePage" :numberOfResultsPerPage="resultPageSize" :currentPageProp="currentPage" />
-                </div>
               </div>
             </CardContent>
           </Card>
@@ -209,7 +214,6 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
 import EndpointCard from '@/components/EndpointCard.vue'
 import Settings from '@/components/Settings.vue'
-import Pagination from '@/components/Pagination.vue'
 import Loading from '@/components/Loading.vue'
 import ResponseTimeChart from '@/components/ResponseTimeChart.vue'
 import { generatePrettyTimeAgo, generatePrettyTimeDifference } from '@/utils/time'
@@ -218,11 +222,13 @@ const router = useRouter()
 const route = useRoute()
 const emit = defineEmits(['showTooltip'])
 
-const endpointStatus = ref(null) // For paginated historical data
+const endpointStatus = ref(null) // Results within the selected time range
 const currentStatus = ref(null) // For current/latest status (always page 1)
 const events = ref([])
-const currentPage = ref(1)
-const resultPageSize = 50
+const maximumNumberOfResults = parseInt(window.config?.maximumNumberOfResults) || 100
+const rangeOptions = { '1h': '1 hour', '6h': '6 hours', '24h': '24 hours', '7d': '7 days', '30d': '30 days', all: 'All' }
+const rangeMs = { '1h': 3600e3, '6h': 6 * 3600e3, '24h': 24 * 3600e3, '7d': 7 * 24 * 3600e3, '30d': 30 * 24 * 3600e3 }
+const selectedRange = ref('24h')
 const showResponseTimeChartAndBadges = ref(false)
 const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-response-time') !== 'false')
 const selectedChartDuration = ref('24h')
@@ -307,18 +313,16 @@ const lastCheckTime = computed(() => {
 const fetchData = async () => {
   isRefreshing.value = true
   try {
-    const response = await fetch(`/api/v1/endpoints/${route.params.key}/statuses?page=${currentPage.value}&pageSize=${resultPageSize}`, {
+    // shortcut: fetches all stored results and filters by time client-side, add a server-side time filter if storage grows to tens of thousands of results
+    const response = await fetch(`/api/v1/endpoints/${route.params.key}/statuses?page=1&pageSize=${maximumNumberOfResults}`, {
       credentials: 'include'
     })
     
     if (response.status === 200) {
       const data = await response.json()
-      endpointStatus.value = data
-      
-      // Always update currentStatus when on page 1 (including when returning to it)
-      if (currentPage.value === 1) {
-        currentStatus.value = data
-      }
+      currentStatus.value = data
+      const since = selectedRange.value === 'all' ? 0 : Date.now() - rangeMs[selectedRange.value]
+      endpointStatus.value = { ...data, results: (data.results || []).filter((r) => new Date(r.timestamp).getTime() >= since) }
       
       let processedEvents = []
       if (data.events && data.events.length > 0) {
@@ -372,11 +376,6 @@ const fetchData = async () => {
 
 const goBack = () => {
   router.push('/')
-}
-
-const changePage = (page) => {
-  currentPage.value = page
-  fetchData()
 }
 
 const showTooltip = (result, event, action = 'hover') => {
