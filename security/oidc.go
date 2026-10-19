@@ -26,6 +26,7 @@ type OIDCConfig struct {
 	Scopes          []string      `yaml:"scopes"`           // e.g. ["openid"]
 	AllowedSubjects []string      `yaml:"allowed-subjects"` // e.g. ["user1@example.com"]. If empty, all subjects are allowed
 	SessionTTL      time.Duration `yaml:"session-ttl"`      // e.g. 8h. Defaults to 8 hours
+	PKCE            bool          `yaml:"pkce"`             // Use Proof Key for Code Exchange (RFC 7636, S256). Defaults to false
 
 	oauth2Config oauth2.Config
 	verifier     *oidc.IDTokenVerifier
@@ -74,7 +75,21 @@ func (c *OIDCConfig) loginHandler(ctx *fiber.Ctx) error {
 		SameSite: "lax",
 		HTTPOnly: true,
 	})
-	return ctx.Redirect(c.oauth2Config.AuthCodeURL(state, oidc.Nonce(nonce)), http.StatusFound)
+	options := []oauth2.AuthCodeOption{oidc.Nonce(nonce)}
+	if c.PKCE {
+		// RFC 7636: the verifier stays in an HttpOnly cookie, only its S256 challenge goes through the browser URL.
+		verifier := oauth2.GenerateVerifier()
+		ctx.Cookie(&fiber.Cookie{
+			Name:     cookieNamePKCEVerifier,
+			Value:    verifier,
+			Path:     "/",
+			MaxAge:   int(time.Hour.Seconds()),
+			SameSite: "lax",
+			HTTPOnly: true,
+		})
+		options = append(options, oauth2.S256ChallengeOption(verifier))
+	}
+	return ctx.Redirect(c.oauth2Config.AuthCodeURL(state, options...), http.StatusFound)
 }
 
 func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) { // TODO: Migrate to a native fiber handler
@@ -93,8 +108,26 @@ func (c *OIDCConfig) callbackHandler(w http.ResponseWriter, r *http.Request) { /
 		http.Error(w, "state did not match", http.StatusBadRequest)
 		return
 	}
+	var exchangeOptions []oauth2.AuthCodeOption
+	if c.PKCE {
+		verifier, err := r.Cookie(cookieNamePKCEVerifier)
+		if err != nil || len(verifier.Value) == 0 {
+			http.Error(w, "pkce verifier not found", http.StatusBadRequest)
+			return
+		}
+		exchangeOptions = append(exchangeOptions, oauth2.VerifierOption(verifier.Value))
+		// The verifier is single-use: drop it as soon as it has been read.
+		http.SetCookie(w, &http.Cookie{
+			Name:     cookieNamePKCEVerifier,
+			Value:    "",
+			Path:     "/",
+			MaxAge:   -1,
+			SameSite: http.SameSiteLaxMode,
+			HttpOnly: true,
+		})
+	}
 	// Validate token
-	oauth2Token, err := c.oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"))
+	oauth2Token, err := c.oauth2Config.Exchange(r.Context(), r.URL.Query().Get("code"), exchangeOptions...)
 	if err != nil {
 		http.Error(w, "Error exchanging token: "+err.Error(), http.StatusInternalServerError)
 		return
