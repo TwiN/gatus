@@ -307,7 +307,7 @@ const lastCheckTime = computed(() => {
 const fetchData = async () => {
   isRefreshing.value = true
   try {
-    const response = await fetch(`/api/v1/endpoints/${route.params.key}/statuses?page=${currentPage.value}&pageSize=${resultPageSize}`, {
+    const response = await fetch(`api/v1/endpoints/${route.params.key}/statuses?page=${currentPage.value}&pageSize=${resultPageSize}`, {
       credentials: 'include'
     })
     
@@ -388,15 +388,15 @@ const prettifyTimestamp = (timestamp) => {
 }
 
 const generateHealthBadgeImageURL = () => {
-  return `/api/v1/endpoints/${endpointStatus.value.key}/health/badge.svg`
+  return `api/v1/endpoints/${endpointStatus.value.key}/health/badge.svg`
 }
 
 const generateUptimeBadgeImageURL = (duration) => {
-  return `/api/v1/endpoints/${endpointStatus.value.key}/uptimes/${duration}/badge.svg`
+  return `api/v1/endpoints/${endpointStatus.value.key}/uptimes/${duration}/badge.svg`
 }
 
 const generateResponseTimeBadgeImageURL = (duration) => {
-  return `/api/v1/endpoints/${endpointStatus.value.key}/response-times/${duration}/badge.svg`
+  return `api/v1/endpoints/${endpointStatus.value.key}/response-times/${duration}/badge.svg`
 }
 
 onMounted(() => {
