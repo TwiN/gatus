@@ -213,6 +213,7 @@ import Pagination from '@/components/Pagination.vue'
 import Loading from '@/components/Loading.vue'
 import ResponseTimeChart from '@/components/ResponseTimeChart.vue'
 import { generatePrettyTimeAgo, generatePrettyTimeDifference } from '@/utils/time'
+import { formatDuration } from '@/utils/format'
 
 const router = useRouter()
 const route = useRoute()
@@ -264,7 +265,7 @@ const pageAverageResponseTime = computed(() => {
     }
   }
   if (count === 0) return 'N/A'
-  return `${Math.round(total / count / 1000000)}ms`
+  return formatDuration(total / count)
 })
 
 const pageResponseTimeRange = computed(() => {
@@ -286,13 +287,13 @@ const pageResponseTimeRange = computed(() => {
   }
   
   if (!hasData) return 'N/A'
-  const minMs = Math.trunc(min / 1000000)
-  const maxMs = Math.trunc(max / 1000000)
+  const minFormatted = formatDuration(min)
+  const maxFormatted = formatDuration(max)
   // If min and max are the same, show single value
-  if (minMs === maxMs) {
-    return `${minMs}ms`
+  if (minFormatted === maxFormatted) {
+    return minFormatted
   }
-  return `${minMs}-${maxMs}ms`
+  return `${minFormatted}-${maxFormatted}`
 })
 
 const lastCheckTime = computed(() => {
