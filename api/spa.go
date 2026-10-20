@@ -7,11 +7,11 @@ import (
 	"github.com/TwiN/gatus/v5/config/ui"
 	static "github.com/TwiN/gatus/v5/web"
 	"github.com/TwiN/logr"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 func SinglePageApplication(uiConfig *ui.Config) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		vd := ui.ViewData{UI: uiConfig}
 		{
 			themeFromCookie := string(c.Request().Header.Cookie("theme"))

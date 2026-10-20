@@ -14,7 +14,7 @@ import (
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
 	"github.com/TwiN/gatus/v5/storage/store/common/paging"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 const (
@@ -39,7 +39,7 @@ var (
 // UptimeBadge handles the automatic generation of badge based on the group name and endpoint name passed.
 //
 // Valid values for :duration -> 30d, 7d, 24h, 1h
-func UptimeBadge(c *fiber.Ctx) error {
+func UptimeBadge(c fiber.Ctx) error {
 	duration := c.Params("duration")
 	var from time.Time
 	switch duration {
@@ -77,7 +77,7 @@ func UptimeBadge(c *fiber.Ctx) error {
 //
 // Valid values for :duration -> 30d, 7d, 24h, 1h
 func ResponseTimeBadge(cfg *config.Config) fiber.Handler {
-	return func(c *fiber.Ctx) error {
+	return func(c fiber.Ctx) error {
 		duration := c.Params("duration")
 		var from time.Time
 		switch duration {
@@ -113,7 +113,7 @@ func ResponseTimeBadge(cfg *config.Config) fiber.Handler {
 }
 
 // HealthBadge handles the automatic generation of badge based on the group name and endpoint name passed.
-func HealthBadge(c *fiber.Ctx) error {
+func HealthBadge(c fiber.Ctx) error {
 	key, err := url.QueryUnescape(c.Params("key"))
 	if err != nil {
 		return c.Status(400).SendString("invalid key encoding")
@@ -142,7 +142,7 @@ func HealthBadge(c *fiber.Ctx) error {
 	return c.Status(200).Send(generateHealthBadgeSVG(healthStatus))
 }
 
-func HealthBadgeShields(c *fiber.Ctx) error {
+func HealthBadgeShields(c fiber.Ctx) error {
 	key, err := url.QueryUnescape(c.Params("key"))
 	if err != nil {
 		return c.Status(400).SendString("invalid key encoding")

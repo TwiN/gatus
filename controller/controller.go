@@ -7,7 +7,7 @@ import (
 	"github.com/TwiN/gatus/v5/api"
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/logr"
-	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v3"
 )
 
 var (
@@ -27,12 +27,18 @@ func Handle(cfg *config.Config) {
 	}
 	logr.Info("[controller.Handle] Listening on " + cfg.Web.SocketAddress())
 	if cfg.Web.HasTLS() {
-		err := app.ListenTLS(cfg.Web.SocketAddress(), cfg.Web.TLS.CertificateFile, cfg.Web.TLS.PrivateKeyFile)
+		err := app.Listen(cfg.Web.SocketAddress(), fiber.ListenConfig{
+			CertFile:        cfg.Web.TLS.CertificateFile,
+			CertKeyFile:     cfg.Web.TLS.PrivateKeyFile,
+			ListenerNetwork: fiber.NetworkTCP,
+		})
 		if err != nil {
 			logr.Fatalf("[controller.Handle] %s", err.Error())
 		}
 	} else {
-		err := app.Listen(cfg.Web.SocketAddress())
+		err := app.Listen(cfg.Web.SocketAddress(), fiber.ListenConfig{
+			ListenerNetwork: fiber.NetworkTCP,
+		})
 		if err != nil {
 			logr.Fatalf("[controller.Handle] %s", err.Error())
 		}

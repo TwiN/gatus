@@ -6,9 +6,9 @@ import (
 
 	g8 "github.com/TwiN/g8/v2"
 	"github.com/TwiN/logr"
-	"github.com/gofiber/fiber/v2"
-	"github.com/gofiber/fiber/v2/middleware/adaptor"
-	"github.com/gofiber/fiber/v2/middleware/basicauth"
+	"github.com/gofiber/fiber/v3"
+	"github.com/gofiber/fiber/v3/middleware/adaptor"
+	"github.com/gofiber/fiber/v3/middleware/basicauth"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -75,7 +75,7 @@ func (c *Config) ApplySecurityMiddleware(router fiber.Router) error {
 			}
 		}
 		router.Use(basicauth.New(basicauth.Config{
-			Authorizer: func(username, password string) bool {
+			Authorizer: func(username, password string, _ fiber.Ctx) bool {
 				if len(c.Basic.PasswordBcryptHashBase64Encoded) > 0 {
 					if username != c.Basic.Username || bcrypt.CompareHashAndPassword(decodedBcryptHash, []byte(password)) != nil {
 						return false
@@ -83,7 +83,7 @@ func (c *Config) ApplySecurityMiddleware(router fiber.Router) error {
 				}
 				return true
 			},
-			Unauthorized: func(ctx *fiber.Ctx) error {
+			Unauthorized: func(ctx fiber.Ctx) error {
 				ctx.Set("WWW-Authenticate", "Basic")
 				return ctx.Status(401).SendString("Unauthorized")
 			},
@@ -94,7 +94,7 @@ func (c *Config) ApplySecurityMiddleware(router fiber.Router) error {
 
 // IsAuthenticated checks whether the user is authenticated
 // If the Config does not warrant authentication, it will always return true.
-func (c *Config) IsAuthenticated(ctx *fiber.Ctx) bool {
+func (c *Config) IsAuthenticated(ctx fiber.Ctx) bool {
 	if c.gate != nil {
 		// TODO: Update g8 to support fasthttp natively? (see g8's fasthttp branch)
 		request, err := adaptor.ConvertRequest(ctx, false)
