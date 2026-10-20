@@ -271,7 +271,7 @@ func CanCreateSSHConnection(address, username, password, privateKey string, conf
 		}
 	}
 	if len(password) > 0 {
-		authMethods = append(authMethods, ssh.Password(password))
+		authMethods = append(authMethods, sshPasswordAuthMethods(password)...)
 	}
 
 	cli, err := ssh.Dial("tcp", net.JoinHostPort(address, port), &ssh.ClientConfig{
@@ -284,6 +284,25 @@ func CanCreateSSHConnection(address, username, password, privateKey string, conf
 		return false, nil, err
 	}
 	return true, cli, nil
+}
+
+// sshPasswordAuthMethods returns the authentication methods for password-based authentication.
+// In addition to the "password" method, "keyboard-interactive" is supported, because some servers
+// (e.g. PasswordAuthentication disabled, but PAM enabled) only offer the latter, which the OpenSSH CLI
+// transparently uses to prompt for the password. Every keyboard-interactive prompt is answered with the password.
+//
+// Note: config/tunneling/sshtunnel has an equivalent helper; keep both in sync.
+func sshPasswordAuthMethods(password string) []ssh.AuthMethod {
+	return []ssh.AuthMethod{
+		ssh.Password(password),
+		ssh.KeyboardInteractive(func(name, instruction string, questions []string, echos []bool) ([]string, error) {
+			answers := make([]string, len(questions))
+			for i := range questions {
+				answers[i] = password
+			}
+			return answers, nil
+		}),
+	}
 }
 
 func CheckSSHBanner(address string, cfg *Config) (bool, int, error) {
@@ -430,6 +449,11 @@ func QueryWebSocket(address, body string, headers map[string]string, config *Con
 		return false, nil, fmt.Errorf("error dialing websocket: %w", err)
 	}
 	defer ws.Close()
+	// DialContext clears the conn deadline once the handshake completes
+	if deadline, ok := ctx.Deadline(); ok {
+		ws.SetWriteDeadline(deadline)
+		ws.SetReadDeadline(deadline)
+	}
 	body = parseLocalAddressPlaceholder(body, ws.LocalAddr())
 	// Write message
 	if err := ws.WriteMessage(websocket.TextMessage, []byte(body)); err != nil {

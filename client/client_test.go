@@ -3,8 +3,10 @@ package client
 import (
 	"bytes"
 	"crypto/tls"
+	"errors"
 	"io"
 	"net/http"
+	"net/http/httptest"
 	"net/netip"
 	"os"
 	"runtime"
@@ -15,6 +17,8 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
 	"github.com/TwiN/gatus/v5/pattern"
 	"github.com/TwiN/gatus/v5/test"
+	"github.com/gorilla/websocket"
+	"golang.org/x/crypto/ssh"
 )
 
 func isIgnorableNetworkTestError(err error) bool {
@@ -407,6 +411,37 @@ func TestQueryWebSocket(t *testing.T) {
 	}
 }
 
+func TestQueryWebSocketWithServerThatNeverReplies(t *testing.T) {
+	t.Parallel()
+	upgrader := websocket.Upgrader{CheckOrigin: func(*http.Request) bool { return true }}
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		conn, err := upgrader.Upgrade(w, r, nil)
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		for {
+			if _, _, err := conn.ReadMessage(); err != nil {
+				return
+			}
+		}
+	}))
+	defer server.Close()
+	done := make(chan error, 1)
+	go func() {
+		_, _, err := QueryWebSocket("ws"+strings.TrimPrefix(server.URL, "http"), "body", nil, &Config{Timeout: 500 * time.Millisecond})
+		done <- err
+	}()
+	select {
+	case err := <-done:
+		if err == nil || !strings.Contains(err.Error(), "error reading websocket message") || !strings.Contains(err.Error(), "i/o timeout") {
+			t.Errorf("expected a read timeout error, got %v", err)
+		}
+	case <-time.After(5 * time.Second):
+		t.Fatal("QueryWebSocket did not return after the configured timeout elapsed")
+	}
+}
+
 func TestTlsRenegotiation(t *testing.T) {
 	t.Parallel()
 	scenarios := []struct {
@@ -588,6 +623,83 @@ func TestQueryDNS(t *testing.T) {
 			}
 		})
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+func TestCanCreateSSHConnection(t *testing.T) {
+	t.Parallel()
+	const username, password = "user", "secret"
+	scenarios := []struct {
+		name          string
+		serverConfig  *ssh.ServerConfig
+		password      string
+		expectSuccess bool
+	}{
+		{
+			name: "password",
+			serverConfig: &ssh.ServerConfig{
+				PasswordCallback: func(conn ssh.ConnMetadata, pw []byte) (*ssh.Permissions, error) {
+					if conn.User() == username && string(pw) == password {
+						return nil, nil
+					}
+					return nil, errors.New("invalid credentials")
+				},
+			},
+			password:      password,
+			expectSuccess: true,
+		},
+		{
+			name: "keyboard-interactive-only",
+			serverConfig: &ssh.ServerConfig{
+				KeyboardInteractiveCallback: func(conn ssh.ConnMetadata, challenge ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
+					answers, err := challenge("", "", []string{"Password: "}, []bool{false})
+					if err != nil {
+						return nil, err
+					}
+					if conn.User() == username && len(answers) == 1 && answers[0] == password {
+						return nil, nil
+					}
+					return nil, errors.New("invalid credentials")
+				},
+			},
+			password:      password,
+			expectSuccess: true,
+		},
+		{
+			name: "keyboard-interactive-only-wrong-password",
+			serverConfig: &ssh.ServerConfig{
+				KeyboardInteractiveCallback: func(conn ssh.ConnMetadata, challenge ssh.KeyboardInteractiveChallenge) (*ssh.Permissions, error) {
+					answers, err := challenge("", "", []string{"Password: "}, []bool{false})
+					if err != nil {
+						return nil, err
+					}
+					if conn.User() == username && len(answers) == 1 && answers[0] == password {
+						return nil, nil
+					}
+					return nil, errors.New("invalid credentials")
+				},
+			},
+			password:      "wrong",
+			expectSuccess: false,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			address := test.StartSSHServer(t, scenario.serverConfig)
+			connected, cli, err := CanCreateSSHConnection(address, username, scenario.password, "", &Config{Timeout: 5 * time.Second})
+			if cli != nil {
+				defer cli.Close()
+			}
+			if connected != scenario.expectSuccess {
+				t.Errorf("expected connected=%v, got %v (err=%v)", scenario.expectSuccess, connected, err)
+			}
+			if scenario.expectSuccess && err != nil {
+				t.Errorf("expected no error, got %v", err)
+			}
+			if !scenario.expectSuccess && err == nil {
+				t.Error("expected an error, got nil")
+			}
+		})
 	}
 }
 
