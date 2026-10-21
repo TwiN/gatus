@@ -640,6 +640,13 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "pat(*<div id=\"user\">john.doe</div>*) == [BODY] (<!DOCTYPE html><html lang...(truncated))",
 		},
 		{
+			Name:            "body-large-response-failure-without-pattern",
+			Condition:       Condition("[BODY] == expected"),
+			Result:          &Result{Body: []byte(`<!DOCTYPE html><html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /></head><body><div id="user">jane.doe</div></body></html>`)},
+			ExpectedSuccess: false,
+			ExpectedOutput:  "[BODY] (<!DOCTYPE html><html lang...(truncated)) == expected",
+		},
+		{
 			Name:            "pat-body-in-array",
 			Condition:       Condition("[BODY].data == pat(*Whatever*)"),
 			Result:          &Result{Body: []byte("{\"data\": [\"hello\", \"world\", \"Whatever\"]}")},
