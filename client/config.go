@@ -72,7 +72,7 @@ type Config struct {
 	// IAPConfig is the Google Cloud Identity-Aware-Proxy configuration used for the client. (e.g. audience)
 	IAPConfig *IAPConfig `yaml:"identity-aware-proxy,omitempty"`
 
-	// Network (ip, ip4 or ip6) for the ICMP client
+	// Network (ip, ip4 or ip6) for the client. When set to ip4 or ip6, forces IPv4 or IPv6 respectively.
 	Network string `yaml:"network"`
 
 	// TLS configuration (optional)
@@ -125,6 +125,14 @@ type TLSConfig struct {
 func (c *Config) ValidateAndSetDefaults() error {
 	if c.Timeout < time.Millisecond {
 		c.Timeout = 10 * time.Second
+	}
+	switch c.Network {
+	case "", "ip":
+		c.Network = "ip"
+	case "ip4", "ip6":
+		// Valid
+	default:
+		return fmt.Errorf("invalid client.network '%s': expected 'ip', 'ip4', or 'ip6'", c.Network)
 	}
 	if c.HasCustomDNSResolver() {
 		// Validate the DNS resolver now to make sure it will not return an error later.
@@ -249,25 +257,33 @@ func (c *Config) getHTTPClient() *http.Client {
 				c.httpClient.Transport.(*http.Transport).Proxy = http.ProxyURL(proxyURL)
 			}
 		}
-		if c.HasCustomDNSResolver() {
-			dnsResolver, err := c.parseDNSResolver()
-			if err != nil {
-				// We're ignoring the error, because it should have been validated on startup ValidateAndSetDefaults.
-				// It shouldn't happen, but if it does, we'll log it... Better safe than sorry ;)
-				logr.Errorf("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error: %s", err.Error())
-			} else {
-				dialer := &net.Dialer{
-					Resolver: &net.Resolver{
+		dialNetwork := "tcp"
+		switch c.Network {
+		case "ip4":
+			dialNetwork = "tcp4"
+		case "ip6":
+			dialNetwork = "tcp6"
+		}
+		if dialNetwork != "tcp" || c.HasCustomDNSResolver() {
+			dialer := &net.Dialer{}
+			if c.HasCustomDNSResolver() {
+				dnsResolver, err := c.parseDNSResolver()
+				if err != nil {
+					// We're ignoring the error, because it should have been validated on startup ValidateAndSetDefaults.
+					// It shouldn't happen, but if it does, we'll log it... Better safe than sorry ;)
+					logr.Errorf("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error: %s", err.Error())
+				} else {
+					dialer.Resolver = &net.Resolver{
 						PreferGo: true,
 						Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
 							d := net.Dialer{}
 							return d.DialContext(ctx, dnsResolver.Protocol, dnsResolver.Host+":"+dnsResolver.Port)
 						},
-					},
+					}
 				}
-				c.httpClient.Transport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-					return dialer.DialContext(ctx, network, addr)
-				}
+			}
+			c.httpClient.Transport.(*http.Transport).DialContext = func(ctx context.Context, _, addr string) (net.Conn, error) {
+				return dialer.DialContext(ctx, dialNetwork, addr)
 			}
 		}
 		if c.HasOAuth2Config() && c.HasIAPConfig() {

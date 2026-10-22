@@ -99,7 +99,16 @@ func CanCreateNetworkConnection(netType string, address string, body string, con
 	const (
 		MaximumMessageSize = 1024 // in bytes
 	)
-	connection, err := net.DialTimeout(netType, address, config.Timeout)
+	dialNetType := netType
+	if config != nil {
+		switch config.Network {
+		case "ip4":
+			dialNetType += "4"
+		case "ip6":
+			dialNetType += "6"
+		}
+	}
+	connection, err := net.DialTimeout(dialNetType, address, config.Timeout)
 	if err != nil {
 		return false, nil
 	}
