@@ -2,6 +2,7 @@ package client
 
 import (
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
@@ -49,6 +50,110 @@ func TestConfig_getHTTPClient_withCookieJar(t *testing.T) {
 	client := config.getHTTPClient()
 	if client.Jar == nil {
 		t.Error("expected Config.StoreCookies to cause the HTTP client to have a CookieJar")
+	}
+}
+
+func TestConfig_getHTTPClient_withNetwork(t *testing.T) {
+	tests := []struct {
+		network        string
+		expectedDialer bool
+	}{
+		{network: "ip", expectedDialer: false},
+		{network: "ip4", expectedDialer: true},
+		{network: "ip6", expectedDialer: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.network, func(t *testing.T) {
+			cfg := &Config{Network: tt.network}
+			if err := cfg.ValidateAndSetDefaults(); err != nil {
+				t.Fatal(err)
+			}
+			client := cfg.getHTTPClient()
+			transport := client.Transport.(*http.Transport)
+			if (transport.DialContext != nil) != tt.expectedDialer {
+				t.Errorf("expected DialContext != nil to be %v for network %s, got %v", tt.expectedDialer, tt.network, transport.DialContext != nil)
+			}
+		})
+	}
+}
+
+func TestConfig_getHTTPClient_withNetwork_connection(t *testing.T) {
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusOK)
+	}))
+	defer server.Close()
+
+	// An IPv4-configured client should successfully connect to the local IPv4 test server
+	ipv4Cfg := &Config{Network: "ip4", Timeout: 2 * time.Second}
+	if err := ipv4Cfg.ValidateAndSetDefaults(); err != nil {
+		t.Fatal(err)
+	}
+	ipv4Client := ipv4Cfg.getHTTPClient()
+	resp, err := ipv4Client.Get(server.URL)
+	if err != nil {
+		t.Fatalf("expected IPv4 client to connect to %s, got error: %v", server.URL, err)
+	}
+	resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		t.Errorf("expected status 200, got %d", resp.StatusCode)
+	}
+
+	// An IPv6-only client attempting to dial an IPv4-only address should fail
+	ipv6Cfg := &Config{Network: "ip6", Timeout: 500 * time.Millisecond}
+	if err := ipv6Cfg.ValidateAndSetDefaults(); err != nil {
+		t.Fatal(err)
+	}
+	ipv6Client := ipv6Cfg.getHTTPClient()
+	_, err = ipv6Client.Get(server.URL)
+	if err == nil {
+		t.Errorf("expected IPv6-only client to fail connecting to IPv4 server %s, but request succeeded", server.URL)
+	}
+}
+
+func TestConfig_getHTTPClient_withNetworkAndCustomDNSResolver(t *testing.T) {
+	cfg := &Config{
+		Network:     "ip4",
+		DNSResolver: "udp://1.1.1.1:53",
+		Timeout:     5 * time.Second,
+	}
+	if err := cfg.ValidateAndSetDefaults(); err != nil {
+		t.Fatal(err)
+	}
+	client := cfg.getHTTPClient()
+	transport, ok := client.Transport.(*http.Transport)
+	if !ok || transport == nil {
+		t.Fatal("expected Transport to be *http.Transport")
+	}
+	if transport.DialContext == nil {
+		t.Error("expected DialContext to be set when combining Network and DNSResolver")
+	}
+}
+
+func TestConfig_ValidateAndSetDefaults_network(t *testing.T) {
+	tests := []struct {
+		network string
+		wantErr bool
+	}{
+		{network: "", wantErr: false},
+		{network: "ip", wantErr: false},
+		{network: "ip4", wantErr: false},
+		{network: "ip6", wantErr: false},
+		{network: "tcp4", wantErr: true},
+		{network: "tcp6", wantErr: true},
+		{network: "invalid", wantErr: true},
+		{network: "ip44", wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.network, func(t *testing.T) {
+			cfg := &Config{Network: tt.network}
+			err := cfg.ValidateAndSetDefaults()
+			if (err != nil) != tt.wantErr {
+				t.Errorf("ValidateAndSetDefaults() error = %v, wantErr = %v", err, tt.wantErr)
+			}
+			if !tt.wantErr && len(tt.network) == 0 && cfg.Network != "ip" {
+				t.Errorf("expected empty network to default to 'ip', got %s", cfg.Network)
+			}
+		})
 	}
 }
 

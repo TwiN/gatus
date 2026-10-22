@@ -333,6 +333,22 @@ func TestCanCreateConnection(t *testing.T) {
 	if !connected {
 		t.Error("should've succeeded, because that IP should always™ be up")
 	}
+
+	// Use local IPv4 listener to verify deterministic Network selection
+	listener, err := net.Listen("tcp4", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer listener.Close()
+
+	connected, _ = CanCreateNetworkConnection("tcp", listener.Addr().String(), "", &Config{Timeout: 5 * time.Second, Network: "ip4"})
+	if !connected {
+		t.Error("should've succeeded with Network=ip4 against local IPv4 listener")
+	}
+	connected, _ = CanCreateNetworkConnection("tcp", listener.Addr().String(), "", &Config{Timeout: 500 * time.Millisecond, Network: "ip6"})
+	if connected {
+		t.Error("should've failed connecting to local IPv4 listener with Network=ip6")
+	}
 }
 
 // This test checks if a HTTP client configured with `configureOAuth2()` automatically
