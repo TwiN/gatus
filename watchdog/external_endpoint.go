@@ -8,11 +8,28 @@ import (
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
+	"github.com/TwiN/gatus/v5/storage/store/common/paging"
 	"github.com/TwiN/logr"
 )
 
 func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config.Config, extraLabels []string, ctx context.Context) {
-	ticker := time.NewTicker(ee.Heartbeat.Interval)
+	timeToNextCheck := ee.Heartbeat.Interval
+
+	lastStatus, err := store.Get().GetEndpointStatusByKey(ee.Key(), paging.NewEndpointStatusParams().WithResults(0, 1))
+	if err != nil {
+		logr.Errorf("[watchdog.monitorExternalEndpointHeartbeat] Failed to get last endpoint status: %s", err.Error())
+	} else if lastStatus != nil {
+		if results := lastStatus.Results; len(results) > 0 {
+			timeSinceLastResult := time.Since(results[0].Timestamp)
+			logr.Debugf("[watchdog.monitorExternalEndpointHeartbeat] Time since last result: '%s'", timeSinceLastResult)
+			if timeSinceLastResult < timeToNextCheck {
+				timeToNextCheck -= timeSinceLastResult
+			}
+		}
+	}
+	logr.Debugf("[watchdog.monitorExternalEndpointHeartbeat] Waiting for duration=%s before checking heartbeat for group=%s endpoint=%s (key=%s)", timeToNextCheck, ee.Group, ee.Name, ee.Key())
+
+	ticker := time.NewTicker(timeToNextCheck)
 	defer ticker.Stop()
 	for {
 		select {
@@ -21,6 +38,7 @@ func monitorExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 			return
 		case <-ticker.C:
 			executeExternalEndpointHeartbeat(ee, cfg, extraLabels)
+			ticker.Reset(ee.Heartbeat.Interval)
 		}
 	}
 }
