@@ -283,8 +283,8 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 	// Replace $$ with __GATUS_LITERAL_DOLLAR_SIGN__ to prevent os.ExpandEnv from treating "$$" as if it was an
 	// environment variable. This allows Gatus to support literal "$" in the configuration file.
 	yamlBytes = []byte(strings.ReplaceAll(string(yamlBytes), "$$", "__GATUS_LITERAL_DOLLAR_SIGN__"))
-	// Expand environment variables
-	yamlBytes = []byte(os.ExpandEnv(string(yamlBytes)))
+	// Expand environment variables (including ${VAR:-default} syntax)
+	yamlBytes = []byte(expandEnv(string(yamlBytes)))
 	// Replace __GATUS_LITERAL_DOLLAR_SIGN__ with "$" to restore the literal "$" in the configuration file
 	yamlBytes = []byte(strings.ReplaceAll(string(yamlBytes), "__GATUS_LITERAL_DOLLAR_SIGN__", "$"))
 	// Parse configuration file
@@ -343,6 +343,86 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
 	}
 	return
+}
+
+// expandEnv expands environment variables in the input string.
+// It supports both standard os.ExpandEnv syntax ($VAR, ${VAR}) and
+// bash-style default values (${VAR:-default}).
+// If VAR is set and non-empty, its value is used.
+// If VAR is unset or empty, the default value is used.
+func expandEnv(s string) string {
+	var buf strings.Builder
+	i := 0
+	for i < len(s) {
+		if s[i] == '$' {
+			if i+1 < len(s) && s[i+1] == '{' {
+				// Found ${...} pattern
+				j := i + 2
+				// Find the closing }
+				depth := 1
+				for j < len(s) && depth > 0 {
+					if s[j] == '{' {
+						depth++
+					} else if s[j] == '}' {
+						depth--
+					}
+					j++
+				}
+				if depth == 0 {
+					// Found closing brace
+					expr := s[i+2 : j-1]
+					// Check if it contains :-
+					if idx := strings.Index(expr, ":-"); idx != -1 {
+						// Split into variable name and default value
+						varName := expr[:idx]
+						defaultValue := expr[idx+2:]
+						// Get the environment variable value
+						value := os.Getenv(varName)
+						if value == "" {
+							// Use default if variable is unset or empty
+							buf.WriteString(defaultValue)
+						} else {
+							buf.WriteString(value)
+						}
+					} else {
+						// No default value, use standard expansion
+						value := os.Getenv(expr)
+						buf.WriteString(value)
+					}
+					i = j
+					continue
+				}
+			}
+			// Not a ${...} pattern or unclosed, use os.ExpandEnv for this part
+			// Find the end of the variable reference
+			j := i + 1
+			if j < len(s) && s[j] == '$' {
+				// $$ case, write single $ and continue
+				buf.WriteByte('$')
+				i = j + 1
+				continue
+			}
+			// For $VAR style, let os.ExpandEnv handle it
+			// Find the extent of the variable name
+			if j < len(s) && (s[j] >= 'A' && s[j] <= 'Z' || s[j] >= 'a' && s[j] <= 'z' || s[j] == '_') {
+				for j < len(s) && (s[j] >= 'A' && s[j] <= 'Z' || s[j] >= 'a' && s[j] <= 'z' || s[j] >= '0' && s[j] <= '9' || s[j] == '_') {
+					j++
+				}
+				varName := s[i+1 : j]
+				value := os.Getenv(varName)
+				buf.WriteString(value)
+				i = j
+				continue
+			}
+			// Just a $ followed by something else
+			buf.WriteByte('$')
+			i++
+		} else {
+			buf.WriteByte(s[i])
+			i++
+		}
+	}
+	return buf.String()
 }
 
 func ValidateConnectivityConfig(config *Config) error {
