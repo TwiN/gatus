@@ -22,35 +22,18 @@ func Eval(path string, b []byte) (string, int, error) {
 
 // walk traverses the object and returns the value as a string as well as its length
 func walk(path string, object interface{}) (string, int, error) {
-	var keys []string
-	startOfCurrentKey, bracketDepth := 0, 0
-	for i := range path {
-		if path[i] == '[' {
-			bracketDepth++
-		} else if path[i] == ']' {
-			bracketDepth--
-		}
-		// If we encounter a dot, we've reached the end of a key unless we're inside a bracket
-		if path[i] == '.' && bracketDepth == 0 {
-			keys = append(keys, path[startOfCurrentKey:i])
-			startOfCurrentKey = i + 1
-		}
-	}
-	if startOfCurrentKey <= len(path) {
-		keys = append(keys, path[startOfCurrentKey:])
-	}
+	keys := splitPath(path)
 	currentKey := keys[0]
 	switch value := extractValue(currentKey, object).(type) {
 	case map[string]interface{}:
-		newPath := strings.Replace(path, fmt.Sprintf("%s.", currentKey), "", 1)
-		if path == newPath {
-			// If the path hasn't changed, it means we're at the end of the path
+		if len(keys) == 1 {
+			// If there are no more keys, it means we're at the end of the path
 			// So we'll treat it as a string by re-marshaling it to JSON since it's a map.
 			// Note that the output JSON will be minified.
 			b, err := json.Marshal(value)
 			return string(b), len(b), err
 		}
-		return walk(newPath, value)
+		return walk(path[len(currentKey)+1:], value)
 	case string:
 		if len(keys) > 1 {
 			return "", 0, fmt.Errorf("couldn't walk through '%s', because '%s' was a string instead of an object", keys[1], currentKey)
@@ -66,66 +49,109 @@ func walk(path string, object interface{}) (string, int, error) {
 	}
 }
 
-func extractValue(currentKey string, value interface{}) interface{} {
-	// Check if the current key ends with [#]
-	if strings.HasSuffix(currentKey, "]") && strings.Contains(currentKey, "[") {
-		var isNestedArray bool
-		var index string
-		startOfBracket, endOfBracket, bracketDepth := 0, 0, 0
-		for i := range currentKey {
-			if currentKey[i] == '[' {
-				startOfBracket = i
-				bracketDepth++
-			} else if currentKey[i] == ']' && bracketDepth == 1 {
-				bracketDepth--
-				endOfBracket = i
-				index = currentKey[startOfBracket+1 : i]
-				if len(currentKey) > i+1 && currentKey[i+1] == '[' {
-					isNestedArray = true // there's more keys.
-				}
-				break
+// splitPath splits the path into keys on every dot that is neither inside brackets nor inside quotes
+func splitPath(path string) []string {
+	var keys []string
+	var quote byte
+	startOfCurrentKey, bracketDepth := 0, 0
+	for i := 0; i < len(path); i++ {
+		switch {
+		case quote != 0:
+			if path[i] == quote {
+				quote = 0
 			}
+		case (path[i] == '"' || path[i] == '\'') && (i == startOfCurrentKey || path[i-1] == '['):
+			// Quotes are only meaningful at the start of a key (i.e. "m.server") or of a bracket (i.e. ["m.server"])
+			quote = path[i]
+		case path[i] == '[':
+			bracketDepth++
+		case path[i] == ']':
+			bracketDepth--
+		case path[i] == '.' && bracketDepth == 0:
+			// If we encounter a dot, we've reached the end of a key unless we're inside a bracket or quotes
+			keys = append(keys, path[startOfCurrentKey:i])
+			startOfCurrentKey = i + 1
 		}
-		arrayIndex, err := strconv.Atoi(index)
+	}
+	return append(keys, path[startOfCurrentKey:])
+}
+
+// extractValue retrieves the value referenced by currentKey from value.
+//
+// currentKey is made of an optional key, which may be quoted (e.g. data, "m.server" or 'm.server'), followed by any
+// number of brackets, each containing either an array index (e.g. [0]) or a quoted key (e.g. ["m.server"])
+func extractValue(currentKey string, value interface{}) interface{} {
+	key, brackets := currentKey, ""
+	isQuoted := len(currentKey) > 0 && (currentKey[0] == '"' || currentKey[0] == '\'')
+	if isQuoted {
+		endOfQuote := strings.IndexByte(currentKey[1:], currentKey[0]) + 1
+		if endOfQuote == 0 {
+			return nil
+		}
+		key, brackets = currentKey[1:endOfQuote], currentKey[endOfQuote+1:]
+	} else if startOfBracket := strings.IndexByte(currentKey, '['); startOfBracket != -1 {
+		key, brackets = currentKey[:startOfBracket], currentKey[startOfBracket:]
+	}
+	if len(brackets) == 0 {
+		return extractKey(key, value)
+	}
+	// If there's a key before the brackets (i.e. data[0]), we retrieve it before handling the brackets
+	if isQuoted || len(key) > 0 {
+		valueAsMap, ok := value.(map[string]interface{})
+		if !ok {
+			return nil
+		}
+		value = valueAsMap[key]
+	}
+	for len(brackets) > 0 {
+		if brackets[0] != '[' || len(brackets) < 2 {
+			return nil
+		}
+		if brackets[1] == '"' || brackets[1] == '\'' {
+			// The bracket contains a quoted key (i.e. ["m.server"])
+			endOfQuote := strings.IndexByte(brackets[2:], brackets[1]) + 2
+			if endOfQuote == 1 || len(brackets) <= endOfQuote+1 || brackets[endOfQuote+1] != ']' {
+				return nil
+			}
+			valueAsMap, ok := value.(map[string]interface{})
+			if !ok {
+				return nil
+			}
+			value = valueAsMap[brackets[2:endOfQuote]]
+			brackets = brackets[endOfQuote+2:]
+			continue
+		}
+		// The bracket contains an array index (i.e. [0])
+		endOfBracket := strings.IndexByte(brackets, ']')
+		if endOfBracket == -1 {
+			return nil
+		}
+		arrayIndex, err := strconv.Atoi(brackets[1:endOfBracket])
 		if err != nil || arrayIndex < 0 {
 			return nil
 		}
-		currentKeyWithoutIndex := currentKey[:startOfBracket]
-		// if currentKeyWithoutIndex contains only an index (i.e. [0] or 0)
-		if len(currentKeyWithoutIndex) == 0 {
-			array, _ := value.([]interface{})
-			if len(array) > arrayIndex {
-				if isNestedArray {
-					return extractValue(currentKey[endOfBracket+1:], array[arrayIndex])
-				}
-				return array[arrayIndex]
-			}
+		array, _ := value.([]interface{})
+		if len(array) <= arrayIndex {
 			return nil
 		}
-		if value == nil || value.(map[string]interface{})[currentKeyWithoutIndex] == nil {
-			return nil
-		}
-		// if currentKeyWithoutIndex contains both a key and an index (i.e. data[0])
-		array, _ := value.(map[string]interface{})[currentKeyWithoutIndex].([]interface{})
-		if len(array) > arrayIndex {
-			if isNestedArray {
-				return extractValue(currentKey[endOfBracket+1:], array[arrayIndex])
-			}
-			return array[arrayIndex]
-		}
-		return nil
+		value = array[arrayIndex]
+		brackets = brackets[endOfBracket+1:]
 	}
+	return value
+}
+
+func extractKey(key string, value interface{}) interface{} {
 	if valueAsSlice, ok := value.([]interface{}); ok {
 		// If the type is a slice, return it
 		// This happens when the body (value) is a JSON array
 		return valueAsSlice
 	}
 	if valueAsMap, ok := value.(map[string]interface{}); ok {
-		// If the value is a map, then we get the currentKey from that map
+		// If the value is a map, then we get the key from that map
 		// This happens when the body (value) is a JSON object
-		return valueAsMap[currentKey]
+		return valueAsMap[key]
 	}
-	// If the value is neither a map, nor a slice, nor an index, then we cannot retrieve the currentKey
-	// from said value. This usually happens when the body (value) is null.
+	// If the value is neither a map nor a slice, then we cannot retrieve the key from said value.
+	// This usually happens when the body (value) is null.
 	return value
 }
