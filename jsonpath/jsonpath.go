@@ -23,15 +23,19 @@ func Eval(path string, b []byte) (string, int, error) {
 // walk traverses the object and returns the value as a string as well as its length
 func walk(path string, object interface{}) (string, int, error) {
 	var keys []string
-	startOfCurrentKey, bracketDepth := 0, 0
+	startOfCurrentKey, bracketDepth, inQuotes := 0, 0, false
 	for i := range path {
-		if path[i] == '[' {
+		switch {
+		case path[i] == '"':
+			inQuotes = !inQuotes
+		case inQuotes:
+			// A dot or bracket inside a quoted key (e.g. "m.server") is part of the key
+		case path[i] == '[':
 			bracketDepth++
-		} else if path[i] == ']' {
+		case path[i] == ']':
 			bracketDepth--
-		}
-		// If we encounter a dot, we've reached the end of a key unless we're inside a bracket
-		if path[i] == '.' && bracketDepth == 0 {
+		case path[i] == '.' && bracketDepth == 0:
+			// If we encounter a dot, we've reached the end of a key unless we're inside a bracket
 			keys = append(keys, path[startOfCurrentKey:i])
 			startOfCurrentKey = i + 1
 		}
@@ -67,12 +71,18 @@ func walk(path string, object interface{}) (string, int, error) {
 }
 
 func extractValue(currentKey string, value interface{}) interface{} {
+	// A key in double quotes is taken literally, so it can contain dots and brackets
+	endOfQuotedKey := quotedKeyEnd(currentKey)
+	if endOfQuotedKey > 0 && endOfQuotedKey == len(currentKey) {
+		valueAsMap, _ := value.(map[string]interface{})
+		return valueAsMap[currentKey[1:endOfQuotedKey-1]]
+	}
 	// Check if the current key ends with [#]
-	if strings.HasSuffix(currentKey, "]") && strings.Contains(currentKey, "[") {
+	if strings.HasSuffix(currentKey, "]") && strings.Contains(currentKey[endOfQuotedKey:], "[") {
 		var isNestedArray bool
 		var index string
 		startOfBracket, endOfBracket, bracketDepth := 0, 0, 0
-		for i := range currentKey {
+		for i := endOfQuotedKey; i < len(currentKey); i++ {
 			if currentKey[i] == '[' {
 				startOfBracket = i
 				bracketDepth++
@@ -91,6 +101,9 @@ func extractValue(currentKey string, value interface{}) interface{} {
 			return nil
 		}
 		currentKeyWithoutIndex := currentKey[:startOfBracket]
+		if endOfQuotedKey > 0 {
+			currentKeyWithoutIndex = currentKey[1 : endOfQuotedKey-1]
+		}
 		// if currentKeyWithoutIndex contains only an index (i.e. [0] or 0)
 		if len(currentKeyWithoutIndex) == 0 {
 			array, _ := value.([]interface{})
@@ -128,4 +141,16 @@ func extractValue(currentKey string, value interface{}) interface{} {
 	// If the value is neither a map, nor a slice, nor an index, then we cannot retrieve the currentKey
 	// from said value. This usually happens when the body (value) is null.
 	return value
+}
+
+// quotedKeyEnd returns the index right after the closing double quote when key starts with a quoted part
+// (e.g. "m.server" or "m.server"[0]), or 0 when it doesn't
+func quotedKeyEnd(key string) int {
+	if len(key) < 2 || key[0] != '"' {
+		return 0
+	}
+	if end := strings.IndexByte(key[1:], '"'); end >= 0 {
+		return end + 2
+	}
+	return 0
 }

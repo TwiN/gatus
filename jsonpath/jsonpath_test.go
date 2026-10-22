@@ -15,6 +15,46 @@ func TestEval(t *testing.T) {
 	}
 	scenarios := []Scenario{
 		{
+			Name:                 "quoted-key-with-dot",
+			Path:                 `"m.server"`,
+			Data:                 `{"m.server": "example.org:443"}`,
+			ExpectedOutput:       "example.org:443",
+			ExpectedOutputLength: 15,
+			ExpectedError:        false,
+		},
+		{
+			Name:                 "quoted-key-with-dot-nested",
+			Path:                 `well-known."m.server".port`,
+			Data:                 `{"well-known": {"m.server": {"port": "443"}}}`,
+			ExpectedOutput:       "443",
+			ExpectedOutputLength: 3,
+			ExpectedError:        false,
+		},
+		{
+			Name:                 "quoted-key-with-dot-and-index",
+			Path:                 `"a.b"[1]`,
+			Data:                 `{"a.b": [1, 2]}`,
+			ExpectedOutput:       "2",
+			ExpectedOutputLength: 1,
+			ExpectedError:        false,
+		},
+		{
+			Name:                 "quoted-key-with-brackets",
+			Path:                 `"a[0]"`,
+			Data:                 `{"a[0]": "x", "a": ["y"]}`,
+			ExpectedOutput:       "x",
+			ExpectedOutputLength: 1,
+			ExpectedError:        false,
+		},
+		{
+			Name:                 "quoted-key-missing",
+			Path:                 `"m.server"`,
+			Data:                 `{"m": {"server": "example.org:443"}}`,
+			ExpectedOutput:       "",
+			ExpectedOutputLength: 0,
+			ExpectedError:        true,
+		},
+		{
 			Name:                 "simple",
 			Path:                 "key",
 			Data:                 `{"key": "value"}`,

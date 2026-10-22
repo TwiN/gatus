@@ -236,6 +236,13 @@ func TestCondition_evaluate(t *testing.T) {
 			ExpectedOutput:  "[BODY].data.name == john",
 		},
 		{
+			Name:            "body-jsonpath-quoted-key-with-dot",
+			Condition:       Condition("[BODY].\"m.server\" == pat(*:443)"),
+			Result:          &Result{Body: []byte("{\"m.server\": \"example.org:443\"}")},
+			ExpectedSuccess: true,
+			ExpectedOutput:  "[BODY].\"m.server\" == pat(*:443)",
+		},
+		{
 			Name:            "body-jsonpath-complex-invalid",
 			Condition:       Condition("[BODY].data.name == john"),
 			Result:          &Result{Body: []byte("{\"data\": {\"id\": 1}}")},

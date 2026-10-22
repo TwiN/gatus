@@ -480,6 +480,7 @@ Here are some examples of conditions you can use:
 | `[BODY] == 1`                    | The body must be equal to 1                         | 1                          | `{}`, `2`, ...   |
 | `[BODY].user.name == john`       | JSONPath value of `$.user.name` is equal to `john`  | `{"user":{"name":"john"}}` |                  |
 | `[BODY].data[0].id == 1`         | JSONPath value of `$.data[0].id` is equal to 1      | `{"data":[{"id":1}]}`      |                  |
+| `[BODY]."a.b" == c`              | Value of the key `a.b`, quoted for its dot, is `c`  | `{"a.b":"c"}`              |                  |
 | `[BODY].age == [BODY].id`        | JSONPath value of `$.age` is equal JSONPath `$.id`  | `{"age":1,"id":1}`         |                  |
 | `len([BODY].data) < 5`           | Array at JSONPath `$.data` has less than 5 elements | `{"data":[{"id":1}]}`      |                  |
 | `len([BODY].name) == 8`          | String at JSONPath `$.name` has a length of 8       | `{"name":"john.doe"}`      | `{"name":"bob"}` |
