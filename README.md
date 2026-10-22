@@ -525,6 +525,11 @@ Allows you to configure how and where the dashboard is being served.
 | `web.read-buffer-size`     | Buffer size for reading requests from a connection. Also limit for the maximum header size. | `8192`    |
 | `web.tls.certificate-file` | Optional public certificate file for TLS in PEM format.                                     | `""`      |
 | `web.tls.private-key-file` | Optional private key file for TLS in PEM format.                                            | `""`      |
+| `web.cors.allow-origins`   | Comma-separated list of allowed CORS origins. Cannot contain `*` if `allow-credentials` is `true`. Required if `web.cors` is specified. | `""`      |
+| `web.cors.allow-methods`   | Comma-separated list of allowed HTTP methods.                                               | `GET,POST,OPTIONS` |
+| `web.cors.allow-headers`   | Comma-separated list of allowed headers.                                                    | `Origin,Content-Type,Accept,Authorization` |
+| `web.cors.allow-credentials` | Whether to allow credentials with CORS requests.                                          | `false`   |
+| `web.cors.max-age`         | Max age in seconds for CORS preflight cache.                                                | `0`       |
 
 ### UI
 Allows you to configure the application wide defaults for the dashboard's UI. Some of these parameters can be overridden locally by users using the local storage of their browser.
@@ -2880,6 +2885,20 @@ web:
   tls:
     certificate-file: "certificate.crt"
     private-key-file: "private.key"
+```
+
+### CORS Configuration
+Gatus supports configuring Cross-Origin Resource Sharing (CORS). This is useful when Gatus is not deployed behind a reverse proxy and third-party dashboards (e.g., Homer, Grafana, custom frontends) need to query Gatus endpoints.
+
+```yaml
+web:
+  port: 8080
+  cors:
+    allow-origins: "https://dashboard.example.com,https://other.example.com" # Required when cors is specified
+    allow-methods: "GET,POST,OPTIONS"                                       # Optional (defaults to GET,POST,OPTIONS)
+    allow-headers: "Origin,Content-Type,Accept,Authorization"               # Optional (defaults to Origin,Content-Type,Accept,Authorization)
+    allow-credentials: true                                                 # Optional (defaults to false)
+    max-age: 600                                                            # Optional (defaults to 0)
 ```
 
 
