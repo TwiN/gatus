@@ -2619,6 +2619,7 @@ endpoints:
 | `alerting.custom.method`            | Request method                                                                             | `GET`         |
 | `alerting.custom.body`              | Custom alerting request body.                                                              | `""`          |
 | `alerting.custom.headers`           | Custom alerting request headers                                                            | `{}`          |
+| `alerting.custom.result-conditions-separator` | Separator placed between condition results in `[RESULT_CONDITIONS]`              | `", "`        |
 | `alerting.custom.client`            | Client configuration. <br />See [Client configuration](#client-configuration).             | `{}`          |
 | `alerting.custom.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 | `alerting.custom.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
@@ -2638,7 +2639,7 @@ Furthermore, you may use the following placeholders in the body (`alerting.custo
 - `[ENDPOINT_GROUP]` (resolved from `endpoints[].group`)
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 - `[RESULT_ERRORS]` (resolved from the health evaluation of a given health check)
-- `[RESULT_CONDITIONS]` (condition results from the health evaluation of a given health check)
+- `[RESULT_CONDITIONS]` (condition results from the health evaluation of a given health check, separated by `alerting.custom.result-conditions-separator`)
 -
 If you have an alert using the `custom` provider with `send-on-resolved` set to `true`, you can use the
 `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications.
