@@ -25,6 +25,9 @@ type Config struct {
 	Headers      map[string]string            `yaml:"headers,omitempty"`
 	Placeholders map[string]map[string]string `yaml:"placeholders,omitempty"`
 
+	// ResultConditionsSeparator is the string placed between condition results in [RESULT_CONDITIONS] (default: ", ")
+	ResultConditionsSeparator string `yaml:"result-conditions-separator,omitempty"`
+
 	// ClientConfig is the configuration of the client used to communicate with the provider's target
 	ClientConfig *client.Config `yaml:"client,omitempty"`
 }
@@ -54,6 +57,9 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if len(override.Placeholders) > 0 {
 		cfg.Placeholders = override.Placeholders
+	}
+	if len(override.ResultConditionsSeparator) > 0 {
+		cfg.ResultConditionsSeparator = override.ResultConditionsSeparator
 	}
 }
 
@@ -114,6 +120,10 @@ func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoi
 
 	if len(result.ConditionResults) > 0 && strings.Contains(body, "[RESULT_CONDITIONS]") {
 		var formattedConditionResults string
+		separator := cfg.ResultConditionsSeparator
+		if len(separator) == 0 {
+			separator = ", "
+		}
 		for index, conditionResult := range result.ConditionResults {
 			var prefix string
 			if conditionResult.Success {
@@ -123,7 +133,7 @@ func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoi
 			}
 			formattedConditionResults += fmt.Sprintf("%s - `%s`", prefix, conditionResult.Condition)
 			if index < len(result.ConditionResults)-1 {
-				formattedConditionResults += ", "
+				formattedConditionResults += separator
 			}
 		}
 		body = strings.ReplaceAll(body, "[RESULT_CONDITIONS]", formattedConditionResults)
