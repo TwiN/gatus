@@ -4,11 +4,13 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
@@ -227,5 +229,44 @@ func TestEndpointStatuses(t *testing.T) {
 				t.Errorf("expected:\n %s\n\ngot:\n %s", scenario.ExpectedBody, string(body))
 			}
 		})
+	}
+}
+
+func TestEndpointStatuses_WithLinks(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+	endpointWithLinks := &endpoint.Endpoint{
+		Name:  "name",
+		Group: "group",
+		URL:   "https://example.org/what/ever",
+		UIConfig: &ui.Config{
+			Links: []ui.Link{
+				{Name: "Dashboard", Value: "https://example.org/dashboard"},
+			},
+		},
+	}
+	store.Get().InsertEndpointResult(endpointWithLinks, &endpoint.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Time{}})
+	cfg := &config.Config{
+		Metrics:   true,
+		Endpoints: []*endpoint.Endpoint{endpointWithLinks},
+		Storage: &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		},
+	}
+	api := New(cfg)
+	router := api.Router()
+	request := httptest.NewRequest("GET", "/api/v1/endpoints/statuses", http.NoBody)
+	response, err := router.Test(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if !strings.Contains(string(body), `"links":[{"name":"Dashboard","value":"https://example.org/dashboard"}]`) {
+		t.Errorf("expected response body to contain the endpoint's links, got: %s", string(body))
 	}
 }
