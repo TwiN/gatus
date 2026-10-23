@@ -4,9 +4,9 @@
       <div class="flex items-start justify-between gap-2 sm:gap-3">
         <div class="flex-1 min-w-0 overflow-hidden">
           <CardTitle class="text-base sm:text-lg truncate">
-            <span 
-              class="hover:text-primary cursor-pointer hover:underline text-sm sm:text-base block truncate" 
-              @click="navigateToDetails" 
+            <span
+              class="hover:text-primary cursor-pointer hover:underline text-sm sm:text-base block truncate"
+              @click="navigateToDetails"
               @keydown.enter="navigateToDetails"
               :title="endpoint.name"
               role="link"
@@ -41,9 +41,11 @@
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
                 result ? 'cursor-pointer' : '',
                 result ? (
-                  result.success 
-                    ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
-                    : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
+                  result.mixed
+                    ? (selectedResultIndex === index ? 'bg-amber-500' : 'bg-amber-400 hover:bg-amber-500')
+                    : result.success
+                      ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
+                      : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
                 ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
               @mouseenter="result && handleMouseEnter(result, $event)"
@@ -68,6 +70,8 @@ import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
 import { generatePrettyTimeAgo } from '@/utils/time'
 
+const DISPLAY_BUCKETS = 40
+
 const router = useRouter()
 
 const props = defineProps({
@@ -87,13 +91,10 @@ const props = defineProps({
 
 const emit = defineEmits(['showTooltip'])
 
-// Track selected data point
 const selectedResultIndex = ref(null)
 
 const latestResult = computed(() => {
-  if (!props.endpoint.results || props.endpoint.results.length === 0) {
-    return null
-  }
+  if (!props.endpoint.results || props.endpoint.results.length === 0) return null
   return props.endpoint.results[props.endpoint.results.length - 1]
 })
 
@@ -107,23 +108,49 @@ const hostname = computed(() => {
 })
 
 const displayResults = computed(() => {
-  const results = [...(props.endpoint.results || [])]
-  while (results.length < props.maxResults) {
-    results.unshift(null)
+  const results = props.endpoint.results || []
+  const total = props.maxResults
+
+  // When few enough results, show them individually (original Gatus behaviour)
+  if (total <= DISPLAY_BUCKETS) {
+    const padded = [...results]
+    while (padded.length < total) padded.unshift(null)
+    return padded.slice(-total)
   }
-  return results.slice(-props.maxResults)
+
+  // Otherwise aggregate into DISPLAY_BUCKETS
+  const padded = Array(Math.max(0, total - results.length)).fill(null).concat(results.slice(-total))
+
+  const buckets = []
+  for (let i = 0; i < DISPLAY_BUCKETS; i++) {
+    const start = Math.floor(i * total / DISPLAY_BUCKETS)
+    const end = Math.floor((i + 1) * total / DISPLAY_BUCKETS)
+    const slice = padded.slice(start, end)
+    const nonNull = slice.filter(Boolean)
+
+    if (nonNull.length === 0) {
+      buckets.push(null)
+    } else {
+      const successCount = nonNull.filter(r => r.success).length
+      const latest = nonNull[nonNull.length - 1]
+      buckets.push({
+        ...latest,
+        success: successCount === nonNull.length,
+        mixed: successCount > 0 && successCount < nonNull.length,
+      })
+    }
+  }
+  return buckets
 })
 
 const formattedResponseTime = computed(() => {
-  if (!props.endpoint.results || props.endpoint.results.length === 0) {
-    return 'N/A'
-  }
-  
+  if (!props.endpoint.results || props.endpoint.results.length === 0) return 'N/A'
+
   let total = 0
   let count = 0
   let min = Infinity
   let max = 0
-  
+
   for (const result of props.endpoint.results) {
     if (result.duration) {
       const durationMs = result.duration / 1000000
@@ -133,21 +160,15 @@ const formattedResponseTime = computed(() => {
       max = Math.max(max, durationMs)
     }
   }
-  
+
   if (count === 0) return 'N/A'
-  
+
   if (props.showAverageResponseTime) {
-    const avgMs = Math.round(total / count)
-    return `~${avgMs}ms`
+    return `~${Math.round(total / count)}ms`
   } else {
-    // Show min-max range
     const minMs = Math.trunc(min)
     const maxMs = Math.trunc(max)
-    // If min and max are the same, show single value
-    if (minMs === maxMs) {
-      return `${minMs}ms`
-    }
-    return `${minMs}-${maxMs}ms`
+    return minMs === maxMs ? `${minMs}ms` : `${minMs}-${maxMs}ms`
   }
 })
 
@@ -175,9 +196,7 @@ const handleMouseLeave = (result, event) => {
 }
 
 const handleClick = (result, event, index) => {
-  // Clear selections in other cards first
   window.dispatchEvent(new CustomEvent('clear-data-point-selection'))
-  // Then toggle this card's selection
   if (selectedResultIndex.value === index) {
     selectedResultIndex.value = null
     emit('showTooltip', null, event, 'click')
@@ -187,7 +206,6 @@ const handleClick = (result, event, index) => {
   }
 }
 
-// Listen for clear selection event
 const handleClearSelection = () => {
   selectedResultIndex.value = null
 }
