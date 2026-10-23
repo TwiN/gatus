@@ -6,6 +6,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/state"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/logr"
@@ -57,6 +58,7 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 	result := &endpoint.Result{
 		Timestamp: time.Now(),
 		Success:   false,
+		State:     state.DefaultUnhealthyStateName,
 		Errors:    []string{"heartbeat: no update received within " + ee.Heartbeat.Interval.String()},
 	}
 	if cfg.Metrics {
