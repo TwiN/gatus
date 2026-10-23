@@ -8,6 +8,11 @@ import (
 )
 
 // Eval is a half-baked json path implementation that needs some love
+//
+// Keys are separated by dots (i.e. data.name). Array elements are addressed by their index
+// between brackets (i.e. data[0].name). Object keys that contain dots must be wrapped in
+// single or double quotes, either on their own (i.e. data."name.with.dots") or between brackets
+// (i.e. data["name.with.dots"]), because an unquoted dot is always treated as a key separator.
 func Eval(path string, b []byte) (string, int, error) {
 	if len(path) == 0 && !(len(b) != 0 && b[0] == '[' && b[len(b)-1] == ']') {
 		// if there's no path AND the value is not a JSON array, then there's nothing to walk
@@ -154,4 +159,13 @@ func extractKey(key string, value interface{}) interface{} {
 	// If the value is neither a map nor a slice, then we cannot retrieve the key from said value.
 	// This usually happens when the body (value) is null.
 	return value
+}
+
+// unquote removes the surrounding single or double quotes from s, if there are any.
+// The second return value indicates whether s was quoted.
+func unquote(s string) (string, bool) {
+	if len(s) >= 2 && (s[0] == '"' || s[0] == '\'') && s[len(s)-1] == s[0] {
+		return s[1 : len(s)-1], true
+	}
+	return s, false
 }
