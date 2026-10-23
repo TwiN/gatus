@@ -3,7 +3,7 @@
 // script. All user dependencies have been updated to their latest versions.
 // Consider migrating to Vite for better Node.js v23+ compatibility.
 module.exports = {
-	filenameHashing: false,
+	filenameHashing: true,
 	productionSourceMap: false,
 	outputDir: '../static',
 	publicPath: '/',
