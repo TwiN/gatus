@@ -557,6 +557,10 @@ func (e *Endpoint) call(result *Result) {
 		}
 		result.HTTPStatus = response.StatusCode
 		result.Connected = response.StatusCode > 0
+		// Only keep the headers if there's a condition that uses the HeaderPlaceholder
+		if e.needsToReadHeaders() {
+			result.Headers = response.Header
+		}
 		// Only read the Body if there's a condition that uses the BodyPlaceholder
 		if e.needsToReadBody() {
 			result.Body, err = io.ReadAll(response.Body)
@@ -601,6 +605,21 @@ func (e *Endpoint) needsToReadBody() bool {
 			if strings.Contains(value, BodyPlaceholder) {
 				return true
 			}
+		}
+	}
+	return false
+}
+
+// needsToReadHeaders checks if there's any condition or store mapping that requires the response headers to be kept
+func (e *Endpoint) needsToReadHeaders() bool {
+	for _, condition := range e.Conditions {
+		if condition.hasHeaderPlaceholder() {
+			return true
+		}
+	}
+	for _, value := range e.Store {
+		if strings.Contains(strings.ToUpper(value), HeaderPlaceholder) {
+			return true
 		}
 	}
 	return false
