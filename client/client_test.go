@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
@@ -724,4 +725,60 @@ func TestCheckSSHBanner(t *testing.T) {
 			t.Errorf("Expected: 1, got: %v", status)
 		}
 	})
+}
+
+func TestSSHHostAndPort(t *testing.T) {
+	scenarios := []struct {
+		address, host, port string
+		ok                  bool
+	}{
+		{"example.org", "example.org", "22", true},
+		{"example.org:2222", "example.org", "2222", true},
+		{"192.0.2.1:22", "192.0.2.1", "22", true},
+		{"[::1]:22", "::1", "22", true},
+		{"[2607:f8b0:4002:c09::6d]:2222", "2607:f8b0:4002:c09::6d", "2222", true},
+		{"[::1]", "::1", "22", true},
+		{"::1", "::1", "22", true},
+		{"a:b:c", "", "", false},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.address, func(t *testing.T) {
+			host, port, ok := sshHostAndPort(scenario.address)
+			if host != scenario.host || port != scenario.port || ok != scenario.ok {
+				t.Errorf("sshHostAndPort(%q) = %q, %q, %v; want %q, %q, %v", scenario.address, host, port, ok, scenario.host, scenario.port, scenario.ok)
+			}
+		})
+	}
+}
+
+func TestCheckSSHBannerOverIPv6(t *testing.T) {
+	listener, err := net.Listen("tcp", "[::1]:0")
+	if err != nil {
+		t.Skip("no IPv6 loopback:", err)
+	}
+	defer listener.Close()
+	go func() {
+		if conn, err := listener.Accept(); err == nil {
+			conn.Write([]byte("SSH-2.0-test\r\n"))
+			conn.Close()
+		}
+	}()
+	connected, status, err := CheckSSHBanner(listener.Addr().String(), &Config{Timeout: 3 * time.Second})
+	if err != nil || !connected || status != 0 {
+		t.Errorf("expected a banner from %s, got connected=%v status=%v err=%v", listener.Addr(), connected, status, err)
+	}
+}
+
+func TestCanPerformStartTLSAcceptsIPv6Address(t *testing.T) {
+	listener, err := net.Listen("tcp", "[::1]:0")
+	if err != nil {
+		t.Skip("no IPv6 loopback:", err)
+	}
+	address := listener.Addr().String()
+	listener.Close()
+	// Nothing listens there any more, so the dial fails; the address itself must not be refused.
+	_, _, err = CanPerformStartTLS(address, &Config{Timeout: 3 * time.Second})
+	if err == nil || strings.Contains(err.Error(), "invalid address") {
+		t.Errorf("expected a dial error for %s, got %v", address, err)
+	}
 }
