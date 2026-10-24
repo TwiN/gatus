@@ -173,6 +173,9 @@ func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint,
 			extraLabels += fmt.Sprintf("  %s: %s\n", key, value)
 		}
 	}
+	if endpointURL := ep.NotificationURL(); endpointURL != "" {
+		message += "\n\nEndpoint: " + endpointURL
+	}
 	return subject, message + description + extraLabels + formattedConditionResults
 }
 
