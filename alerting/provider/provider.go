@@ -6,6 +6,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/clickup"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/datadog"
+	"github.com/TwiN/gatus/v5/alerting/provider/dingtalk"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitea"
@@ -97,6 +98,7 @@ var (
 	_ AlertProvider = (*clickup.AlertProvider)(nil)
 	_ AlertProvider = (*custom.AlertProvider)(nil)
 	_ AlertProvider = (*datadog.AlertProvider)(nil)
+	_ AlertProvider = (*dingtalk.AlertProvider)(nil)
 	_ AlertProvider = (*discord.AlertProvider)(nil)
 	_ AlertProvider = (*email.AlertProvider)(nil)
 	_ AlertProvider = (*gitea.AlertProvider)(nil)
@@ -140,6 +142,7 @@ var (
 	_ Config[clickup.Config]        = (*clickup.Config)(nil)
 	_ Config[custom.Config]         = (*custom.Config)(nil)
 	_ Config[datadog.Config]        = (*datadog.Config)(nil)
+	_ Config[dingtalk.Config]       = (*dingtalk.Config)(nil)
 	_ Config[discord.Config]        = (*discord.Config)(nil)
 	_ Config[email.Config]          = (*email.Config)(nil)
 	_ Config[gitea.Config]          = (*gitea.Config)(nil)

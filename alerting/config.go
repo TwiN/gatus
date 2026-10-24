@@ -10,6 +10,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/clickup"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/datadog"
+	"github.com/TwiN/gatus/v5/alerting/provider/dingtalk"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitea"
@@ -64,6 +65,9 @@ type Config struct {
 
 	// Datadog is the configuration for the datadog alerting provider
 	Datadog *datadog.AlertProvider `yaml:"datadog,omitempty"`
+
+	// DingTalk is the configuration for the dingtalk alerting provider
+	DingTalk *dingtalk.AlertProvider `yaml:"dingtalk,omitempty"`
 
 	// Discord is the configuration for the discord alerting provider
 	Discord *discord.AlertProvider `yaml:"discord,omitempty"`

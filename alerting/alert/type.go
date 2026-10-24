@@ -17,6 +17,9 @@ const (
 	// TypeDatadog is the Type for the datadog alerting provider
 	TypeDatadog Type = "datadog"
 
+	// TypeDingTalk is the Type for the dingtalk alerting provider
+	TypeDingTalk Type = "dingtalk"
+
 	// TypeDiscord is the Type for the discord alerting provider
 	TypeDiscord Type = "discord"
 
