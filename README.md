@@ -852,6 +852,7 @@ endpoints:
 | `alerting.clickup`         | Configuration for alerts of type `clickup`. <br />See [Configuring ClickUp alerts](#configuring-clickup-alerts).                        | `{}`    |
 | `alerting.custom`          | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).               | `{}`    |
 | `alerting.datadog`         | Configuration for alerts of type `datadog`. <br />See [Configuring Datadog alerts](#configuring-datadog-alerts).                        | `{}`    |
+| `alerting.dingtalk`        | Configuration for alerts of type `dingtalk`. <br />See [Configuring DingTalk alerts](#configuring-dingtalk-alerts).                      | `{}`    |
 | `alerting.discord`         | Configuration for alerts of type `discord`. <br />See [Configuring Discord alerts](#configuring-discord-alerts).                        | `{}`    |
 | `alerting.email`           | Configuration for alerts of type `email`. <br />See [Configuring Email alerts](#configuring-email-alerts).                              | `{}`    |
 | `alerting.gitea`           | Configuration for alerts of type `gitea`. <br />See [Configuring Gitea alerts](#configuring-gitea-alerts).                              | `{}`    |
@@ -1033,6 +1034,40 @@ endpoints:
       - "[STATUS] == 200"
     alerts:
       - type: datadog
+        send-on-resolved: true
+```
+
+
+#### Configuring DingTalk alerts
+| Parameter                             | Description                                                                                | Default   |
+|:--------------------------------------|:-------------------------------------------------------------------------------------------|:----------|
+| `alerting.dingtalk`                   | Configuration for alerts of type `dingtalk`                                                | `{}`      |
+| `alerting.dingtalk.token`             | DingTalk bot access token. Automatically builds the webhook URL if provided                | `""`      |
+| `alerting.dingtalk.secret`            | DingTalk bot secret for HMAC-SHA256 signature verification                                 | `""`      |
+| `alerting.dingtalk.webhook-url`       | DingTalk bot webhook URL (not required if `token` is specified)                            | `""`      |
+| `alerting.dingtalk.title`             | Title of the notification                                                                  | `"Gatus"` |
+| `alerting.dingtalk.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A       |
+| `alerting.dingtalk.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`      |
+| `alerting.dingtalk.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`      |
+| `alerting.dingtalk.overrides[].*`     | See `alerting.dingtalk.*` parameters                                                       | `{}`      |
+
+```yaml
+alerting:
+  dingtalk:
+    token: "********************************"
+    secret: "SEC********************************"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == UP"
+      - "[RESPONSE_TIME] < 300"
+    alerts:
+      - type: dingtalk
+        description: "healthcheck failed"
         send-on-resolved: true
 ```
 
