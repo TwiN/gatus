@@ -71,13 +71,24 @@ func TestAlert_ValidateAndSetDefaults(t *testing.T) {
 			expectedSuccessThreshold: 5,
 		},
 		{
-			name: "invalid-minimum-reminder-interval-1m",
+			name: "valid-minimum-reminder-interval-1m",
 			alert: Alert{
 				MinimumReminderInterval: 1 * time.Minute,
 				FailureThreshold:        10,
 				SuccessThreshold:        5,
 			},
-			expectedError:            ErrAlertWithInvalidMinimumReminderInterval,
+			expectedError:            nil,
+			expectedFailureThreshold: 10,
+			expectedSuccessThreshold: 5,
+		},
+		{
+			name: "valid-minimum-reminder-interval-2m",
+			alert: Alert{
+				MinimumReminderInterval: 2 * time.Minute,
+				FailureThreshold:        10,
+				SuccessThreshold:        5,
+			},
+			expectedError:            nil,
 			expectedFailureThreshold: 10,
 			expectedSuccessThreshold: 5,
 		},
