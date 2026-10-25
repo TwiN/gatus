@@ -263,7 +263,13 @@ func walkConfigDir(path string, fn fs.WalkDirFunc) error {
 		// If the user didn't provide a directory, we'll just use the default config file, so we can return nil now.
 		return nil
 	}
-	return filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+
+	resolvedPath, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return nil
+	}
+
+	return filepath.WalkDir(resolvedPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}
