@@ -7,11 +7,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/remote"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store"
+	"github.com/TwiN/gatus/v5/test"
 	"github.com/TwiN/gatus/v5/watchdog"
+	"github.com/TwiN/logr"
 )
 
 var (
@@ -225,6 +229,116 @@ func TestEndpointStatuses(t *testing.T) {
 			}
 			if string(body) != scenario.ExpectedBody {
 				t.Errorf("expected:\n %s\n\ngot:\n %s", scenario.ExpectedBody, string(body))
+			}
+		})
+	}
+}
+
+// Here we test that a gatus instance can call detailed status
+// of a remote instance endpoint.
+func TestEndpointStatusFromRemoteInstance(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+
+	cfg := &config.Config{
+		Metrics: true,
+		Storage: &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		},
+		Endpoints: []*endpoint.Endpoint{
+			{
+				Name:  "frontend",
+				Group: "core",
+			},
+		},
+		Remote: &remote.Config{
+			Instances: []remote.Instance{remote.Instance{
+				EndpointPrefix: "from-b-",
+				URL:            "https://b.example.com/api/v1/endpoints/statuses",
+			}},
+			ClientConfig: client.GetDefaultConfig(),
+		},
+	}
+	api := New(cfg)
+	router := api.Router()
+
+	remoteApi := New(&config.Config{
+		Metrics: true,
+		Storage: &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		},
+		Endpoints: []*endpoint.Endpoint{
+			{
+				Name:  "frontend",
+				Group: "core",
+			},
+		},
+	})
+	remoteRouter := remoteApi.Router()
+
+	watchdog.UpdateEndpointStatus(cfg.Endpoints[0], &endpoint.Result{Success: true, Duration: time.Millisecond, Timestamp: time.Now()})
+
+	mockRoundTripper := test.MockRoundTripper(func(r *http.Request) *http.Response {
+		cache.Clear()
+		defer cache.Clear()
+		if r.Host == "b.example.com" {
+			logr.Infof("Mocking remote request to %s", r.URL)
+			response, err := remoteRouter.Test(r)
+			if err != nil {
+				panic("mocked request should not fail")
+			}
+			return response
+		} else {
+			panic("should only mock the remote endpoint")
+		}
+	})
+	client.InjectHTTPClient(&http.Client{Transport: mockRoundTripper})
+
+	type Scenario struct {
+		Name         string
+		Path         string
+		ExpectedCode int
+	}
+	scenarios := []Scenario{
+		{
+			Name:         "local-endpoint",
+			Path:         "/api/v1/endpoints/core_frontend/statuses",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "remote-endpoint",
+			Path:         "/api/v1/endpoints/_gatus_remote_1_core_frontend/statuses",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "remote-endpoint-with-params",
+			Path:         "/api/v1/endpoints/_gatus_remote_1_core_frontend/statuses?page=1",
+			ExpectedCode: http.StatusOK,
+		},
+		{
+			Name:         "remote-endpoint-missing",
+			Path:         "/api/v1/endpoints/_gatus_remote_1_core_backend/statuses",
+			ExpectedCode: http.StatusNotFound,
+		},
+		{
+			Name:         "malformed-remote",
+			Path:         "/api/v1/endpoints/_gatus_remote_FOOBAR_core_frontend/statuses",
+			ExpectedCode: http.StatusBadRequest,
+		},
+	}
+
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			request := httptest.NewRequest("GET", scenario.Path, http.NoBody)
+			response, err := router.Test(request)
+			if err != nil {
+				t.Error("Request failed or timed out", err)
+			}
+			defer response.Body.Close()
+			if response.StatusCode != scenario.ExpectedCode {
+				t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, scenario.ExpectedCode, response.StatusCode)
 			}
 		})
 	}
