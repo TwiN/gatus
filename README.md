@@ -647,6 +647,7 @@ the client used to send the request.
 | `client.insecure`                      | Whether to skip verifying the server's certificate chain and host name.       | `false`         |
 | `client.ignore-redirect`               | Whether to ignore redirects (true) or follow them (false, default).           | `false`         |
 | `client.timeout`                       | Duration before timing out.                                                   | `10s`           |
+| `client.max-reuses`                    | Number of requests a host can be sent before the idle connections are closed and a new one is established (`0` for unlimited). | `3`             |
 | `client.dns-resolver`                  | Override the DNS resolver using the format `{proto}://{host}:{port}`.         | `""`            |
 | `client.oauth2`                        | OAuth2 client configuration.                                                  | `{}`            |
 | `client.oauth2.token-url`              | The token endpoint URL                                                        | required `""`   |
@@ -674,6 +675,7 @@ client:
   insecure: false
   ignore-redirect: false
   timeout: 10s
+  max-reuses: 3
   store-cookies: false
 ```
 
@@ -689,6 +691,20 @@ endpoints:
       insecure: false
       ignore-redirect: false
       timeout: 10s
+    conditions:
+      - "[STATUS] == 200"
+```
+
+By default, a connection is reused for at most 3 requests to the same host before a new one is established,
+which re-resolves DNS and performs a new TLS handshake, so that a stale connection cannot hide a change for long.
+Set `client.max-reuses` to `1` to use a new connection for every request, or to `0` to reuse connections indefinitely:
+
+```yaml
+endpoints:
+  - name: with-new-connection-for-every-request
+    url: "https://your.health.api/health"
+    client:
+      max-reuses: 1
     conditions:
       - "[STATUS] == 200"
 ```

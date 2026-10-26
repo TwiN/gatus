@@ -544,6 +544,7 @@ func (e *Endpoint) call(result *Result) {
 			result.Body = []byte(fmt.Sprintf("{\"status\":\"%s\"}", status))
 		}
 	} else {
+		e.ClientConfig.EnforceMaxReuses(request.URL.Host)
 		response, err = client.GetHTTPClient(e.ClientConfig).Do(request)
 		result.Duration = time.Since(startTime)
 		if err != nil {
