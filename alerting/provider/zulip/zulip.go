@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
@@ -23,10 +24,14 @@ var (
 )
 
 type Config struct {
-	BotEmail  string `yaml:"bot-email"`   // Email of the bot user
-	BotAPIKey string `yaml:"bot-api-key"` // API key of the bot user
-	Domain    string `yaml:"domain"`      // Domain of the Zulip server
-	ChannelID string `yaml:"channel-id"`  // ID of the channel to send the message to
+	BotEmail  string `yaml:"bot-email"`       // Email of the bot user
+	BotAPIKey string `yaml:"bot-api-key"`     // API key of the bot user
+	Domain    string `yaml:"domain"`          // Domain of the Zulip server
+	ChannelID string `yaml:"channel-id"`      // ID of the channel to send the message to
+	Topic     string `yaml:"topic,omitempty"` // Topic to send the message to; defaults to "Gatus" when not set
+
+	// The following placeholders are supported in Topic:
+	//   [ENDPOINT_NAME], [ENDPOINT_GROUP], [ALERT_DESCRIPTION]
 }
 
 func (cfg *Config) Validate() error {
@@ -57,6 +62,9 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if len(override.ChannelID) > 0 {
 		cfg.ChannelID = override.ChannelID
+	}
+	if len(override.Topic) > 0 {
+		cfg.Topic = override.Topic
 	}
 }
 
@@ -138,10 +146,17 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		}
 		message += fmt.Sprintf("\n%s - `%s`", prefix, conditionResult.Condition)
 	}
+	topic := cfg.Topic
+	if len(topic) == 0 {
+		topic = "Gatus"
+	}
+	topic = strings.ReplaceAll(topic, "[ENDPOINT_NAME]", ep.Name)
+	topic = strings.ReplaceAll(topic, "[ENDPOINT_GROUP]", ep.Group)
+	topic = strings.ReplaceAll(topic, "[ALERT_DESCRIPTION]", alert.GetDescription())
 	return url.Values{
 		"type":    {"channel"},
 		"to":      {cfg.ChannelID},
-		"topic":   {"Gatus"},
+		"topic":   {topic},
 		"content": {message},
 	}.Encode()
 }

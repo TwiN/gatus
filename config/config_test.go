@@ -37,6 +37,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
 	"github.com/TwiN/gatus/v5/alerting/provider/plivo"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
+	"github.com/TwiN/gatus/v5/alerting/provider/resend"
 	"github.com/TwiN/gatus/v5/alerting/provider/rocketchat"
 	"github.com/TwiN/gatus/v5/alerting/provider/sendgrid"
 	"github.com/TwiN/gatus/v5/alerting/provider/signal"
@@ -313,20 +314,32 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
 		if config.HasLoadedConfigurationBeenModified() {
 			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return false because nothing has happened since it was created")
 		}
-		time.Sleep(time.Second) // Because the file mod time only has second precision, we have to wait for a second
-		// Update the config file
-		if err = os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(`endpoints:
+		if err = os.WriteFile(configFilePath, []byte(`endpoints:
   - name: website
     url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"`), 0o644); err != nil {
 			t.Fatalf("failed to overwrite config file: %v", err)
 		}
+		// File mod times have second precision, so advance it explicitly.
+		future := time.Now().Add(2 * time.Second)
+		if err = os.Chtimes(configFilePath, future, future); err != nil {
+			t.Fatalf("failed to advance config file mod time: %v", err)
+		}
 		if !config.HasLoadedConfigurationBeenModified() {
-			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because a new file has been added in the directory")
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because the config file has been modified")
 		}
 	})
 	t.Run("config-directory-as-config-path", func(t *testing.T) {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(`endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`), 0o644); err != nil {
+			t.Fatalf("failed to write config file: %v", err)
+		}
 		config, err := LoadConfiguration(dir)
 		if err != nil {
 			t.Fatalf("failed to load configuration: %v", err)
@@ -334,10 +347,13 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
 		if config.HasLoadedConfigurationBeenModified() {
 			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return false because nothing has happened since it was created")
 		}
-		time.Sleep(time.Second) // Because the file mod time only has second precision, we have to wait for a second
-		// Update the config file
 		if err = os.WriteFile(filepath.Join(dir, "metrics.yaml"), []byte(`metrics: true`), 0o644); err != nil {
-			t.Fatalf("failed to overwrite config file: %v", err)
+			t.Fatalf("failed to add config file: %v", err)
+		}
+		// File mod times have second precision, so advance it explicitly.
+		future := time.Now().Add(2 * time.Second)
+		if err = os.Chtimes(filepath.Join(dir, "metrics.yaml"), future, future); err != nil {
+			t.Fatalf("failed to advance config file mod time: %v", err)
 		}
 		if !config.HasLoadedConfigurationBeenModified() {
 			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because a new file has been added in the directory")
@@ -1880,6 +1896,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		PagerDuty:             &pagerduty.AlertProvider{},
 		Plivo:                 &plivo.AlertProvider{},
 		Pushover:              &pushover.AlertProvider{},
+		Resend:                &resend.AlertProvider{},
 		RocketChat:            &rocketchat.AlertProvider{},
 		SendGrid:              &sendgrid.AlertProvider{},
 		Signal:                &signal.AlertProvider{},
@@ -1925,6 +1942,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypePagerDuty, expected: alertingConfig.PagerDuty},
 		{alertType: alert.TypePlivo, expected: alertingConfig.Plivo},
 		{alertType: alert.TypePushover, expected: alertingConfig.Pushover},
+		{alertType: alert.TypeResend, expected: alertingConfig.Resend},
 		{alertType: alert.TypeRocketChat, expected: alertingConfig.RocketChat},
 		{alertType: alert.TypeSendGrid, expected: alertingConfig.SendGrid},
 		{alertType: alert.TypeSignal, expected: alertingConfig.Signal},
