@@ -2172,7 +2172,9 @@ endpoints:
 | Parameter                          | Description                                                                                | Default                             |
 |:-----------------------------------|:-------------------------------------------------------------------------------------------|:------------------------------------|
 | `alerting.slack`                   | Configuration for alerts of type `slack`                                                   | `{}`                                |
-| `alerting.slack.webhook-url`       | Slack Webhook URL                                                                          | Required `""`                       |
+| `alerting.slack.webhook-url`       | Slack Webhook URL. Mutually exclusive with `bot-token`                                     | `""`                                |
+| `alerting.slack.bot-token`         | Slack bot token. Required if `webhook-url` is not set                                      | `""`                                |
+| `alerting.slack.channel-id`        | Slack channel ID. Required when using `bot-token`; can be overridden per group             | `""`                                |
 | `alerting.slack.title`             | Title of the notification                                                                  | `":helmet_with_white_cross: Gatus"` |
 | `alerting.slack.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                 |
 | `alerting.slack.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                                |
@@ -2201,6 +2203,25 @@ endpoints:
         description: "healthcheck failed 5 times in a row"
         send-on-resolved: true
 ```
+
+To use a Slack bot instead of an incoming webhook, configure `bot-token` and `channel-id`:
+
+```yaml
+alerting:
+  slack:
+    bot-token: "${SLACK_BOT_TOKEN}"
+    channel-id: "C0123456789"
+    overrides:
+      - group: "production"
+        channel-id: "C9876543210"
+```
+
+Environment variables are expanded in the configuration file, so the token can be supplied via `SLACK_BOT_TOKEN` rather than stored in plain text.
+The Slack app needs the `chat:write` bot scope and must be installed in your workspace.
+Invite the bot to each destination channel (required for private channels); alternatively,
+`chat:write.public` allows it to post to public channels without joining.
+Endpoints in the `production` group use the overridden channel; all other groups use the default channel.
+Both triggered and resolved alerts use the selected channel. Configure exactly one of `webhook-url` or `bot-token`.
 
 Here's an example of what the notifications look like:
 
