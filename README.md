@@ -480,6 +480,7 @@ Here are some examples of conditions you can use:
 | `[BODY] == 1`                    | The body must be equal to 1                         | 1                          | `{}`, `2`, ...   |
 | `[BODY].user.name == john`       | JSONPath value of `$.user.name` is equal to `john`  | `{"user":{"name":"john"}}` |                  |
 | `[BODY].data[0].id == 1`         | JSONPath value of `$.data[0].id` is equal to 1      | `{"data":[{"id":1}]}`      |                  |
+| `[BODY]["a.b"] == ok`            | JSONPath value of `$["a.b"]` is equal to `ok`       | `{"a.b":"ok"}`             |                  |
 | `[BODY].age == [BODY].id`        | JSONPath value of `$.age` is equal JSONPath `$.id`  | `{"age":1,"id":1}`         |                  |
 | `len([BODY].data) < 5`           | Array at JSONPath `$.data` has less than 5 elements | `{"data":[{"id":1}]}`      |                  |
 | `len([BODY].name) == 8`          | String at JSONPath `$.name` has a length of 8       | `{"name":"john.doe"}`      | `{"name":"bob"}` |
@@ -513,6 +514,11 @@ Here are some examples of conditions you can use:
 | `any`    | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.                                                                                                                          | `[BODY].ip == any(127.0.0.1, ::1)` |
 
 > 💡 Use `pat` only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
+
+> 💡 Because an unquoted dot always separates two keys, object keys that contain dots must be wrapped in
+> single or double quotes between brackets. For instance, given the body
+> `{"status": {"core.integrations.key_1": "ok"}}`, the condition to use is
+> `[BODY].status["core.integrations.key_1"] == ok`.
 
 ### Web
 Allows you to configure how and where the dashboard is being served.
@@ -787,6 +793,10 @@ endpoints:
     conditions:
       - "[STATUS] == 200"
 ```
+
+> [!NOTE]
+> As with [SSH endpoints](#monitoring-an-endpoint-using-ssh), password authentication also works with
+> servers that only offer the `keyboard-interactive` authentication method.
 
 > ⚠️ **WARNING**:: Tunneling may introduce additional latency, especially if the connection to the tunnel is retried frequently.
 > This may lead to inaccurate response time measurements.
@@ -3283,6 +3293,12 @@ endpoints:
       - "[CONNECTED] == true"
       - "[STATUS] == 0"
 ```
+
+> [!NOTE]
+> When a password is provided, Gatus authenticates using both the `password` and the `keyboard-interactive`
+> SSH authentication methods, using whichever the server offers. This means servers with `PasswordAuthentication no`
+> but `KbdInteractiveAuthentication yes` (e.g. PAM-based password prompts) are supported, just like with the OpenSSH CLI.
+> Every keyboard-interactive prompt is answered with the configured password, so multi-factor prompts (e.g. OTP) are not supported.
 
 you can also use no authentication to monitor the endpoint by not specifying the username,
 password and private key fields.
