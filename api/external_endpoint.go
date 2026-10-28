@@ -7,6 +7,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/state"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/storage/store/common"
@@ -46,7 +47,15 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 		result := &endpoint.Result{
 			Timestamp: time.Now(),
 			Success:   c.QueryBool("success"),
+			State:     c.Query("state"),
 			Errors:    []string{},
+		}
+		if len(result.State) == 0 {
+			if result.Success {
+				result.State = state.DefaultHealthyStateName
+			} else {
+				result.State = state.DefaultUnhealthyStateName
+			}
 		}
 		if len(c.Query("duration")) > 0 {
 			parsedDuration, err := time.ParseDuration(c.Query("duration"))
@@ -72,7 +81,7 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 		for _, maintenanceWindow := range externalEndpoint.MaintenanceWindows {
 			if maintenanceWindow.IsUnderMaintenance() {
 				logr.Debug("[api.CreateExternalEndpointResult] Under endpoint maintenance window")
-				inEndpointMaintenanceWindow = true
+				inEndpointMaintenanceWindow = true // TODO#1445 Handle state for external endpoints in maintenance window
 			}
 		}
 		// Check if an alert should be triggered or resolved
