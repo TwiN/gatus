@@ -133,7 +133,7 @@ func TestAlertProvider_buildHTTPRequest(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("resolved-%v-with-default-placeholders", scenario.Resolved), func(t *testing.T) {
-			request := alertProvider.buildHTTPRequest(
+			request, _ := alertProvider.buildHTTPRequest(
 				&alertProvider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group", URL: "https://example.com"},
 				&alert.Alert{Description: &alertDescription},
@@ -189,7 +189,7 @@ func TestAlertProviderWithResultErrors_buildHTTPRequest(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("resolved-%v-with-default-placeholders-and-result-errors", scenario.Resolved), func(t *testing.T) {
-			request := alertProvider.buildHTTPRequest(
+			request, _ := alertProvider.buildHTTPRequest(
 				&alertProvider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group", URL: "https://example.com"},
 				&alert.Alert{Description: &alertDescription},
@@ -243,7 +243,7 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("resolved-%v-with-custom-placeholders", scenario.Resolved), func(t *testing.T) {
-			request := alertProvider.buildHTTPRequest(
+			request, _ := alertProvider.buildHTTPRequest(
 				&alertProvider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&alert.Alert{Description: &alertDescription},
@@ -306,7 +306,7 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholderAndResultConditions(
 				}
 			}
 
-			request := alertProvider.buildHTTPRequest(
+			request, _ := alertProvider.buildHTTPRequest(
 				&alertProvider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&alert.Alert{Description: &alertDescription},
@@ -461,5 +461,19 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				t.Errorf("unexpected error: %s", err)
 			}
 		})
+	}
+}
+
+func TestAlertProvider_SendReturnsAnErrorWhenTheRequestCannotBeBuilt(t *testing.T) {
+	defer client.InjectHTTPClient(nil)
+	client.InjectHTTPClient(&http.Client{Transport: test.MockRoundTripper(func(r *http.Request) *http.Response {
+		t.Error("no request should have been sent")
+		return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+	})})
+	// A method with a space in it is rejected by http.NewRequest
+	provider := AlertProvider{DefaultConfig: Config{URL: "https://example.com", Method: "NOT A METHOD"}}
+	err := provider.Send(&endpoint.Endpoint{Name: "endpoint-name"}, &alert.Alert{}, &endpoint.Result{}, false)
+	if err == nil {
+		t.Error("expected an error, got none")
 	}
 }
