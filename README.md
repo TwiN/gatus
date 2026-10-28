@@ -629,11 +629,14 @@ storage:
 ```
 See [examples/docker-compose-sqlite-storage](.examples/docker-compose-sqlite-storage) for an example.
 
-- If `storage.type` is `postgres`, `storage.path` must be the connection URL:
+- If `storage.type` is `postgres`, `storage.path` must be the connection string (either DSN key-value format or URI format):
 ```yaml
 storage:
   type: postgres
-  path: "postgres://user:password@127.0.0.1:5432/gatus?sslmode=disable"
+  # DSN key-value format (recommended, supports URL-reserved characters like '#', '@', etc. without URL-encoding)
+  path: "user=user password='password' host=127.0.0.1 port=5432 dbname=gatus sslmode=disable"
+  # Or URI format (special characters in username/password must be URL-encoded):
+  # path: "postgres://user:password@127.0.0.1:5432/gatus?sslmode=disable"
 ```
 See [examples/docker-compose-postgres-storage](.examples/docker-compose-postgres-storage) for an example.
 
