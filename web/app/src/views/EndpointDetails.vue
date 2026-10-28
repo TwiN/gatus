@@ -190,6 +190,12 @@
           </Card>
         </div>
 
+        <div v-else-if="loadError" class="text-center py-20">
+          <AlertCircle class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
+          <h3 class="text-lg font-semibold mb-2">Endpoint not found</h3>
+          <p class="text-muted-foreground">{{ loadError }}</p>
+        </div>
+
         <div v-else class="flex items-center justify-center py-20">
           <Loading size="lg" />
         </div>
@@ -203,7 +209,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle, Activity, Timer } from 'lucide-vue-next'
+import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle, Activity, Timer, AlertCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -213,14 +219,24 @@ import Pagination from '@/components/Pagination.vue'
 import Loading from '@/components/Loading.vue'
 import ResponseTimeChart from '@/components/ResponseTimeChart.vue'
 import { generatePrettyTimeAgo, generatePrettyTimeDifference } from '@/utils/time'
+import { endpointApiUrl } from '@/utils/api'
 
 const router = useRouter()
 const route = useRoute()
 const emit = defineEmits(['showTooltip'])
 
+const endpointKey = computed(() => {
+  try {
+    return decodeURIComponent(route.params.key || '')
+  } catch {
+    return route.params.key || ''
+  }
+})
+
 const endpointStatus = ref(null) // For paginated historical data
 const currentStatus = ref(null) // For current/latest status (always page 1)
 const events = ref([])
+const loadError = ref(null)
 const currentPage = ref(1)
 const resultPageSize = 50
 const showResponseTimeChartAndBadges = ref(false)
@@ -306,8 +322,9 @@ const lastCheckTime = computed(() => {
 
 const fetchData = async () => {
   isRefreshing.value = true
+  loadError.value = null
   try {
-    const response = await fetch(`/api/v1/endpoints/${route.params.key}/statuses?page=${currentPage.value}&pageSize=${resultPageSize}`, {
+    const response = await fetch(endpointApiUrl(endpointKey.value, `/statuses?page=${currentPage.value}&pageSize=${resultPageSize}`), {
       credentials: 'include'
     })
     
@@ -360,10 +377,17 @@ const fetchData = async () => {
           }
         }
       }
+    } else if (response.status === 404) {
+      endpointStatus.value = null
+      currentStatus.value = null
+      events.value = []
+      loadError.value = 'This endpoint could not be found on the local or configured remote instances.'
     } else {
+      loadError.value = 'Failed to load endpoint details.'
       console.error('[Details][fetchData] Error:', await response.text())
     }
   } catch (error) {
+    loadError.value = 'Failed to load endpoint details.'
     console.error('[Details][fetchData] Error:', error)
   } finally {
     isRefreshing.value = false
@@ -387,17 +411,11 @@ const prettifyTimestamp = (timestamp) => {
   return new Date(timestamp).toLocaleString()
 }
 
-const generateHealthBadgeImageURL = () => {
-  return `/api/v1/endpoints/${endpointStatus.value.key}/health/badge.svg`
-}
+const generateHealthBadgeImageURL = () => endpointApiUrl(endpointStatus.value.key, '/health/badge.svg')
 
-const generateUptimeBadgeImageURL = (duration) => {
-  return `/api/v1/endpoints/${endpointStatus.value.key}/uptimes/${duration}/badge.svg`
-}
+const generateUptimeBadgeImageURL = (duration) => endpointApiUrl(endpointStatus.value.key, `/uptimes/${duration}/badge.svg`)
 
-const generateResponseTimeBadgeImageURL = (duration) => {
-  return `/api/v1/endpoints/${endpointStatus.value.key}/response-times/${duration}/badge.svg`
-}
+const generateResponseTimeBadgeImageURL = (duration) => endpointApiUrl(endpointStatus.value.key, `/response-times/${duration}/badge.svg`)
 
 onMounted(() => {
   fetchData()
