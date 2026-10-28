@@ -44,6 +44,51 @@ func TestPushoverAlertProvider_IsValid(t *testing.T) {
 			t.Error("provider should've been invalid")
 		}
 	})
+	t.Run("priority-2-with-defaults", func(t *testing.T) {
+		provider := AlertProvider{
+			DefaultConfig: Config{
+				ApplicationToken: "aTokenWithLengthOf30characters",
+				UserKey:          "aTokenWithLengthOf30characters",
+				Priority:         2,
+			},
+		}
+		if err := provider.Validate(); err != nil {
+			t.Error("provider should've been valid, got error:", err)
+		}
+		// Check that defaults were set
+		if provider.DefaultConfig.Retry != 60 {
+			t.Errorf("expected retry to be 60, got %d", provider.DefaultConfig.Retry)
+		}
+		if provider.DefaultConfig.Expire != 3600 {
+			t.Errorf("expected expire to be 3600, got %d", provider.DefaultConfig.Expire)
+		}
+	})
+	t.Run("priority-2-with-invalid-retry", func(t *testing.T) {
+		provider := AlertProvider{
+			DefaultConfig: Config{
+				ApplicationToken: "aTokenWithLengthOf30characters",
+				UserKey:          "aTokenWithLengthOf30characters",
+				Priority:         2,
+				Retry:            10, // less than minimum of 30
+			},
+		}
+		if err := provider.Validate(); err == nil {
+			t.Error("provider should've been invalid due to retry < 30")
+		}
+	})
+	t.Run("priority-2-with-invalid-expire", func(t *testing.T) {
+		provider := AlertProvider{
+			DefaultConfig: Config{
+				ApplicationToken: "aTokenWithLengthOf30characters",
+				UserKey:          "aTokenWithLengthOf30characters",
+				Priority:         2,
+				Expire:           20000, // more than maximum of 10800
+			},
+		}
+		if err := provider.Validate(); err == nil {
+			t.Error("provider should've been invalid due to expire > 10800")
+		}
+	})
 }
 
 func TestAlertProvider_Send(t *testing.T) {
@@ -150,39 +195,46 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		},
 		{
 			Name:         "resolved",
-			Provider:     AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Priority: 2, ResolvedPriority: 2}},
+			Provider:     AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Priority: 2, ResolvedPriority: 2, Retry: 60, Expire: 3600}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus: endpoint-name\",\"message\":\"An alert for \\u003cb\\u003eendpoint-name\\u003c/b\\u003e has been resolved after passing successfully 5 time(s) in a row with the following description: description-2\\n✅ - [CONNECTED] == true\\n✅ - [STATUS] == 200\",\"priority\":2,\"html\":1}",
+			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus: endpoint-name\",\"message\":\"An alert for \\u003cb\\u003eendpoint-name\\u003c/b\\u003e has been resolved after passing successfully 5 time(s) in a row with the following description: description-2\\n✅ - [CONNECTED] == true\\n✅ - [STATUS] == 200\",\"priority\":2,\"html\":1,\"retry\":60,\"expire\":3600}",
 		},
 		{
 			Name:         "resolved-priority",
-			Provider:     AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 0}},
+			Provider:     AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 0, Retry: 60, Expire: 3600}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
 			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"An alert for \\u003cb\\u003eendpoint-name\\u003c/b\\u003e has been resolved after passing successfully 5 time(s) in a row with the following description: description-2\\n✅ - [CONNECTED] == true\\n✅ - [STATUS] == 200\",\"priority\":0,\"html\":1}",
 		},
 		{
 			Name:         "with-sound",
-			Provider:     AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 2, Sound: "falling"}},
+			Provider:     AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 2, Sound: "falling", Retry: 60, Expire: 3600}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"An alert for \\u003cb\\u003eendpoint-name\\u003c/b\\u003e has been resolved after passing successfully 5 time(s) in a row with the following description: description-2\\n✅ - [CONNECTED] == true\\n✅ - [STATUS] == 200\",\"priority\":2,\"html\":1,\"sound\":\"falling\"}",
+			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"An alert for \\u003cb\\u003eendpoint-name\\u003c/b\\u003e has been resolved after passing successfully 5 time(s) in a row with the following description: description-2\\n✅ - [CONNECTED] == true\\n✅ - [STATUS] == 200\",\"priority\":2,\"html\":1,\"sound\":\"falling\",\"retry\":60,\"expire\":3600}",
 		},
 		{
 			Name:         "with-ttl",
-			Provider:     AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 2, TTL: 3600}},
+			Provider:     AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 2, TTL: 3600, Retry: 60, Expire: 3600}},
 			Alert:        alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
 			Resolved:     true,
-			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"An alert for \\u003cb\\u003eendpoint-name\\u003c/b\\u003e has been resolved after passing successfully 5 time(s) in a row with the following description: description-2\\n✅ - [CONNECTED] == true\\n✅ - [STATUS] == 200\",\"priority\":2,\"html\":1,\"ttl\":3600}",
+			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"An alert for \\u003cb\\u003eendpoint-name\\u003c/b\\u003e has been resolved after passing successfully 5 time(s) in a row with the following description: description-2\\n✅ - [CONNECTED] == true\\n✅ - [STATUS] == 200\",\"priority\":2,\"html\":1,\"ttl\":3600,\"retry\":60,\"expire\":3600}",
 		},
         {
             Name:       "with-device",
-            Provider:   AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 2, TTL: 3600, Device: "iphone15pro",}},
+            Provider:   AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters2", UserKey: "TokenWithLengthOf30Characters5", Title: "Gatus Notifications", Priority: 2, ResolvedPriority: 2, TTL: 3600, Device: "iphone15pro", Retry: 60, Expire: 3600}},
             Alert:      alert.Alert{Description: &secondDescription, SuccessThreshold: 5, FailureThreshold: 3},
             Resolved:   true,
-            ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"An alert for \\u003cb\\u003eendpoint-name\\u003c/b\\u003e has been resolved after passing successfully 5 time(s) in a row with the following description: description-2\\n✅ - [CONNECTED] == true\\n✅ - [STATUS] == 200\",\"priority\":2,\"html\":1,\"ttl\":3600,\"device\":\"iphone15pro\"}",
+            ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters2\",\"user\":\"TokenWithLengthOf30Characters5\",\"title\":\"Gatus Notifications\",\"message\":\"An alert for \\u003cb\\u003eendpoint-name\\u003c/b\\u003e has been resolved after passing successfully 5 time(s) in a row with the following description: description-2\\n✅ - [CONNECTED] == true\\n✅ - [STATUS] == 200\",\"priority\":2,\"html\":1,\"ttl\":3600,\"device\":\"iphone15pro\",\"retry\":60,\"expire\":3600}",
         },
+		{
+			Name:         "priority-2-with-retry-expire",
+			Provider:     AlertProvider{DefaultConfig: Config{ApplicationToken: "TokenWithLengthOf30Characters1", UserKey: "TokenWithLengthOf30Characters4", Priority: 2, Retry: 60, Expire: 3600}},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: "{\"token\":\"TokenWithLengthOf30Characters1\",\"user\":\"TokenWithLengthOf30Characters4\",\"title\":\"Gatus: endpoint-name\",\"message\":\"An alert for \\u003cb\\u003eendpoint-name\\u003c/b\\u003e has been triggered due to having failed 3 time(s) in a row with the following description: description-1\\n❌ - [CONNECTED] == true\\n❌ - [STATUS] == 200\",\"priority\":2,\"html\":1,\"retry\":60,\"expire\":3600}",
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
