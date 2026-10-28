@@ -40,10 +40,10 @@ type Result struct {
 	Timestamp time.Time `json:"timestamp"`
 
 	// CertificateExpiration is the duration before the certificate expires
-	CertificateExpiration time.Duration `json:"-"`
+	CertificateExpiration time.Duration `json:"certificateExpiration,omitempty"`
 
 	// DomainExpiration is the duration before the domain expires
-	DomainExpiration time.Duration `json:"-"`
+	DomainExpiration time.Duration `json:"domainExpiration,omitempty"`
 
 	// Body is the response body
 	//
