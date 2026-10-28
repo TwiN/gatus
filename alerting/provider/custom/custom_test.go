@@ -1,9 +1,12 @@
 package custom
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
+	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -121,13 +124,13 @@ func TestAlertProvider_buildHTTPRequest(t *testing.T) {
 		{
 			AlertProvider: alertProvider,
 			Resolved:      true,
-			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=RESOLVED&description=alert-description&url=https://example.com",
+			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=RESOLVED&description=alert-description&url=https%3A%2F%2Fexample.com",
 			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,RESOLVED",
 		},
 		{
 			AlertProvider: alertProvider,
 			Resolved:      false,
-			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=TRIGGERED&description=alert-description&url=https://example.com",
+			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=TRIGGERED&description=alert-description&url=https%3A%2F%2Fexample.com",
 			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,TRIGGERED",
 		},
 	}
@@ -169,20 +172,20 @@ func TestAlertProviderWithResultErrors_buildHTTPRequest(t *testing.T) {
 		{
 			AlertProvider: alertProvider,
 			Resolved:      true,
-			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=RESOLVED&description=alert-description&url=https://example.com&error=",
+			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=RESOLVED&description=alert-description&url=https%3A%2F%2Fexample.com&error=",
 			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,RESOLVED,",
 		},
 		{
 			AlertProvider: alertProvider,
 			Resolved:      false,
-			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=TRIGGERED&description=alert-description&url=https://example.com&error=error1,error2",
+			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=TRIGGERED&description=alert-description&url=https%3A%2F%2Fexample.com&error=error1%2Cerror2",
 			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,TRIGGERED,error1,error2",
 			Errors:        []string{"error1", "error2"},
 		},
 		{
 			AlertProvider: alertProvider,
 			Resolved:      false,
-			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=TRIGGERED&description=alert-description&url=https://example.com&error=test \\\"error with quotes\\\"",
+			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=TRIGGERED&description=alert-description&url=https%3A%2F%2Fexample.com&error=test+%22error+with+quotes%22",
 			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,https://example.com,TRIGGERED,test \\\"error with quotes\\\"",
 			Errors:        []string{"test \"error with quotes\""},
 		},
@@ -461,5 +464,164 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				t.Errorf("unexpected error: %s", err)
 			}
 		})
+	}
+}
+
+// hostileResult evaluates an endpoint whose service answers with a JSON string that tries to break out of the string it
+// is spliced into, so that the result is the one a real evaluation produces and not one built by hand.
+func hostileResult(t *testing.T) *endpoint.Result {
+	t.Helper()
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hostile, _ := json.Marshal(map[string]string{"status": "x\", \"injected\": \"yes\"\nback\\slash"})
+		_, _ = w.Write(hostile)
+	}))
+	t.Cleanup(server.Close)
+	ep := &endpoint.Endpoint{Name: "hostile", URL: server.URL, Conditions: []endpoint.Condition{"[BODY].status == healthy"}}
+	if err := ep.ValidateAndSetDefaults(); err != nil {
+		t.Fatal(err)
+	}
+	result := ep.EvaluateHealth()
+	if result.Success || len(result.ConditionResults) != 1 {
+		t.Fatalf("expected a failed result with one condition result, got %+v", result)
+	}
+	return result
+}
+
+func TestAlertProvider_SendEscapesServiceControlledValuesInAJSONBody(t *testing.T) {
+	// The result has to be evaluated before the HTTP client is replaced, because the evaluation uses the same client
+	result := hostileResult(t)
+	defer client.InjectHTTPClient(nil)
+	var received string
+	client.InjectHTTPClient(&http.Client{Transport: test.MockRoundTripper(func(r *http.Request) *http.Response {
+		bytes, _ := io.ReadAll(r.Body)
+		received = string(bytes)
+		return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+	})})
+	provider := AlertProvider{DefaultConfig: Config{
+		URL:    "https://example.com/hook",
+		Method: http.MethodPost,
+		Body:   `{"event": "[ALERT_TRIGGERED_OR_RESOLVED]", "conditions": "[RESULT_CONDITIONS]", "errors": "[RESULT_ERRORS]"}`,
+	}}
+	result.Errors = append(result.Errors, "a \"quoted\" error with a backslash \\ and a\nnewline")
+	if err := provider.Send(&endpoint.Endpoint{Name: "hostile"}, &alert.Alert{}, result, false); err != nil {
+		t.Fatal(err)
+	}
+	var parsed map[string]any
+	if err := json.Unmarshal([]byte(received), &parsed); err != nil {
+		t.Fatalf("expected the body to be valid JSON, got %v for %s", err, received)
+	}
+	if len(parsed) != 3 {
+		t.Errorf("expected exactly the 3 fields of the template, got %v", parsed)
+	}
+	if _, injected := parsed["injected"]; injected {
+		t.Error("the monitored service managed to inject a field")
+	}
+	if !strings.Contains(parsed["conditions"].(string), `"injected"`) {
+		t.Errorf("expected the hostile text to be in the conditions field as text, got %q", parsed["conditions"])
+	}
+	if expected := "a \"quoted\" error with a backslash \\ and a\nnewline"; parsed["errors"] != expected {
+		t.Errorf("expected errors to round-trip as %q, got %q", expected, parsed["errors"])
+	}
+}
+
+func TestAlertProvider_SendEncodesServiceControlledValuesInTheURL(t *testing.T) {
+	defer client.InjectHTTPClient(nil)
+	var received *http.Request
+	client.InjectHTTPClient(&http.Client{Transport: test.MockRoundTripper(func(r *http.Request) *http.Response {
+		received = r
+		return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+	})})
+	provider := AlertProvider{DefaultConfig: Config{URL: "https://example.com/hook/[ENDPOINT_NAME]?error=[RESULT_ERRORS]&state=[ALERT_TRIGGERED_OR_RESOLVED]"}}
+	result := &endpoint.Result{Errors: []string{"bad\r\nHost: evil.example #fragment&state=RESOLVED"}}
+	// A newline in a value used to make the request impossible to build, and the error was ignored
+	if err := provider.Send(&endpoint.Endpoint{Name: "a/b c"}, &alert.Alert{}, result, false); err != nil {
+		t.Fatal(err)
+	}
+	if received.URL.Path != "/hook/a/b c" || received.URL.EscapedPath() != "/hook/a%2Fb%20c" {
+		t.Errorf("expected the endpoint name to be one escaped path segment, got %s", received.URL.EscapedPath())
+	}
+	if got := received.URL.Query()["state"]; len(got) != 1 || got[0] != "TRIGGERED" {
+		t.Errorf("expected the value not to be able to add a state parameter, got %v", got)
+	}
+	if got := received.URL.Query().Get("error"); got != "bad\r\nHost: evil.example #fragment&state=RESOLVED" {
+		t.Errorf("expected the error to round-trip through the query, got %q", got)
+	}
+	if received.URL.Fragment != "" {
+		t.Errorf("expected no fragment, got %q", received.URL.Fragment)
+	}
+}
+
+func TestAlertProvider_buildHTTPRequestLeavesTheErrorsOfANonJSONBodyAsTheyAlwaysWere(t *testing.T) {
+	provider := &AlertProvider{DefaultConfig: Config{Body: `errors="[RESULT_ERRORS]"`}}
+	request := provider.buildHTTPRequest(&provider.DefaultConfig, &endpoint.Endpoint{}, &alert.Alert{}, &endpoint.Result{Errors: []string{`say "hi" \o/`}}, false)
+	body, _ := io.ReadAll(request.Body)
+	if expected := `errors="say \"hi\" \o/"`; string(body) != expected {
+		t.Errorf("expected %s, got %s", expected, body)
+	}
+}
+
+func buildBody(t *testing.T, cfg Config, ep *endpoint.Endpoint, result *endpoint.Result) (body, requestURL string) {
+	t.Helper()
+	provider := &AlertProvider{DefaultConfig: cfg}
+	request := provider.buildHTTPRequest(&provider.DefaultConfig, ep, &alert.Alert{}, result, false)
+	bytes, _ := io.ReadAll(request.Body)
+	return string(bytes), request.URL.String()
+}
+
+func TestAlertProvider_buildHTTPRequestTrustsTheContentTypeToTellJSONFromText(t *testing.T) {
+	scenarios := []struct {
+		name         string
+		cfg          Config
+		expectedBody string
+	}{
+		{
+			name:         "text-body-that-starts-with-a-bracket",
+			cfg:          Config{Headers: map[string]string{"content-type": "text/plain"}, Body: "[[RESULT_ERRORS]]"},
+			expectedBody: "[a\nb]",
+		},
+		{
+			name:         "no-content-type-and-a-template-that-is-not-json",
+			cfg:          Config{Body: "[[RESULT_ERRORS]] is a list of nothing"},
+			expectedBody: "[a\nb] is a list of nothing",
+		},
+		{
+			name:         "no-content-type-and-a-template-that-is-json",
+			cfg:          Config{Body: `{"errors": "[RESULT_ERRORS]"}`},
+			expectedBody: `{"errors": "a\nb"}`,
+		},
+		{
+			name:         "json-content-type-wins-over-the-look-of-the-body",
+			cfg:          Config{Headers: map[string]string{"Content-Type": "application/json"}, Body: `"[RESULT_ERRORS]"`},
+			expectedBody: `"a\nb"`,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			body, _ := buildBody(t, scenario.cfg, &endpoint.Endpoint{}, &endpoint.Result{Errors: []string{"a\nb"}})
+			if body != scenario.expectedBody {
+				t.Errorf("expected %q, got %q", scenario.expectedBody, body)
+			}
+		})
+	}
+}
+
+func TestAlertProvider_buildHTTPRequestDoesNotExpandAPlaceholderThatIsInAValue(t *testing.T) {
+	cfg := Config{URL: "https://example.com/[ENDPOINT_NAME]?e=[RESULT_ERRORS]", Body: `{"name": "[ENDPOINT_NAME]", "errors": "[RESULT_ERRORS]"}`}
+	// The name is the text of a placeholder, as the text of a monitored service can be
+	ep := &endpoint.Endpoint{Name: "[RESULT_ERRORS]", Group: "[INCIDENT_ID]"}
+	body, requestURL := buildBody(t, cfg, ep, &endpoint.Result{Errors: []string{"boom"}})
+	if expected := `{"name": "[RESULT_ERRORS]", "errors": "boom"}`; body != expected {
+		t.Errorf("expected %s, got %s", expected, body)
+	}
+	if expected := "https://example.com/%5BRESULT_ERRORS%5D?e=boom"; requestURL != expected {
+		t.Errorf("expected %s, got %s", expected, requestURL)
+	}
+}
+
+func TestAlertProvider_buildHTTPRequestEncodesValuesInAFormBody(t *testing.T) {
+	cfg := Config{Method: http.MethodPost, Headers: map[string]string{"Content-Type": "application/x-www-form-urlencoded"}, Body: "event=[ALERT_TRIGGERED_OR_RESOLVED]&error=[RESULT_ERRORS]"}
+	body, _ := buildBody(t, cfg, &endpoint.Endpoint{}, &endpoint.Result{Errors: []string{"a&admin=true b"}})
+	if expected := "event=TRIGGERED&error=a%26admin%3Dtrue+b"; body != expected {
+		t.Errorf("expected %s, got %s", expected, body)
 	}
 }

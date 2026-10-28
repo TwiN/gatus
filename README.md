@@ -2640,6 +2640,15 @@ Furthermore, you may use the following placeholders in the body (`alerting.custo
 - `[RESULT_ERRORS]` (resolved from the health evaluation of a given health check)
 - `[RESULT_CONDITIONS]` (condition results from the health evaluation of a given health check)
 -
+Every placeholder value is escaped for the place it lands in, because some of them (`[RESULT_ERRORS]`, `[RESULT_CONDITIONS]`)
+carry text that the monitored service controls:
+- In the url, a value is URL-encoded: with `url.PathEscape` before the first `?`, and with `url.QueryEscape` after it.
+- In the body, a value is escaped for the format of the body. A JSON body gets JSON string escaping, and a body of type
+  `application/x-www-form-urlencoded` gets URL-encoding. Any other body only has its double quotes escaped. The `Content-Type`
+  header decides when there is one (a value containing `json` means JSON). Without one, the body is JSON if the template is
+  valid JSON once its placeholders are replaced by a plain value.
+- The template is replaced in a single pass, so a value that contains the name of a placeholder is not expanded again.
+
 If you have an alert using the `custom` provider with `send-on-resolved` set to `true`, you can use the
 `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications.
 The aforementioned placeholder will be replaced by `TRIGGERED` or `RESOLVED` accordingly, though it can be modified
