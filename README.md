@@ -2639,7 +2639,8 @@ Furthermore, you may use the following placeholders in the body (`alerting.custo
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 - `[RESULT_ERRORS]` (resolved from the health evaluation of a given health check)
 - `[RESULT_CONDITIONS]` (condition results from the health evaluation of a given health check)
--
+- `[INCIDENT_ID]` (a unique id generated when the alert triggers; see below)
+
 If you have an alert using the `custom` provider with `send-on-resolved` set to `true`, you can use the
 `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications.
 The aforementioned placeholder will be replaced by `TRIGGERED` or `RESOLVED` accordingly, though it can be modified
@@ -2682,6 +2683,17 @@ alerting:
 ```
 As a result, the `[ALERT_TRIGGERED_OR_RESOLVED]` in the body of first example of this section would be replaced by
 `partial_outage` when an alert is triggered and `operational` when an alert is resolved.
+
+The `[INCIDENT_ID]` placeholder is replaced by a random UUID that identifies the incident, which allows a receiver to
+deduplicate notifications and to pair a `RESOLVED` notification with the `TRIGGERED` one that it closes:
+- The id is generated when the alert triggers, and is reused by every reminder (`minimum-reminder-interval`) as well as
+  by the `RESOLVED` notification of that incident.
+- If the initial notification fails to send, it is attempted again on the next failing check, with the same id.
+- Once the alert is resolved, the id is discarded. The next time the alert triggers, it gets a new id.
+- With a SQL [storage](#storage) (`sqlite` or `postgres`), the id survives a restart of Gatus, so an incident that is
+  ongoing when Gatus restarts is still resolved with the id it was triggered with. With the default in-memory storage,
+  triggered alerts are not persisted and neither are their ids.
+- The id is per alert, so an endpoint with two alerts of type `custom` has two ids.
 
 
 #### Setting a default alert

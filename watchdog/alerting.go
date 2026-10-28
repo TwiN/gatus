@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting"
+	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/logr"
@@ -17,6 +18,9 @@ func HandleAlerting(ep *endpoint.Endpoint, result *endpoint.Result, alertingConf
 	if alertingConfig == nil {
 		return
 	}
+	// The alerts of an endpoint are shared between the copies of the endpoint that can be handled at the same time, and
+	// sending an alert takes a while, so the same alert must not be evaluated twice at once.
+	defer lockEndpoint(ep.Key())()
 	if result.Success {
 		handleAlertsToResolve(ep, result, alertingConfig)
 	} else {
@@ -114,5 +118,20 @@ func handleAlertsToResolve(ep *endpoint.Endpoint, result *endpoint.Result, alert
 			logr.Warnf("[watchdog.handleAlertsToResolve] Not sending alert of type=%s for endpoint with key=%s despite being RESOLVED, because the provider wasn't configured properly", endpointAlert.Type, ep.Key())
 		}
 	}
+	clearIncidentIDsOfResolvedAlerts(ep)
 	ep.NumberOfFailuresInARow = 0
+}
+
+// clearIncidentIDsOfResolvedAlerts clears the incident id of every custom alert that is no longer triggered, so that
+// the next incident gets a new one.
+//
+// This must run after the RESOLVED notification has been sent, because that notification carries the incident id.
+// It also covers an alert whose initial notification failed to send and whose endpoint has since recovered, as well as
+// an alert that has send-on-resolved set to false.
+func clearIncidentIDsOfResolvedAlerts(ep *endpoint.Endpoint) {
+	for _, endpointAlert := range ep.Alerts {
+		if endpointAlert.Type == alert.TypeCustom && !endpointAlert.Triggered {
+			endpointAlert.ResolveKey = ""
+		}
+	}
 }

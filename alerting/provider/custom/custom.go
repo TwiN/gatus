@@ -11,6 +11,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/google/uuid"
 	"gopkg.in/yaml.v3"
 )
 
@@ -85,6 +86,12 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return err
 	}
+	// The incident id is stored in the alert's ResolveKey, which is what makes the storage persist it, and what shares it
+	// between the initial alert, its reminders and its RESOLVED notification. The watchdog clears it once the alert is no
+	// longer triggered.
+	if len(alert.ResolveKey) == 0 {
+		alert.ResolveKey = uuid.NewString()
+	}
 	request := provider.buildHTTPRequest(cfg, ep, alert, result, resolved)
 	response, err := client.GetHTTPClient(cfg.ClientConfig).Do(request)
 	if err != nil {
@@ -102,6 +109,8 @@ func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoi
 	body, url, method := cfg.Body, cfg.URL, cfg.Method
 	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alert.GetDescription())
 	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", alert.GetDescription())
+	body = strings.ReplaceAll(body, "[INCIDENT_ID]", alert.ResolveKey)
+	url = strings.ReplaceAll(url, "[INCIDENT_ID]", alert.ResolveKey)
 	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", ep.Name)
 	url = strings.ReplaceAll(url, "[ENDPOINT_NAME]", ep.Name)
 	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", ep.Group)
