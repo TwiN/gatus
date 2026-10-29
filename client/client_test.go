@@ -620,6 +620,27 @@ func TestQueryDNS(t *testing.T) {
 	}
 }
 
+func TestDNSServerAddress(t *testing.T) {
+	scenarios := []struct {
+		address, expected string
+	}{
+		{"8.8.8.8", "8.8.8.8:53"},
+		{"8.8.8.8:5353", "8.8.8.8:5353"},
+		{"dns.google", "dns.google:53"},
+		{"dns.google:5353", "dns.google:5353"},
+		{"2001:4860:4860::8888", "[2001:4860:4860::8888]:53"},
+		{"[2001:4860:4860::8888]", "[2001:4860:4860::8888]:53"},
+		{"[2001:4860:4860::8888]:5353", "[2001:4860:4860::8888]:5353"},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.address, func(t *testing.T) {
+			if actual := dnsServerAddress(scenario.address); actual != scenario.expected {
+				t.Errorf("dnsServerAddress(%q) = %q; want %q", scenario.address, actual, scenario.expected)
+			}
+		})
+	}
+}
+
 func TestCanCreateSSHConnection(t *testing.T) {
 	t.Parallel()
 	const username, password = "user", "secret"

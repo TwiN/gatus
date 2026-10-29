@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/tunneling/sshtunnel"
@@ -153,7 +154,7 @@ func (c *Config) HasCustomDNSResolver() bool {
 
 // parseDNSResolver parses the DNS resolver into the DNSResolverConfig struct
 func (c *Config) parseDNSResolver() (*DNSResolverConfig, error) {
-	re := regexp.MustCompile(`^(?P<proto>(.*))://(?P<host>[A-Za-z0-9\-\.]+):(?P<port>[0-9]+)?(.*)$`)
+	re := regexp.MustCompile(`^(?P<proto>(.*))://(?P<host>[A-Za-z0-9\-\.]+|\[[0-9A-Fa-f:\.]+\]):(?P<port>[0-9]+)?(.*)$`)
 	matches := re.FindStringSubmatch(c.DNSResolver)
 	if len(matches) == 0 {
 		return nil, ErrInvalidDNSResolver
@@ -173,7 +174,7 @@ func (c *Config) parseDNSResolver() (*DNSResolverConfig, error) {
 	}
 	return &DNSResolverConfig{
 		Protocol: r["proto"],
-		Host:     r["host"],
+		Host:     strings.Trim(r["host"], "[]"),
 		Port:     r["port"],
 	}, nil
 }
@@ -261,7 +262,7 @@ func (c *Config) getHTTPClient() *http.Client {
 						PreferGo: true,
 						Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
 							d := net.Dialer{}
-							return d.DialContext(ctx, dnsResolver.Protocol, dnsResolver.Host+":"+dnsResolver.Port)
+							return d.DialContext(ctx, dnsResolver.Protocol, net.JoinHostPort(dnsResolver.Host, dnsResolver.Port))
 						},
 					},
 				}
