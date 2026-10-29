@@ -16,6 +16,19 @@
                 <span v-if="endpointStatus.group && hostname">•</span>
                 <span v-if="hostname">{{ hostname }}</span>
               </div>
+              <div v-if="endpointStatus.links && endpointStatus.links.length" class="flex flex-wrap items-center gap-3 mt-2">
+                <a
+                  v-for="link in endpointStatus.links"
+                  :key="link.name"
+                  :href="link.value"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  class="inline-flex items-center gap-1 text-sm text-primary hover:underline"
+                >
+                  <ExternalLink class="h-3.5 w-3.5" />
+                  {{ link.name }}
+                </a>
+              </div>
             </div>
             <StatusBadge :status="currentHealthStatus" />
           </div>
@@ -203,7 +216,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle, Activity, Timer } from 'lucide-vue-next'
+import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle, Activity, Timer, ExternalLink } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
