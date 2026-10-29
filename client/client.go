@@ -99,7 +99,15 @@ func CanCreateNetworkConnection(netType string, address string, body string, con
 	const (
 		MaximumMessageSize = 1024 // in bytes
 	)
-	connection, err := net.DialTimeout(netType, address, config.Timeout)
+	var connection net.Conn
+	var err error
+	if config.ResolvedTunnel != nil && netType == "tcp" {
+		// SSH port-forwarding only multiplexes TCP, so route TCP dials through the tunnel the
+		// same way the HTTP and gRPC clients do instead of reaching the target directly.
+		connection, err = config.ResolvedTunnel.Dial(netType, address)
+	} else {
+		connection, err = net.DialTimeout(netType, address, config.Timeout)
+	}
 	if err != nil {
 		return false, nil
 	}
