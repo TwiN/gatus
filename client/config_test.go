@@ -1,10 +1,15 @@
 package client
 
 import (
+	"fmt"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
 	"testing"
 	"time"
+
+	"github.com/miekg/dns"
 )
 
 func TestConfig_getHTTPClient(t *testing.T) {
@@ -69,6 +74,13 @@ func TestConfig_ValidateAndSetDefaults_withCustomDNSResolver(t *testing.T) {
 			wantErr: false,
 		},
 		{
+			name: "with-valid-ipv6-resolver",
+			args: args{
+				dnsResolver: "udp://[2001:4860:4860::8888]:53",
+			},
+			wantErr: false,
+		},
+		{
 			name: "with-invalid-resolver-port",
 			args: args{
 				dnsResolver: "tcp://127.0.0.1:99999",
@@ -93,6 +105,50 @@ func TestConfig_ValidateAndSetDefaults_withCustomDNSResolver(t *testing.T) {
 				t.Errorf("ValidateAndSetDefaults() error=%v, wantErr=%v", err, tt.wantErr)
 			}
 		})
+	}
+}
+
+func TestConfig_getHTTPClient_withCustomDNSResolverOverIPv6(t *testing.T) {
+	// DNS server on [::1] that resolves every name to ::1
+	packetConn, err := net.ListenPacket("udp", "[::1]:0")
+	if err != nil {
+		t.Skip("no IPv6 loopback:", err)
+	}
+	dnsServer := &dns.Server{PacketConn: packetConn, Handler: dns.HandlerFunc(func(w dns.ResponseWriter, r *dns.Msg) {
+		m := new(dns.Msg)
+		m.SetReply(r)
+		if r.Question[0].Qtype == dns.TypeAAAA {
+			m.Answer = append(m.Answer, &dns.AAAA{
+				Hdr:  dns.RR_Header{Name: r.Question[0].Name, Rrtype: dns.TypeAAAA, Class: dns.ClassINET, Ttl: 60},
+				AAAA: net.IPv6loopback,
+			})
+		}
+		w.WriteMsg(m)
+	})}
+	go dnsServer.ActivateAndServe()
+	defer dnsServer.Shutdown()
+	// HTTP server on [::1]
+	listener, err := net.Listen("tcp", "[::1]:0")
+	if err != nil {
+		t.Skip("no IPv6 loopback:", err)
+	}
+	httpServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	httpServer.Listener.Close()
+	httpServer.Listener = listener
+	httpServer.Start()
+	defer httpServer.Close()
+
+	cfg := &Config{DNSResolver: "udp://" + packetConn.LocalAddr().String()} // e.g. udp://[::1]:12345
+	if err := cfg.ValidateAndSetDefaults(); err != nil {
+		t.Fatalf("ValidateAndSetDefaults() error=%v", err)
+	}
+	response, err := cfg.getHTTPClient().Get(fmt.Sprintf("http://gatus.test:%d/", listener.Addr().(*net.TCPAddr).Port))
+	if err != nil {
+		t.Fatalf("expected the request to resolve gatus.test through %s, got error=%v", cfg.DNSResolver, err)
+	}
+	response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Errorf("expected status %d, got %d", http.StatusOK, response.StatusCode)
 	}
 }
 

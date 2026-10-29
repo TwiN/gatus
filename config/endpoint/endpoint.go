@@ -300,7 +300,7 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	}
 	// Parse or extract hostname from URL
 	if processedEndpoint.DNSConfig != nil {
-		result.Hostname = strings.TrimSuffix(processedEndpoint.URL, ":53")
+		result.Hostname, result.port = dnsServerHostAndPort(processedEndpoint.URL)
 	} else if processedEndpoint.Type() == TypeICMP {
 		// To handle IPv6 addresses, we need to handle the hostname differently here. This is to avoid, for instance,
 		// "1111:2222:3333::4444" being displayed as "1111:2222:3333:" because :4444 would be interpreted as a port.
@@ -436,6 +436,15 @@ func (e *Endpoint) getParsedBody() string {
 		})
 	}
 	return body
+}
+
+// dnsServerHostAndPort splits the address of a DNS server into its host and port. The port is empty when the address
+// doesn't have one, in which case an IPv6 address may come with or without brackets ("2001:db8::53", "[2001:db8::53]").
+func dnsServerHostAndPort(address string) (host, port string) {
+	if host, port, err := net.SplitHostPort(address); err == nil {
+		return host, port
+	}
+	return strings.TrimSuffix(strings.TrimPrefix(address, "["), "]"), ""
 }
 
 func (e *Endpoint) getIP(result *Result) {
