@@ -66,6 +66,7 @@ import (
 func TestLoadConfiguration(t *testing.T) {
 	yes := true
 	dir := t.TempDir()
+	symlinkDir := dir + "-sym"
 	scenarios := []struct {
 		name           string
 		configPath     string            // value to pass as the configPath parameter in LoadConfiguration
@@ -141,6 +142,27 @@ endpoints:
 				"config.yaml": "",
 			},
 			expectedError: ErrNoEndpointOrSuiteInConfig,
+		},
+		{
+			name:       "dir-symlink",
+			configPath: symlinkDir,
+			pathAndFiles: map[string]string{
+				"config.yaml": `
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"`,
+			},
+			expectedConfig: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:       "website",
+						URL:        "https://twin.sh/health",
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
 		},
 		{
 			name:       "dir-with-two-config-files",
@@ -263,10 +285,14 @@ endpoints:
 					t.Fatalf("[%s] failed to write file: %v", scenario.name, err)
 				}
 			}
+			if err := os.Symlink(dir, symlinkDir); err != nil {
+				t.Fatalf("[%s] failed to write symlink: %v", scenario.name, err)
+			}
 			defer func(pathAndFiles map[string]string) {
 				for path := range pathAndFiles {
 					_ = os.Remove(filepath.Join(dir, path))
 				}
+				_ = os.Remove(symlinkDir)
 			}(scenario.pathAndFiles)
 			config, err := LoadConfiguration(scenario.configPath)
 			if !errors.Is(err, scenario.expectedError) {
