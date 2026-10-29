@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"testing"
@@ -19,6 +20,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/gontext"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/test"
+	miekgdns "github.com/miekg/dns"
 )
 
 func TestHasHeader(t *testing.T) {
@@ -994,6 +996,66 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	}
 	if !result.Success {
 		t.Error("Because all conditions passed, this should have been a success")
+	}
+}
+
+func TestIntegrationEvaluateHealthForDNSWithIPPlaceholder(t *testing.T) {
+	for _, address := range []string{"127.0.0.1:0", "[::1]:0"} {
+		t.Run(address, func(t *testing.T) {
+			// Local DNS server on a port other than 53 that answers every A query with 127.0.0.1
+			packetConn, err := net.ListenPacket("udp", address)
+			if err != nil {
+				t.Skip("cannot listen on", address, err)
+			}
+			server := &miekgdns.Server{PacketConn: packetConn, Handler: miekgdns.HandlerFunc(func(w miekgdns.ResponseWriter, r *miekgdns.Msg) {
+				m := new(miekgdns.Msg)
+				m.SetReply(r)
+				rr, _ := miekgdns.NewRR(r.Question[0].Name + " 60 IN A 127.0.0.1")
+				m.Answer = append(m.Answer, rr)
+				w.WriteMsg(m)
+			})}
+			go server.ActivateAndServe()
+			defer server.Shutdown()
+			serverIP := packetConn.LocalAddr().(*net.UDPAddr).IP.String()
+			endpoint := Endpoint{
+				Name:       "example",
+				URL:        packetConn.LocalAddr().String(), // e.g. 127.0.0.1:12345 or [::1]:12345
+				DNSConfig:  &dns.Config{QueryType: "A", QueryName: "example.com."},
+				Conditions: []Condition{Condition("[IP] == " + serverIP), "[DNS_RCODE] == NOERROR"},
+			}
+			if err := endpoint.ValidateAndSetDefaults(); err != nil {
+				t.Fatal("did not expect an error, got", err)
+			}
+			result := endpoint.EvaluateHealth()
+			if result.Hostname != serverIP {
+				t.Errorf("expected hostname %q, got %q", serverIP, result.Hostname)
+			}
+			if !result.Success {
+				t.Errorf("expected a success, got errors=%v", result.Errors)
+			}
+		})
+	}
+}
+
+func TestDNSServerHostAndPort(t *testing.T) {
+	scenarios := []struct {
+		address, host, port string
+	}{
+		{"8.8.8.8", "8.8.8.8", ""},
+		{"8.8.8.8:5353", "8.8.8.8", "5353"},
+		{"dns.google:53", "dns.google", "53"},
+		{"2001:db8::53", "2001:db8::53", ""},
+		{"[2001:db8::53]", "2001:db8::53", ""},
+		{"[2001:db8::53]:53", "2001:db8::53", "53"},
+		{"[2001:db8::53]:5353", "2001:db8::53", "5353"},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.address, func(t *testing.T) {
+			host, port := dnsServerHostAndPort(scenario.address)
+			if host != scenario.host || port != scenario.port {
+				t.Errorf("dnsServerHostAndPort(%q) = %q, %q; want %q, %q", scenario.address, host, port, scenario.host, scenario.port)
+			}
+		})
 	}
 }
 
