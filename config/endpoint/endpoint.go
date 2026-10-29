@@ -244,6 +244,11 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 			return fmt.Errorf("%v: %w", ErrInvalidConditionFormat, err)
 		}
 	}
+	for _, maintenanceWindow := range e.MaintenanceWindows {
+		if err := maintenanceWindow.ValidateAndSetDefaults(); err != nil {
+			return err
+		}
+	}
 	if e.DNSConfig != nil {
 		return e.DNSConfig.ValidateAndSetDefault()
 	}
@@ -252,11 +257,6 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 	}
 	if e.Type() == TypeUNKNOWN {
 		return ErrUnknownEndpointType
-	}
-	for _, maintenanceWindow := range e.MaintenanceWindows {
-		if err := maintenanceWindow.ValidateAndSetDefaults(); err != nil {
-			return err
-		}
 	}
 	// Make sure that the request can be created
 	_, err := http.NewRequest(e.Method, e.URL, bytes.NewBuffer([]byte(e.getParsedBody())))

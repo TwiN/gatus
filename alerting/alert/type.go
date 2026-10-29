@@ -83,6 +83,9 @@ const (
 	// TypePushover is the Type for the pushover alerting provider
 	TypePushover Type = "pushover"
 
+	// TypeResend is the Type for the resend alerting provider
+	TypeResend Type = "resend"
+
 	// TypeRocketChat is the Type for the rocketchat alerting provider
 	TypeRocketChat Type = "rocketchat"
 
