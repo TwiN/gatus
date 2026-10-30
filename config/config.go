@@ -603,6 +603,7 @@ func ValidateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeClickUp,
 		alert.TypeCustom,
 		alert.TypeDatadog,
+		alert.TypeDingTalk,
 		alert.TypeDiscord,
 		alert.TypeEmail,
 		alert.TypeGitHub,
