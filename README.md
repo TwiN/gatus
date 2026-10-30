@@ -863,6 +863,7 @@ endpoints:
 | `alerting.ifttt`           | Configuration for alerts of type `ifttt`. <br />See [Configuring IFTTT alerts](#configuring-ifttt-alerts).                              | `{}`    |
 | `alerting.ilert`           | Configuration for alerts of type `ilert`. <br />See [Configuring ilert alerts](#configuring-ilert-alerts).                              | `{}`    |
 | `alerting.incident-io`     | Configuration for alerts of type `incident-io`. <br />See [Configuring Incident.io alerts](#configuring-incidentio-alerts).             | `{}`    |
+| `alerting.jsm`             | Configuration for alerts of type `jsm`. <br />See [Configuring JSM alerts](#configuring-jsm-alerts).                                    | `{}`    |
 | `alerting.line`            | Configuration for alerts of type `line`. <br />See [Configuring Line alerts](#configuring-line-alerts).                                 | `{}`    |
 | `alerting.matrix`          | Configuration for alerts of type `matrix`. <br />See [Configuring Matrix alerts](#configuring-matrix-alerts).                           | `{}`    |
 | `alerting.mattermost`      | Configuration for alerts of type `mattermost`. <br />See [Configuring Mattermost alerts](#configuring-mattermost-alerts).               | `{}`    |
@@ -1562,6 +1563,31 @@ endpoints:
 In order to get the required alert source config id and authentication token, you must configure an HTTP alert source.
 
 > **_NOTE:_**  the source config id is of the form `https://api.incident.io/v2/alert_events/http/$ID` and the token is expected to be passed as a bearer token like so: `Authorization: Bearer $TOKEN`
+
+#### Configuring JSM alerts
+> **_NOTE:_**  This integration is working similarly to the deprecated Opsgenie integration, but uses the newer API of Jira Service Management (JSM).
+
+| Parameter                        | Description                                                                                | Default              |
+|:-----------------------------    |:-------------------------------------------------------------------------------------------|:---------------------|
+| `alerting.jsm`                   | Configuration for alerts of type `jsm`                                                     | `{}`                 |
+| `alerting.jsm.api-key`           | JSM API Key                                                                                | Required `""`        |
+| `alerting.jsm.priority`          | Priority level of the alert.                                                               | `P1`                 |
+| `alerting.jsm.source`            | Source field of the alert.                                                                 | `gatus`              |
+| `alerting.jsm.entity-prefix`     | Entity field prefix.                                                                       | `gatus-`             |
+| `alerting.jsm.alias-prefix`      | Alias field prefix.                                                                        | `gatus-healthcheck-` |
+| `alerting.jsm.tags`              | Tags of alert.                                                                             | `[]`                 |
+| `alerting.jsm.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                  |
+| `alerting.jsm.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                 |
+| `alerting.jsm.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                 |
+| `alerting.jsm.overrides[].*`     | See `alerting.jsm.*` parameters                                                            | `{}`                 | 
+
+JSM (Jira Service Management) provider will automatically open and close alerts.
+
+```yaml
+alerting:
+  jsm:
+    api-key: "00000000-0000-0000-0000-000000000000"
+```
 
 
 #### Configuring Line alerts
