@@ -519,6 +519,10 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 			if ptr, ok := rr.(*dns.PTR); ok {
 				body = []byte(ptr.Ptr)
 			}
+		case dns.TypeSOA:
+			if soa, ok := rr.(*dns.SOA); ok {
+				body = []byte(fmt.Sprintf("%s %s %d %d %d %d %d", soa.Ns, soa.Mbox, soa.Serial, soa.Refresh, soa.Retry, soa.Expire, soa.Minttl))
+			}
 		case dns.TypeSRV:
 			if srv, ok := rr.(*dns.SRV); ok {
 				body = []byte(fmt.Sprintf("%s:%d", srv.Target, srv.Port))
