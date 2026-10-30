@@ -30,6 +30,7 @@ type Config struct {
 	Token        string         `yaml:"token,omitempty"`
 	Secret       string         `yaml:"secret,omitempty"`
 	WebhookURL   string         `yaml:"webhook-url,omitempty"`
+	Title        string         `yaml:"title,omitempty"`
 	ClientConfig *client.Config `yaml:"client,omitempty"`
 }
 
@@ -46,13 +47,30 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if len(override.Token) > 0 {
 		cfg.Token = override.Token
+		if len(override.WebhookURL) == 0 {
+			cfg.WebhookURL = ""
+		}
 	}
 	if len(override.Secret) > 0 {
 		cfg.Secret = override.Secret
 	}
 	if len(override.WebhookURL) > 0 {
 		cfg.WebhookURL = override.WebhookURL
+		if len(override.Token) == 0 {
+			cfg.Token = ""
+		}
 	}
+	if len(override.Title) > 0 {
+		cfg.Title = override.Title
+	}
+}
+
+// sign computes the HMAC-SHA256 signature for DingTalk webhook URL
+func (cfg *Config) sign(timestamp int64) string {
+	stringToSign := strconv.FormatInt(timestamp, 10) + "\n" + cfg.Secret
+	h := hmac.New(sha256.New, []byte(cfg.Secret))
+	h.Write([]byte(stringToSign))
+	return url.QueryEscape(base64.StdEncoding.EncodeToString(h.Sum(nil)))
 }
 
 // GetURL returns the final DingTalk webhook URL, dynamically computing HMAC-SHA256 signature if secret is provided
@@ -67,15 +85,14 @@ func (cfg *Config) GetURL() (string, error) {
 	if len(cfg.Secret) == 0 {
 		return baseURL, nil
 	}
-	timestamp := strconv.FormatInt(time.Now().UnixMilli(), 10)
-	stringToSign := timestamp + "\n" + cfg.Secret
-	h := hmac.New(sha256.New, []byte(cfg.Secret))
-	h.Write([]byte(stringToSign))
-	sign := url.QueryEscape(base64.StdEncoding.EncodeToString(h.Sum(nil)))
+	now := time.Now().UnixMilli()
+	sign := cfg.sign(now)
+	timestamp := strconv.FormatInt(now, 10)
+	separator := "?"
 	if strings.Contains(baseURL, "?") {
-		return fmt.Sprintf("%s&timestamp=%s&sign=%s", baseURL, timestamp, sign), nil
+		separator = "&"
 	}
-	return fmt.Sprintf("%s?timestamp=%s&sign=%s", baseURL, timestamp, sign), nil
+	return fmt.Sprintf("%s%stimestamp=%s&sign=%s", baseURL, separator, timestamp, sign), nil
 }
 
 // AlertProvider is the configuration necessary for sending an alert using DingTalk
@@ -100,7 +117,7 @@ func (provider *AlertProvider) Validate() error {
 	registeredGroups := make(map[string]bool)
 	if provider.Overrides != nil {
 		for _, override := range provider.Overrides {
-			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" || (len(override.Token) == 0 && len(override.WebhookURL) == 0) {
+			if isAlreadyRegistered := registeredGroups[override.Group]; isAlreadyRegistered || override.Group == "" {
 				return ErrDuplicateGroupOverride
 			}
 			registeredGroups[override.Group] = true
@@ -119,7 +136,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return err
 	}
-	buffer := bytes.NewBuffer(provider.buildRequestBody(ep, alert, result, resolved))
+	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
 	request, err := http.NewRequest(http.MethodPost, requestURL, buffer)
 	if err != nil {
 		return err
@@ -130,7 +147,10 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		return err
 	}
 	defer response.Body.Close()
-	body, _ := io.ReadAll(response.Body)
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		return fmt.Errorf("failed to read response body: %w", err)
+	}
 	if response.StatusCode > 399 {
 		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
 	}
@@ -138,7 +158,10 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		ErrCode int    `json:"errcode"`
 		ErrMsg  string `json:"errmsg"`
 	}
-	if err := json.Unmarshal(body, &dingResponse); err == nil && dingResponse.ErrCode != 0 {
+	if err := json.Unmarshal(body, &dingResponse); err != nil {
+		return fmt.Errorf("failed to unmarshal response: %w", err)
+	}
+	if dingResponse.ErrCode != 0 {
 		return fmt.Errorf("call to dingtalk returned error code %d: %s", dingResponse.ErrCode, dingResponse.ErrMsg)
 	}
 	return nil
@@ -154,17 +177,22 @@ type Markdown struct {
 	Text  string `json:"text"`
 }
 
-func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
-	var title, statusHeader string
+func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
+	titlePrefix := "Gatus"
+	if len(cfg.Title) > 0 {
+		titlePrefix = cfg.Title
+	}
+	var statusEmoji, statusHeader string
 	if resolved {
-		title = "🟢 [RESOLVED] " + ep.DisplayName()
+		statusEmoji = "🟢 [RESOLVED]"
 		statusHeader = "🟢 **RESOLVED**"
 	} else {
-		title = "🔴 [TRIGGERED] " + ep.DisplayName()
+		statusEmoji = "🔴 [TRIGGERED]"
 		statusHeader = "🔴 **TRIGGERED**"
 	}
+	title := fmt.Sprintf("[%s] %s %s", titlePrefix, statusEmoji, ep.DisplayName())
 	var buffer strings.Builder
-	buffer.WriteString(fmt.Sprintf("### %s: %s\n\n", statusHeader, ep.DisplayName()))
+	buffer.WriteString(fmt.Sprintf("### [%s] %s: %s\n\n", titlePrefix, statusHeader, ep.DisplayName()))
 	if len(ep.Group) > 0 {
 		buffer.WriteString(fmt.Sprintf("- **Group**: `%s`\n", ep.Group))
 	}
