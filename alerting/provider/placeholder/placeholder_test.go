@@ -27,6 +27,18 @@ func TestReplace(t *testing.T) {
 			want:     "TRIGGERED external/website: healthcheck failed",
 		},
 		{
+			name:     "endpoint-with-group",
+			template: "[ENDPOINT] [ENDPOINT]",
+			endpoint: endpoint.Endpoint{Name: "website", Group: "external"},
+			want:     "external/website external/website",
+		},
+		{
+			name:     "endpoint-without-group",
+			template: "[ENDPOINT]",
+			endpoint: endpoint.Endpoint{Name: "website"},
+			want:     "website",
+		},
+		{
 			name:     "resolved",
 			template: "[ALERT_TRIGGERED_OR_RESOLVED] [ENDPOINT_NAME]",
 			endpoint: endpoint.Endpoint{Name: "website"},

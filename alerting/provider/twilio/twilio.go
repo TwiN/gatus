@@ -120,7 +120,6 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 			message = placeholder.Replace(cfg.TextTwilioResolved, ep, alert, resolved)
 			message = strings.Replace(message, "{endpoint}", ep.DisplayName(), 1)
 			message = strings.Replace(message, "{description}", alert.GetDescription(), 1)
-			message = strings.Replace(message, "[ENDPOINT]", ep.DisplayName(), 1)
 		} else {
 			message = fmt.Sprintf("RESOLVED: %s - %s", ep.DisplayName(), alert.GetDescription())
 		}
@@ -130,7 +129,6 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 			message = placeholder.Replace(cfg.TextTwilioTriggered, ep, alert, resolved)
 			message = strings.Replace(message, "{endpoint}", ep.DisplayName(), 1)
 			message = strings.Replace(message, "{description}", alert.GetDescription(), 1)
-			message = strings.Replace(message, "[ENDPOINT]", ep.DisplayName(), 1)
 		} else {
 			message = fmt.Sprintf("TRIGGERED: %s - %s", ep.DisplayName(), alert.GetDescription())
 		}

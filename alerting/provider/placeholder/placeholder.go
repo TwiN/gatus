@@ -15,6 +15,7 @@ func Replace(template string, ep *endpoint.Endpoint, alert *alert.Alert, resolve
 		alertState = "RESOLVED"
 	}
 	return strings.NewReplacer(
+		"[ENDPOINT]", ep.DisplayName(),
 		"[ENDPOINT_NAME]", ep.Name,
 		"[ENDPOINT_GROUP]", ep.Group,
 		"[ALERT_DESCRIPTION]", alert.GetDescription(),

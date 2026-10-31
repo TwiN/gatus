@@ -889,6 +889,7 @@ and alert overrides:
 
 | Placeholder                     | Value                                                    |
 |:--------------------------------|:---------------------------------------------------------|
+| `[ENDPOINT]`                    | `group/name`, or just `name` if the endpoint has no group |
 | `[ENDPOINT_NAME]`               | Resolved from `endpoints[].name`                         |
 | `[ENDPOINT_GROUP]`              | Resolved from `endpoints[].group` (empty if unset)       |
 | `[ALERT_DESCRIPTION]`           | Resolved from `endpoints[].alerts[].description` (empty if unset) |
@@ -2454,8 +2455,8 @@ Custom message templates are supported via the following additional parameters:
 
 | Parameter                               | Description                                                                                | Default |
 |:----------------------------------------|:-------------------------------------------------------------------------------------------|:--------|
-| `alerting.twilio.text-twilio-triggered` | Custom message template for triggered alerts. Supports [placeholders](#alert-template-placeholders) and `[ENDPOINT]` | `""`    |
-| `alerting.twilio.text-twilio-resolved`  | Custom message template for resolved alerts. Supports [placeholders](#alert-template-placeholders) and `[ENDPOINT]`  | `""`    |
+| `alerting.twilio.text-twilio-triggered` | Custom message template for triggered alerts. Supports [placeholders](#alert-template-placeholders) | `""`    |
+| `alerting.twilio.text-twilio-resolved`  | Custom message template for resolved alerts. Supports [placeholders](#alert-template-placeholders)  | `""`    |
 
 ```yaml
 alerting:
