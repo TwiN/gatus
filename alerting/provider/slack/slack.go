@@ -15,16 +15,29 @@ import (
 )
 
 var (
-	ErrWebhookURLNotSet       = errors.New("webhook-url not set")
+	ErrWebhookURLNotSet       = errors.New("webhook-url or bot-token must be set")
+	ErrMultipleAuthMethods    = errors.New("webhook-url and bot-token cannot both be set")
+	ErrChannelIDNotSet        = errors.New("channel-id must be set when using bot-token")
 	ErrDuplicateGroupOverride = errors.New("duplicate group override")
 )
 
 type Config struct {
 	WebhookURL string `yaml:"webhook-url"`     // Slack webhook URL
+	BotToken   string `yaml:"bot-token"`       // Slack bot token
+	ChannelID  string `yaml:"channel-id"`      // Slack channel ID for bot messages
 	Title      string `yaml:"title,omitempty"` // Title of the message that will be sent
 }
 
 func (cfg *Config) Validate() error {
+	if len(cfg.WebhookURL) > 0 && len(cfg.BotToken) > 0 {
+		return ErrMultipleAuthMethods
+	}
+	if len(cfg.BotToken) > 0 {
+		if len(cfg.ChannelID) == 0 {
+			return ErrChannelIDNotSet
+		}
+		return nil
+	}
 	if len(cfg.WebhookURL) == 0 {
 		return ErrWebhookURLNotSet
 	}
@@ -34,6 +47,12 @@ func (cfg *Config) Validate() error {
 func (cfg *Config) Merge(override *Config) {
 	if len(override.WebhookURL) > 0 {
 		cfg.WebhookURL = override.WebhookURL
+	}
+	if len(override.BotToken) > 0 {
+		cfg.BotToken = override.BotToken
+	}
+	if len(override.ChannelID) > 0 {
+		cfg.ChannelID = override.ChannelID
 	}
 	if len(override.Title) > 0 {
 		cfg.Title = override.Title
@@ -66,6 +85,11 @@ func (provider *AlertProvider) Validate() error {
 				return ErrDuplicateGroupOverride
 			}
 			registeredGroups[override.Group] = true
+			cfg := provider.DefaultConfig
+			cfg.Merge(&override.Config)
+			if err := cfg.Validate(); err != nil {
+				return err
+			}
 		}
 	}
 	return provider.DefaultConfig.Validate()
@@ -78,11 +102,18 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		return err
 	}
 	buffer := bytes.NewBuffer(provider.buildRequestBody(cfg, ep, alert, result, resolved))
-	request, err := http.NewRequest(http.MethodPost, cfg.WebhookURL, buffer)
+	url := cfg.WebhookURL
+	if len(cfg.BotToken) > 0 {
+		url = "https://slack.com/api/chat.postMessage"
+	}
+	request, err := http.NewRequest(http.MethodPost, url, buffer)
 	if err != nil {
 		return err
 	}
 	request.Header.Set("Content-Type", "application/json")
+	if len(cfg.BotToken) > 0 {
+		request.Header.Set("Authorization", "Bearer "+cfg.BotToken)
+	}
 	response, err := client.GetHTTPClient(nil).Do(request)
 	if err != nil {
 		return err
@@ -92,10 +123,23 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 		body, _ := io.ReadAll(response.Body)
 		return fmt.Errorf("call to provider alert returned status code %d: %s", response.StatusCode, string(body))
 	}
-	return err
+	if len(cfg.BotToken) > 0 {
+		var result struct {
+			OK    bool   `json:"ok"`
+			Error string `json:"error"`
+		}
+		if err := json.NewDecoder(response.Body).Decode(&result); err != nil {
+			return fmt.Errorf("failed to decode Slack API response: %w", err)
+		}
+		if !result.OK {
+			return fmt.Errorf("Slack API returned an error: %s", result.Error)
+		}
+	}
+	return nil
 }
 
 type Body struct {
+	Channel     string       `json:"channel,omitempty"`
 	Text        string       `json:"text"`
 	Attachments []Attachment `json:"attachments"`
 }
@@ -148,6 +192,9 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 				Color: color,
 			},
 		},
+	}
+	if len(cfg.BotToken) > 0 {
+		body.Channel = cfg.ChannelID
 	}
 	if len(body.Attachments[0].Title) == 0 {
 		body.Attachments[0].Title = ":helmet_with_white_cross: Gatus"
