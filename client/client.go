@@ -99,7 +99,26 @@ func CanCreateNetworkConnection(netType string, address string, body string, con
 	const (
 		MaximumMessageSize = 1024 // in bytes
 	)
-	connection, err := net.DialTimeout(netType, address, config.Timeout)
+	dialNetType := netType
+	if config != nil {
+		switch config.Network {
+		case "ip4":
+			switch netType {
+			case "tcp":
+				dialNetType = "tcp4"
+			case "udp":
+				dialNetType = "udp4"
+			}
+		case "ip6":
+			switch netType {
+			case "tcp":
+				dialNetType = "tcp6"
+			case "udp":
+				dialNetType = "udp6"
+			}
+		}
+	}
+	connection, err := net.DialTimeout(dialNetType, address, config.Timeout)
 	if err != nil {
 		return false, nil
 	}
@@ -376,7 +395,11 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 	pinger.Count = 1
 	pinger.Timeout = config.Timeout
 	pinger.SetPrivileged(ShouldRunPingerAsPrivileged())
-	pinger.SetNetwork(config.Network)
+	network := "ip"
+	if config != nil && len(config.Network) > 0 {
+		network = config.Network
+	}
+	pinger.SetNetwork(network)
 	err := pinger.Run()
 	if err != nil {
 		return false, 0

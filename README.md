@@ -659,7 +659,7 @@ the client used to send the request.
 | `client.tls.certificate-file`          | Path to a client certificate (in PEM format) for mTLS configurations.         | `""`            |
 | `client.tls.private-key-file`          | Path to a client private key (in PEM format) for mTLS configurations.         | `""`            |
 | `client.tls.renegotiation`             | Type of renegotiation support to provide. (`never`, `freely`, `once`).        | `"never"`       |
-| `client.network`                       | The network to use for ICMP endpoint client (`ip`, `ip4` or `ip6`).           | `"ip"`          |
+| `client.network`                       | The network to use for HTTP, TCP/UDP, and ICMP endpoints (`ip`, `ip4` or `ip6`). When set to `ip4` or `ip6`, forces IPv4 or IPv6 respectively. Ignored for SSH, STARTTLS, and SCTP. | `"ip"`          |
 | `client.tunnel`                        | Name of the SSH tunnel to use for this endpoint. See [Tunneling](#tunneling). | `""`            |
 | `client.store-cookies`                 | Whether to store cookies between requests.                                    | `false`         |
 
