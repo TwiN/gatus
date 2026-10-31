@@ -56,6 +56,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Client configuration](#client-configuration)
   - [Tunneling](#tunneling)
   - [Alerting](#alerting)
+    - [Alert template placeholders](#alert-template-placeholders)
     - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
     - [Configuring ClickUp alerts](#configuring-clickup-alerts)
     - [Configuring Datadog alerts](#configuring-datadog-alerts)
@@ -892,6 +893,21 @@ endpoints:
 | `alerting.zulip`           | Configuration for alerts of type `zulip`. <br />See [Configuring Zulip alerts](#configuring-zulip-alerts).                              | `{}`    |
 
 
+#### Alert template placeholders
+The following placeholders are supported by every provider parameter that links to this section, including in group
+and alert overrides:
+
+| Placeholder                     | Value                                                    |
+|:--------------------------------|:---------------------------------------------------------|
+| `[ENDPOINT]`                    | `group/name`, or just `name` if the endpoint has no group |
+| `[ENDPOINT_NAME]`               | Resolved from `endpoints[].name`                         |
+| `[ENDPOINT_GROUP]`              | Resolved from `endpoints[].group` (empty if unset)       |
+| `[ALERT_DESCRIPTION]`           | Resolved from `endpoints[].alerts[].description` (empty if unset) |
+| `[ALERT_TRIGGERED_OR_RESOLVED]` | `TRIGGERED` or `RESOLVED`                                |
+
+The [custom provider](#configuring-custom-alerts) has its own placeholders.
+
+
 #### Configuring AWS SES alerts
 | Parameter                            | Description                                                                                | Default       |
 |:-------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
@@ -947,8 +963,8 @@ Make sure you have the ability to use `ses:SendEmail`.
 | `alerting.clickup.status`          | Initial status for created tasks                                                           | `""`          |
 | `alerting.clickup.priority`        | Priority level: `urgent`, `high`, `normal`, `low`, or `none`                               | `normal`      |
 | `alerting.clickup.notify-all`      | Whether to notify all assignees when task is created                                       | `true`        |
-| `alerting.clickup.name`            | Custom task name template (supports placeholders)                                          | `Health Check: [ENDPOINT_GROUP]:[ENDPOINT_NAME]`          |
-| `alerting.clickup.content`         | Custom task content template (supports placeholders)                                       | `Triggered: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]`          |
+| `alerting.clickup.name`            | Custom task name template. Supports [placeholders](#alert-template-placeholders)                                          | `Health Check: [ENDPOINT_GROUP]:[ENDPOINT_NAME]`          |
+| `alerting.clickup.content`         | Custom task content template. Supports [placeholders](#alert-template-placeholders) and `[RESULT_ERRORS]`                                       | `Triggered: [ENDPOINT_GROUP] - [ENDPOINT_NAME] - [ALERT_DESCRIPTION] - [RESULT_ERRORS]`          |
 | `alerting.clickup.default-alert`   | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 | `alerting.clickup.overrides`       | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.clickup.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration      | `""`          |
@@ -1042,8 +1058,8 @@ endpoints:
 |:-------------------------------------|:-------------------------------------------------------------------------------------------|:------------------------------------|
 | `alerting.discord`                   | Configuration for alerts of type `discord`                                                 | `{}`                                |
 | `alerting.discord.webhook-url`       | Discord Webhook URL                                                                        | Required `""`                       |
-| `alerting.discord.title`             | Title of the notification                                                                  | `":helmet_with_white_cross: Gatus"` |
-| `alerting.discord.message-content`   | Message content to send before the embed (useful for pinging users/roles, e.g. `<@123>`)   | `""`                                |
+| `alerting.discord.title`             | Title of the notification. Supports [placeholders](#alert-template-placeholders)                                                                  | `":helmet_with_white_cross: Gatus"` |
+| `alerting.discord.message-content`   | Message content to send before the embed (useful for pinging users/roles, e.g. `<@123>`). Supports [placeholders](#alert-template-placeholders) | `""`                  |
 | `alerting.discord.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                 |
 | `alerting.discord.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                                |
 | `alerting.discord.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                                |
@@ -1053,9 +1069,11 @@ endpoints:
 alerting:
   discord:
     webhook-url: "https://discord.com/api/webhooks/**********/**********"
+    message-content: "[ALERT_TRIGGERED_OR_RESOLVED] · [ENDPOINT_GROUP]/[ENDPOINT_NAME]"
 
 endpoints:
   - name: website
+    group: external
     url: "https://twin.sh/health"
     interval: 5m
     conditions:
@@ -1068,6 +1086,8 @@ endpoints:
         send-on-resolved: true
 ```
 
+This sends `TRIGGERED · external/website` before the embed when the alert fires and
+`RESOLVED · external/website` when it recovers.
 
 #### Configuring Email alerts
 | Parameter                          | Description                                                                                   | Default       |
@@ -1287,7 +1307,7 @@ endpoints:
 | `alerting.gotify.server-url`                  | Gotify server URL                                                                           | Required `""`         |
 | `alerting.gotify.token`                       | Token that is used for authentication.                                                      | Required `""`         |
 | `alerting.gotify.priority`                    | Priority of the alert according to Gotify standards.                                        | `5`                   |
-| `alerting.gotify.title`                       | Title of the notification                                                                   | `"Gatus: <endpoint>"` |
+| `alerting.gotify.title`                       | Title of the notification. Supports [placeholders](#alert-template-placeholders)                                                                   | `"Gatus: <endpoint>"` |
 | `alerting.gotify.default-alert`               | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert). | N/A                   |
 
 ```yaml
@@ -1740,7 +1760,7 @@ endpoints:
 |:---------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
 | `alerting.n8n`                   | Configuration for alerts of type `n8n`                                                     | `{}`          |
 | `alerting.n8n.webhook-url`       | n8n webhook URL                                                                            | Required `""` |
-| `alerting.n8n.title`             | Title of the alert sent to n8n                                                             | `""`          |
+| `alerting.n8n.title`             | Title of the alert sent to n8n. Supports [placeholders](#alert-template-placeholders)                                                             | `""`          |
 | `alerting.n8n.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
 | `alerting.n8n.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
 | `alerting.n8n.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
@@ -1971,7 +1991,7 @@ endpoints:
 | `alerting.pushover`                   | Configuration for alerts of type `pushover`                                                                  | `{}`                  |
 | `alerting.pushover.application-token` | Pushover application token                                                                                   | `""`                  |
 | `alerting.pushover.user-key`          | User or group key                                                                                            | `""`                  |
-| `alerting.pushover.title`             | Fixed title for all messages sent via Pushover                                                               | `"Gatus: <endpoint>"` |
+| `alerting.pushover.title`             | Title for all messages sent via Pushover. Supports [placeholders](#alert-template-placeholders)                                                               | `"Gatus: <endpoint>"` |
 | `alerting.pushover.priority`          | Priority of all messages, ranging from -2 (very low) to 2 (emergency)                                        | `0`                   |
 | `alerting.pushover.resolved-priority` | Override the priority of messages on resolved, ranging from -2 (very low) to 2 (emergency)                   | `0`                   |
 | `alerting.pushover.sound`             | Sound of all messages<br />See [sounds](https://pushover.net/api#sounds) for all valid choices.              | `""`                  |
@@ -2179,7 +2199,7 @@ endpoints:
 |:-----------------------------------|:-------------------------------------------------------------------------------------------|:------------------------------------|
 | `alerting.slack`                   | Configuration for alerts of type `slack`                                                   | `{}`                                |
 | `alerting.slack.webhook-url`       | Slack Webhook URL                                                                          | Required `""`                       |
-| `alerting.slack.title`             | Title of the notification                                                                  | `":helmet_with_white_cross: Gatus"` |
+| `alerting.slack.title`             | Title of the notification. Supports [placeholders](#alert-template-placeholders)                                                                  | `":helmet_with_white_cross: Gatus"` |
 | `alerting.slack.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                                 |
 | `alerting.slack.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                                |
 | `alerting.slack.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                                |
@@ -2288,7 +2308,7 @@ endpoints:
 | `alerting.teams`                   | Configuration for alerts of type `teams`                                                   | `{}`                |
 | `alerting.teams.webhook-url`       | Teams Webhook URL                                                                          | Required `""`       |
 | `alerting.teams.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                 |
-| `alerting.teams.title`             | Title of the notification                                                                  | `"&#x1F6A8; Gatus"` |
+| `alerting.teams.title`             | Title of the notification. Supports [placeholders](#alert-template-placeholders)                                                                  | `"&#x1F6A8; Gatus"` |
 | `alerting.teams.client.insecure`   | Whether to skip TLS verification                                                           | `false`             |
 | `alerting.teams.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                |
 | `alerting.teams.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                |
@@ -2346,7 +2366,7 @@ Here's an example of what the notifications look like:
 |:---------------------------------------------|:-------------------------------------------------------------------------------------------|:-------------------|
 | `alerting.teams-workflows`                   | Configuration for alerts of type `teams`                                                   | `{}`               |
 | `alerting.teams-workflows.webhook-url`       | Teams Webhook URL                                                                          | Required `""`      |
-| `alerting.teams-workflows.title`             | Title of the notification                                                                  | `"&#x26D1; Gatus"` |
+| `alerting.teams-workflows.title`             | Title of the notification. Supports [placeholders](#alert-template-placeholders)                                                                  | `"&#x26D1; Gatus"` |
 | `alerting.teams-workflows.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                |
 | `alerting.teams-workflows.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`               |
 | `alerting.teams-workflows.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`               |
@@ -2445,8 +2465,8 @@ Custom message templates are supported via the following additional parameters:
 
 | Parameter                               | Description                                                                                | Default |
 |:----------------------------------------|:-------------------------------------------------------------------------------------------|:--------|
-| `alerting.twilio.text-twilio-triggered` | Custom message template for triggered alerts. Supports `[ENDPOINT]`, `[ALERT_DESCRIPTION]` | `""`    |
-| `alerting.twilio.text-twilio-resolved`  | Custom message template for resolved alerts. Supports `[ENDPOINT]`, `[ALERT_DESCRIPTION]`  | `""`    |
+| `alerting.twilio.text-twilio-triggered` | Custom message template for triggered alerts. Supports [placeholders](#alert-template-placeholders) | `""`    |
+| `alerting.twilio.text-twilio-resolved`  | Custom message template for resolved alerts. Supports [placeholders](#alert-template-placeholders)  | `""`    |
 
 ```yaml
 alerting:
@@ -2582,7 +2602,7 @@ endpoints:
 | `alerting.zulip.bot-api-key`       | Bot API key                                                                         | Required `""` |
 | `alerting.zulip.domain`            | Full organization domain (e.g.: yourZulipDomain.zulipchat.com)                      | Required `""` |
 | `alerting.zulip.channel-id`        | The channel ID where Gatus will send the alerts                                     | Required `""` |
-| `alerting.zulip.topic`             | The topic under which the alerts will be sent.<br />Supports the `[ENDPOINT_NAME]`, `[ENDPOINT_GROUP]` and `[ALERT_DESCRIPTION]` placeholders. | `Gatus`       |
+| `alerting.zulip.topic`             | The topic under which the alerts will be sent.<br />Supports [placeholders](#alert-template-placeholders). | `Gatus`       |
 | `alerting.zulip.overrides`         | List of overrides that may be prioritized over the default configuration            | `[]`          |
 | `alerting.zulip.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration | `""`          |
 | `alerting.zulip.overrides[].*`     | See `alerting.zulip.*` parameters                                                   | `{}`          |
