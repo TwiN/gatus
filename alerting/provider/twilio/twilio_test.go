@@ -2,6 +2,7 @@ package twilio
 
 import (
 	"net/http"
+	"net/url"
 	"testing"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -228,5 +229,31 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				t.Errorf("unexpected error: %s", err)
 			}
 		})
+	}
+}
+
+func TestAlertProvider_TextPlaceholders(t *testing.T) {
+	t.Parallel()
+	provider := AlertProvider{}
+	cfg := Config{
+		To: "+1", From: "+2",
+		TextTwilioTriggered: "[ALERT_TRIGGERED_OR_RESOLVED] [ENDPOINT_GROUP]/[ENDPOINT_NAME] [ENDPOINT] {description}",
+		TextTwilioResolved:  "[ALERT_TRIGGERED_OR_RESOLVED] [ENDPOINT_GROUP]/[ENDPOINT_NAME]",
+	}
+	ep := endpoint.Endpoint{Name: "website", Group: "external"}
+	description := "failed"
+	triggered, err := url.ParseQuery(provider.buildRequestBody(&cfg, &ep, &alert.Alert{Description: &description}, &endpoint.Result{}, false))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := triggered.Get("Body"), "TRIGGERED external/website external/website failed"; got != want {
+		t.Errorf("expected %q, got %q", want, got)
+	}
+	resolved, err := url.ParseQuery(provider.buildRequestBody(&cfg, &ep, &alert.Alert{}, &endpoint.Result{}, true))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if got, want := resolved.Get("Body"), "RESOLVED external/website"; got != want {
+		t.Errorf("expected %q, got %q", want, got)
 	}
 }

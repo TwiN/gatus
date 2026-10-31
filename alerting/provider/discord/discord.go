@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"io"
 	"net/http"
-	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/provider/placeholder"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"gopkg.in/yaml.v3"
@@ -121,9 +121,7 @@ type Field struct {
 func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message string
 	var colorCode int
-	alertState := "TRIGGERED"
 	if resolved {
-		alertState = "RESOLVED"
 		message = fmt.Sprintf("An alert for **%s** has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
 		colorCode = 3066993
 	} else {
@@ -146,15 +144,10 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	}
 	title := ":helmet_with_white_cross: Gatus"
 	if cfg.Title != "" {
-		title = cfg.Title
+		title = placeholder.Replace(cfg.Title, ep, alert, resolved)
 	}
 	body := Body{
-		Content: strings.NewReplacer(
-			"[ENDPOINT_NAME]", ep.Name,
-			"[ENDPOINT_GROUP]", ep.Group,
-			"[ALERT_DESCRIPTION]", alert.GetDescription(),
-			"[ALERT_TRIGGERED_OR_RESOLVED]", alertState,
-		).Replace(cfg.MessageContent),
+		Content: placeholder.Replace(cfg.MessageContent, ep, alert, resolved),
 		Embeds: []Embed{
 			{
 				Title:       title,
