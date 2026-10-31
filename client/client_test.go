@@ -740,6 +740,8 @@ func TestSSHHostAndPort(t *testing.T) {
 		{"[::1]", "::1", "22", true},
 		{"::1", "::1", "22", true},
 		{"a:b:c", "", "", false},
+		{"[::1", "", "", false},
+		{"::1]", "", "", false},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.address, func(t *testing.T) {
@@ -778,7 +780,8 @@ func TestCanPerformStartTLSAcceptsIPv6Address(t *testing.T) {
 	listener.Close()
 	// Nothing listens there any more, so the dial fails; the address itself must not be refused.
 	_, _, err = CanPerformStartTLS(address, &Config{Timeout: 3 * time.Second})
-	if err == nil || strings.Contains(err.Error(), "invalid address") {
+	var dialErr *net.OpError
+	if !errors.As(err, &dialErr) || dialErr.Op != "dial" {
 		t.Errorf("expected a dial error for %s, got %v", address, err)
 	}
 }

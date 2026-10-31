@@ -252,8 +252,9 @@ func sshHostAndPort(address string) (host, port string, ok bool) {
 	if host, port, err := net.SplitHostPort(address); err == nil {
 		return host, port, true
 	}
-	host = strings.TrimSuffix(strings.TrimPrefix(address, "["), "]")
-	if strings.Contains(host, ":") && net.ParseIP(host) == nil {
+	host, opened := strings.CutPrefix(address, "[")
+	host, closed := strings.CutSuffix(host, "]")
+	if opened != closed || (strings.Contains(host, ":") && net.ParseIP(host) == nil) {
 		return "", "", false
 	}
 	return host, "22", true
