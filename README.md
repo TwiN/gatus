@@ -1789,7 +1789,8 @@ The JSON payload sent to the n8n webhook will include:
 | `alerting.ntfy.url`                  | The URL of the target server                                                                                                                 | `https://ntfy.sh` |
 | `alerting.ntfy.token`                | [Access token](https://docs.ntfy.sh/publish/#access-tokens) for restricted topics                                                            | `""`              |
 | `alerting.ntfy.email`                | E-mail address for additional e-mail notifications                                                                                           | `""`              |
-| `alerting.ntfy.click`                | Website opened when notification is clicked                                                                                                  | `""`              |
+| `alerting.ntfy.click`                | Website opened when notification is clicked. Supports `[ENDPOINT_KEY]` and `[ENDPOINT_URL]` placeholders. If empty and `public-url` is set, defaults to `{public-url}/endpoints/{key}` | `""`              |
+| `alerting.ntfy.public-url`           | Public URL of the Gatus instance. Used to build the endpoint details page link when `click` is not set                                       | `""`              |
 | `alerting.ntfy.priority`             | The priority of the alert                                                                                                                    | `3`               |
 | `alerting.ntfy.disable-firebase`     | Whether message push delivery via firebase should be disabled. [ntfy.sh defaults to enabled](https://docs.ntfy.sh/publish/#disable-firebase) | `false`           |
 | `alerting.ntfy.disable-cache`        | Whether server side message caching should be disabled. [ntfy.sh defaults to enabled](https://docs.ntfy.sh/publish/#message-caching)         | `false`           |
@@ -1801,6 +1802,13 @@ The JSON payload sent to the n8n webhook will include:
 [ntfy](https://github.com/binwiederhier/ntfy) is an amazing project that allows you to subscribe to desktop
 and mobile notifications, making it an awesome addition to Gatus.
 
+The following placeholders are supported in `click`:
+- `[ENDPOINT_KEY]` - Resolved from the internal endpoint key (e.g. `group_name`)
+- `[ENDPOINT_URL]` - Resolved from `endpoints[].url`
+
+When `click` is not set and `public-url` is configured, Gatus automatically sets the click URL to
+`{public-url}/endpoints/{ENDPOINT_KEY}` so that tapping the notification opens the endpoint details page.
+
 Example:
 ```yaml
 alerting:
@@ -1808,6 +1816,10 @@ alerting:
     topic: "gatus-test-topic"
     priority: 2
     token: faketoken
+    # Automatically link notifications to the endpoint details page
+    public-url: "https://status.example.com"
+    # Or set click explicitly with placeholders:
+    # click: "https://status.example.com/endpoints/[ENDPOINT_KEY]"
     default-alert:
       failure-threshold: 3
       send-on-resolved: true
