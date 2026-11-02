@@ -14,13 +14,21 @@ func SinglePageApplication(uiConfig *ui.Config) fiber.Handler {
 	return func(c *fiber.Ctx) error {
 		vd := ui.ViewData{UI: uiConfig}
 		{
-			themeFromCookie := string(c.Request().Header.Cookie("theme"))
-			if len(themeFromCookie) > 0 {
-				if themeFromCookie == "dark" {
+			// Precedence: valid ?theme= query > cookie > ui.DarkMode
+			themeFromQuery := c.Query("theme")
+			if themeFromQuery == "dark" {
+				vd.Theme = "dark"
+			} else if themeFromQuery == "light" {
+				// Explicit light theme; leave Theme empty
+			} else {
+				themeFromCookie := string(c.Request().Header.Cookie("theme"))
+				if len(themeFromCookie) > 0 {
+					if themeFromCookie == "dark" {
+						vd.Theme = "dark"
+					}
+				} else if uiConfig.IsDarkMode() { // Since there's no theme cookie, we'll rely on ui.DarkMode
 					vd.Theme = "dark"
 				}
-			} else if uiConfig.IsDarkMode() { // Since there's no theme cookie, we'll rely on ui.DarkMode
-				vd.Theme = "dark"
 			}
 		}
 		t, err := template.ParseFS(static.FileSystem, static.IndexPath)
