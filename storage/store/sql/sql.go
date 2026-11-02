@@ -794,7 +794,7 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 			SELECT endpoint_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp
 			FROM endpoint_results
 			WHERE endpoint_id = $1
-			ORDER BY endpoint_result_id DESC -- Normally, we'd sort by timestamp, but sorting by endpoint_result_id is faster
+			ORDER BY timestamp DESC, endpoint_result_id DESC
 			LIMIT $2 OFFSET $3
 		`,
 		endpointID,
