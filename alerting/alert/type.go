@@ -77,6 +77,9 @@ const (
 	// TypePagerDuty is the Type for the pagerduty alerting provider
 	TypePagerDuty Type = "pagerduty"
 
+	// TypePinglet is the Type for the pinglet alerting provider
+	TypePinglet Type = "pinglet"
+
 	// TypePlivo is the Type for the plivo alerting provider
 	TypePlivo Type = "plivo"
 
