@@ -38,6 +38,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
 	"github.com/TwiN/gatus/v5/alerting/provider/plivo"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
+	"github.com/TwiN/gatus/v5/alerting/provider/resend"
 	"github.com/TwiN/gatus/v5/alerting/provider/rocketchat"
 	"github.com/TwiN/gatus/v5/alerting/provider/sendgrid"
 	"github.com/TwiN/gatus/v5/alerting/provider/signal"
@@ -66,6 +67,7 @@ import (
 func TestLoadConfiguration(t *testing.T) {
 	yes := true
 	dir := t.TempDir()
+	symlinkDir := dir + "-sym"
 	scenarios := []struct {
 		name           string
 		configPath     string            // value to pass as the configPath parameter in LoadConfiguration
@@ -141,6 +143,27 @@ endpoints:
 				"config.yaml": "",
 			},
 			expectedError: ErrNoEndpointOrSuiteInConfig,
+		},
+		{
+			name:       "dir-symlink",
+			configPath: symlinkDir,
+			pathAndFiles: map[string]string{
+				"config.yaml": `
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"`,
+			},
+			expectedConfig: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:       "website",
+						URL:        "https://twin.sh/health",
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
 		},
 		{
 			name:       "dir-with-two-config-files",
@@ -263,10 +286,14 @@ endpoints:
 					t.Fatalf("[%s] failed to write file: %v", scenario.name, err)
 				}
 			}
+			if err := os.Symlink(dir, symlinkDir); err != nil {
+				t.Fatalf("[%s] failed to write symlink: %v", scenario.name, err)
+			}
 			defer func(pathAndFiles map[string]string) {
 				for path := range pathAndFiles {
 					_ = os.Remove(filepath.Join(dir, path))
 				}
+				_ = os.Remove(symlinkDir)
 			}(scenario.pathAndFiles)
 			config, err := LoadConfiguration(scenario.configPath)
 			if !errors.Is(err, scenario.expectedError) {
@@ -314,20 +341,32 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
 		if config.HasLoadedConfigurationBeenModified() {
 			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return false because nothing has happened since it was created")
 		}
-		time.Sleep(time.Second) // Because the file mod time only has second precision, we have to wait for a second
-		// Update the config file
-		if err = os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(`endpoints:
+		if err = os.WriteFile(configFilePath, []byte(`endpoints:
   - name: website
     url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"`), 0o644); err != nil {
 			t.Fatalf("failed to overwrite config file: %v", err)
 		}
+		// File mod times have second precision, so advance it explicitly.
+		future := time.Now().Add(2 * time.Second)
+		if err = os.Chtimes(configFilePath, future, future); err != nil {
+			t.Fatalf("failed to advance config file mod time: %v", err)
+		}
 		if !config.HasLoadedConfigurationBeenModified() {
-			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because a new file has been added in the directory")
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because the config file has been modified")
 		}
 	})
 	t.Run("config-directory-as-config-path", func(t *testing.T) {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(`endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`), 0o644); err != nil {
+			t.Fatalf("failed to write config file: %v", err)
+		}
 		config, err := LoadConfiguration(dir)
 		if err != nil {
 			t.Fatalf("failed to load configuration: %v", err)
@@ -335,10 +374,13 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
 		if config.HasLoadedConfigurationBeenModified() {
 			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return false because nothing has happened since it was created")
 		}
-		time.Sleep(time.Second) // Because the file mod time only has second precision, we have to wait for a second
-		// Update the config file
 		if err = os.WriteFile(filepath.Join(dir, "metrics.yaml"), []byte(`metrics: true`), 0o644); err != nil {
-			t.Fatalf("failed to overwrite config file: %v", err)
+			t.Fatalf("failed to add config file: %v", err)
+		}
+		// File mod times have second precision, so advance it explicitly.
+		future := time.Now().Add(2 * time.Second)
+		if err = os.Chtimes(filepath.Join(dir, "metrics.yaml"), future, future); err != nil {
+			t.Fatalf("failed to advance config file mod time: %v", err)
 		}
 		if !config.HasLoadedConfigurationBeenModified() {
 			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because a new file has been added in the directory")
@@ -1882,6 +1924,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		PagerDuty:             &pagerduty.AlertProvider{},
 		Plivo:                 &plivo.AlertProvider{},
 		Pushover:              &pushover.AlertProvider{},
+		Resend:                &resend.AlertProvider{},
 		RocketChat:            &rocketchat.AlertProvider{},
 		SendGrid:              &sendgrid.AlertProvider{},
 		Signal:                &signal.AlertProvider{},
@@ -1928,6 +1971,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypePagerDuty, expected: alertingConfig.PagerDuty},
 		{alertType: alert.TypePlivo, expected: alertingConfig.Plivo},
 		{alertType: alert.TypePushover, expected: alertingConfig.Pushover},
+		{alertType: alert.TypeResend, expected: alertingConfig.Resend},
 		{alertType: alert.TypeRocketChat, expected: alertingConfig.RocketChat},
 		{alertType: alert.TypeSendGrid, expected: alertingConfig.SendGrid},
 		{alertType: alert.TypeSignal, expected: alertingConfig.Signal},

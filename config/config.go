@@ -263,7 +263,11 @@ func walkConfigDir(path string, fn fs.WalkDirFunc) error {
 		// If the user didn't provide a directory, we'll just use the default config file, so we can return nil now.
 		return nil
 	}
-	return filepath.WalkDir(path, func(path string, d fs.DirEntry, err error) error {
+	resolvedPath, err := filepath.EvalSymlinks(path)
+	if err != nil {
+		return nil
+	}
+	return filepath.WalkDir(resolvedPath, func(path string, d fs.DirEntry, err error) error {
 		if err != nil {
 			return nil
 		}
@@ -577,8 +581,13 @@ func ValidateUniqueKeys(config *Config) error {
 func ValidateSecurityConfig(config *Config) error {
 	if config.Security != nil {
 		if !config.Security.ValidateAndSetDefaults() {
-			logr.Debug("[config.ValidateSecurityConfig] Basic security configuration has been validated")
 			return ErrInvalidSecurityConfig
+		}
+		if config.Security.OIDC != nil {
+			logr.Infof("[config.ValidateSecurityConfig] OIDC security configuration validated for issuer '%s'", config.Security.OIDC.IssuerURL)
+		}
+		if config.Security.Basic != nil {
+			logr.Info("[config.ValidateSecurityConfig] Basic security configuration validated")
 		}
 	}
 	return nil
@@ -621,6 +630,7 @@ func ValidateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypePagerDuty,
 		alert.TypePlivo,
 		alert.TypePushover,
+		alert.TypeResend,
 		alert.TypeRocketChat,
 		alert.TypeSendGrid,
 		alert.TypeSignal,
