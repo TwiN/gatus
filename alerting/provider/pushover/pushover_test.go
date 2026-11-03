@@ -3,6 +3,7 @@ package pushover
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -262,5 +263,16 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 				t.Errorf("unexpected error: %s", err)
 			}
 		})
+	}
+}
+
+func TestAlertProvider_TitlePlaceholders(t *testing.T) {
+	t.Parallel()
+	provider := AlertProvider{}
+	cfg := Config{Title: "[ALERT_TRIGGERED_OR_RESOLVED] [ENDPOINT_GROUP]/[ENDPOINT_NAME]"}
+	ep := endpoint.Endpoint{Name: "website", Group: "external"}
+	body := string(provider.buildRequestBody(&cfg, &ep, &alert.Alert{}, &endpoint.Result{}, false))
+	if !strings.Contains(body, "TRIGGERED external/website") {
+		t.Errorf("expected placeholders to be replaced, got %s", body)
 	}
 }

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/provider/placeholder"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"gopkg.in/yaml.v3"
@@ -139,16 +140,9 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if resolved {
 		return provider.CloseTask(cfg, ep)
 	}
-	// Replace placeholders
-	name := strings.ReplaceAll(cfg.Name, "[ENDPOINT_GROUP]", ep.Group)
-	name = strings.ReplaceAll(name, "[ENDPOINT_NAME]", ep.Name)
-	markdownContent := strings.ReplaceAll(cfg.MarkdownContent, "[ENDPOINT_GROUP]", ep.Group)
-	markdownContent = strings.ReplaceAll(markdownContent, "[ENDPOINT_NAME]", ep.Name)
-	markdownContent = strings.ReplaceAll(markdownContent, "[ALERT_DESCRIPTION]", alert.GetDescription())
-	markdownContent = strings.ReplaceAll(markdownContent, "[RESULT_ERRORS]", strings.Join(result.Errors, ", "))
 	body := map[string]interface{}{
-		"name":             name,
-		"markdown_content": markdownContent,
+		"name":             placeholder.Replace(cfg.Name, ep, alert, resolved),
+		"markdown_content": strings.ReplaceAll(placeholder.Replace(cfg.MarkdownContent, ep, alert, resolved), "[RESULT_ERRORS]", strings.Join(result.Errors, ", ")),
 		"assignees":        cfg.Assignees,
 		"status":           cfg.Status,
 		"notify_all":       *cfg.NotifyAll,

@@ -185,6 +185,39 @@ func TestAlertProvider_Send(t *testing.T) {
 	}
 }
 
+func TestAlertProvider_SendReplacesPlaceholders(t *testing.T) {
+	defer client.InjectHTTPClient(nil)
+	var requestBody map[string]any
+	client.InjectHTTPClient(&http.Client{Transport: test.MockRoundTripper(func(r *http.Request) *http.Response {
+		if err := json.NewDecoder(r.Body).Decode(&requestBody); err != nil {
+			t.Error("failed to decode request body:", err)
+		}
+		return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+	})})
+	provider := AlertProvider{DefaultConfig: Config{
+		ListID:          "test-list-id",
+		Token:           "test-token",
+		Name:            "[ALERT_TRIGGERED_OR_RESOLVED] [ENDPOINT] [ENDPOINT_GROUP]/[ENDPOINT_NAME] [RESULT_ERRORS]",
+		MarkdownContent: "[ENDPOINT] [ALERT_DESCRIPTION] [RESULT_ERRORS]",
+	}}
+	description := "healthcheck failed"
+	err := provider.Send(
+		&endpoint.Endpoint{Name: "website", Group: "external"},
+		&alert.Alert{Description: &description},
+		&endpoint.Result{Errors: []string{"error1", "error2"}},
+		false,
+	)
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if want := "TRIGGERED external/website external/website [RESULT_ERRORS]"; requestBody["name"] != want {
+		t.Errorf("expected name %q, got %q", want, requestBody["name"])
+	}
+	if want := "external/website healthcheck failed error1, error2"; requestBody["markdown_content"] != want {
+		t.Errorf("expected markdown_content %q, got %q", want, requestBody["markdown_content"])
+	}
+}
+
 func TestAlertProvider_GetDefaultAlert(t *testing.T) {
 	if (&AlertProvider{DefaultAlert: &alert.Alert{}}).GetDefaultAlert() == nil {
 		t.Error("expected default alert to be not nil")

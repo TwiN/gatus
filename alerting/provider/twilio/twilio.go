@@ -11,6 +11,7 @@ import (
 	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/provider/placeholder"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"gopkg.in/yaml.v3"
@@ -116,22 +117,18 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	if resolved {
 		if len(cfg.TextTwilioResolved) > 0 {
 			// Support both old {endpoint}/{description} and new [ENDPOINT]/[ALERT_DESCRIPTION] formats
-			message = cfg.TextTwilioResolved
+			message = placeholder.Replace(cfg.TextTwilioResolved, ep, alert, resolved)
 			message = strings.Replace(message, "{endpoint}", ep.DisplayName(), 1)
 			message = strings.Replace(message, "{description}", alert.GetDescription(), 1)
-			message = strings.Replace(message, "[ENDPOINT]", ep.DisplayName(), 1)
-			message = strings.Replace(message, "[ALERT_DESCRIPTION]", alert.GetDescription(), 1)
 		} else {
 			message = fmt.Sprintf("RESOLVED: %s - %s", ep.DisplayName(), alert.GetDescription())
 		}
 	} else {
 		if len(cfg.TextTwilioTriggered) > 0 {
 			// Support both old {endpoint}/{description} and new [ENDPOINT]/[ALERT_DESCRIPTION] formats
-			message = cfg.TextTwilioTriggered
+			message = placeholder.Replace(cfg.TextTwilioTriggered, ep, alert, resolved)
 			message = strings.Replace(message, "{endpoint}", ep.DisplayName(), 1)
 			message = strings.Replace(message, "{description}", alert.GetDescription(), 1)
-			message = strings.Replace(message, "[ENDPOINT]", ep.DisplayName(), 1)
-			message = strings.Replace(message, "[ALERT_DESCRIPTION]", alert.GetDescription(), 1)
 		} else {
 			message = fmt.Sprintf("TRIGGERED: %s - %s", ep.DisplayName(), alert.GetDescription())
 		}
