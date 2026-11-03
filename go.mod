@@ -28,7 +28,7 @@ require (
 	github.com/valyala/fasthttp v1.71.0
 	github.com/wcharczuk/go-chart/v2 v2.1.2
 	golang.org/x/crypto v0.55.0
-	golang.org/x/oauth2 v0.36.0
+	golang.org/x/oauth2 v0.37.0
 	golang.org/x/sync v0.22.0
 	google.golang.org/api v0.280.0
 	google.golang.org/grpc v1.84.0
