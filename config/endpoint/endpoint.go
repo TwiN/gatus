@@ -185,6 +185,8 @@ func (e *Endpoint) Type() Type {
 		return TypeWS
 	case strings.HasPrefix(e.URL, "ssh://"):
 		return TypeSSH
+	case strings.HasPrefix(e.URL, ContextPlaceholder):
+		return TypeHTTP
 	default:
 		return TypeUNKNOWN
 	}
@@ -256,11 +258,26 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 		return ErrUnknownEndpointType
 	}
 	// Make sure that the request can be created
-	_, err := http.NewRequest(e.Method, e.URL, bytes.NewBuffer([]byte(e.getParsedBody())))
+	_, err := http.NewRequest(e.Method, e.getURLToValidate(), bytes.NewBuffer([]byte(e.getParsedBody())))
 	if err != nil {
 		return err
 	}
 	return nil
+}
+
+func (e *Endpoint) getURLToValidate() string {
+	urlToValidate := e.URL
+	if strings.Contains(urlToValidate, ContextPlaceholder) {
+		if strings.HasPrefix(urlToValidate, ContextPlaceholder) {
+			contextRegex := regexp.MustCompile(`^\[CONTEXT\]\.[\w\.\-]+`)
+			urlToValidate = contextRegex.ReplaceAllString(urlToValidate, "https://example.com")
+		}
+		portRegex := regexp.MustCompile(`:\[CONTEXT\]\.[\w\.\-]+`)
+		urlToValidate = portRegex.ReplaceAllString(urlToValidate, ":80")
+		contextRegex := regexp.MustCompile(`\[CONTEXT\]\.[\w\.\-]+`)
+		urlToValidate = contextRegex.ReplaceAllString(urlToValidate, "example.com")
+	}
+	return urlToValidate
 }
 
 // DisplayName returns an identifier made up of the Name and, if not empty, the Group.
