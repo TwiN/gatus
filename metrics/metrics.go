@@ -19,6 +19,7 @@ var (
 	resultCertificateExpirationSeconds *prometheus.GaugeVec
 	resultDomainExpirationSeconds      *prometheus.GaugeVec
 	resultEndpointSuccess              *prometheus.GaugeVec
+	endpointMaintenance                *endpointMaintenanceCollector
 
 	// Suite metrics
 	suiteResultTotal           *prometheus.CounterVec
@@ -57,6 +58,9 @@ func UnregisterPrometheusMetrics() {
 	}
 	if resultEndpointSuccess != nil {
 		currentRegisterer.Unregister(resultEndpointSuccess)
+	}
+	if endpointMaintenance != nil {
+		currentRegisterer.Unregister(endpointMaintenance)
 	}
 
 	// Unregister suite metrics
@@ -136,6 +140,9 @@ func InitializePrometheusMetrics(cfg *config.Config, reg prometheus.Registerer) 
 		Help:      "Displays whether or not the endpoint was a success",
 	}, append([]string{"key", "group", "name", "type"}, extraLabels...))
 	reg.MustRegister(resultEndpointSuccess)
+
+	endpointMaintenance = newEndpointMaintenanceCollector(cfg, extraLabels)
+	reg.MustRegister(endpointMaintenance)
 
 	// Suite metrics
 	suiteResultTotal = prometheus.NewCounterVec(prometheus.CounterOpts{
