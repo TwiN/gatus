@@ -5,7 +5,8 @@
   "scripts": {
     "serve": "vue-cli-service serve --mode development",
     "build": "vue-cli-service build --modern --mode production",
-    "lint": "vue-cli-service lint"
+    "lint": "vue-cli-service lint && eslint src/utils/dashboard-query.mjs",
+    "test:unit": "node --test tests/dashboard-query.test.js"
   },
   "dependencies": {
     "chart.js": "^4.5.1",
