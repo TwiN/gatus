@@ -137,6 +137,17 @@ type Endpoint struct {
 	NumberOfSuccessesInARow int `yaml:"-"`
 
 	// LastReminderSent is the time at which the last reminder was sent for this endpoint.
+	// It is yaml:"-" and is never written to storage, so after a restart it is the zero
+	// value even when a triggered alert is restored. initializeStorage therefore seeds it
+	// to time.Now() for every restored triggered alert so that minimum-reminder-interval
+	// is measured from process start rather than from the actual last send.
+	//
+	// Tradeoff: the first reminder after a restart is delayed by the full
+	// MinimumReminderInterval, even if a reminder was sent moments before shutdown.
+	// For a process that has been up for weeks that gap is effectively unbounded.
+	// Persisting this timestamp (or a dedicated lastReminderAt) would be more
+	// accurate but requires a storage-format change; the in-memory seed is the
+	// approximation used here (#1854).
 	LastReminderSent time.Time `yaml:"-"`
 
 	///////////////////////

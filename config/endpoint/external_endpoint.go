@@ -54,6 +54,12 @@ type ExternalEndpoint struct {
 	// so the copy's value must be synced back here after every HandleAlerting
 	// call, or every heartbeat tick / pushed result would see a zero value and
 	// re-send the alert, ignoring minimum-reminder-interval (#1765).
+	//
+	// Like Endpoint.LastReminderSent this field is yaml:"-" and is never persisted.
+	// initializeStorage seeds it to time.Now() when a triggered alert is restored,
+	// so the first reminder after a restart is delayed by the full
+	// MinimumReminderInterval rather than firing immediately (#1854). See
+	// Endpoint.LastReminderSent for the persistence tradeoff.
 	LastReminderSent time.Time `yaml:"-"`
 }
 
