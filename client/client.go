@@ -149,8 +149,8 @@ func CanCreateSCTPConnection(address string, config *Config) bool {
 
 // CanPerformStartTLS checks whether a connection can be established to an address using the STARTTLS protocol
 func CanPerformStartTLS(address string, config *Config) (connected bool, certificate *x509.Certificate, err error) {
-	hostAndPort := strings.Split(address, ":")
-	if len(hostAndPort) != 2 {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
 		return false, nil, errors.New("invalid address for starttls, format must be host:port")
 	}
 
@@ -186,13 +186,13 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 		}
 	}
 
-	smtpClient, err := smtp.NewClient(connection, hostAndPort[0])
+	smtpClient, err := smtp.NewClient(connection, host)
 	if err != nil {
 		return
 	}
 	err = smtpClient.StartTLS(&tls.Config{
 		InsecureSkipVerify: config.Insecure,
-		ServerName:         hostAndPort[0],
+		ServerName:         host,
 	})
 	if err != nil {
 		return
@@ -246,19 +246,26 @@ func CanPerformTLS(address string, body string, config *Config) (connected bool,
 	return
 }
 
+// sshHostAndPort splits an SSH address into its host and port, which defaults to 22.
+// An IPv6 host takes brackets when it comes with a port ("[::1]:22"), and may go without them otherwise.
+func sshHostAndPort(address string) (host, port string, ok bool) {
+	if host, port, err := net.SplitHostPort(address); err == nil {
+		return host, port, true
+	}
+	host, opened := strings.CutPrefix(address, "[")
+	host, closed := strings.CutSuffix(host, "]")
+	if opened != closed || (strings.Contains(host, ":") && net.ParseIP(host) == nil) {
+		return "", "", false
+	}
+	return host, "22", true
+}
+
 // CanCreateSSHConnection checks whether a connection can be established and a command can be executed to an address
 // using the SSH protocol.
 func CanCreateSSHConnection(address, username, password, privateKey string, config *Config) (bool, *ssh.Client, error) {
-	var port string
-	if strings.Contains(address, ":") {
-		addressAndPort := strings.Split(address, ":")
-		if len(addressAndPort) != 2 {
-			return false, nil, errors.New("invalid address for ssh, format must be host:port")
-		}
-		address = addressAndPort[0]
-		port = addressAndPort[1]
-	} else {
-		port = "22"
+	address, port, ok := sshHostAndPort(address)
+	if !ok {
+		return false, nil, errors.New("invalid address for ssh, format must be host:port")
 	}
 
 	// Build auth methods: prefer parsed private key if provided, fall back to password.
@@ -306,16 +313,9 @@ func sshPasswordAuthMethods(password string) []ssh.AuthMethod {
 }
 
 func CheckSSHBanner(address string, cfg *Config) (bool, int, error) {
-	var port string
-	if strings.Contains(address, ":") {
-		addressAndPort := strings.Split(address, ":")
-		if len(addressAndPort) != 2 {
-			return false, 1, errors.New("invalid address for ssh, format must be ssh://host:port")
-		}
-		address = addressAndPort[0]
-		port = addressAndPort[1]
-	} else {
-		port = "22"
+	address, port, ok := sshHostAndPort(address)
+	if !ok {
+		return false, 1, errors.New("invalid address for ssh, format must be ssh://host:port")
 	}
 	dialer := net.Dialer{}
 	connStr := net.JoinHostPort(address, port)
