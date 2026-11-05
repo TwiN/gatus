@@ -25,8 +25,8 @@ import (
 // The push handler and the heartbeat ticker both handle an external endpoint, on copies of it that share its alerts. This
 // drives the real push route and the real heartbeat check at the same time and counts what the receiver gets.
 //
-// Run it with -race. The per-endpoint lock in HandleAlerting alone keeps the notification count at one, so removing the
-// lock from the push handler or from the heartbeat is only caught by the race detector, on the counters and the shared alerts.
+// Run it with -race. The two race on the counters and on the shared alerts unless both hold the lock of the external
+// endpoint, which the race detector catches when the lock is removed from the push handler or from the heartbeat.
 func TestExternalEndpointPushedAndHeartbeatCheckedConcurrentlySendsOneNotification(t *testing.T) {
 	var mutex sync.Mutex
 	var bodies []string

@@ -18,9 +18,6 @@ func HandleAlerting(ep *endpoint.Endpoint, result *endpoint.Result, alertingConf
 	if alertingConfig == nil {
 		return
 	}
-	// The alerts of an endpoint are shared between the copies of the endpoint that can be handled at the same time, and
-	// sending an alert takes a while, so the same alert must not be evaluated twice at once.
-	defer lockEndpoint(ep.Key())()
 	if result.Success {
 		handleAlertsToResolve(ep, result, alertingConfig)
 	} else {
@@ -104,6 +101,8 @@ func handleAlertsToResolve(ep *endpoint.Endpoint, result *endpoint.Result, alert
 			logr.Errorf("[watchdog.handleAlertsToResolve] Failed to delete persisted triggered endpoint alert for endpoint with key=%s: %s", ep.Key(), err.Error())
 		}
 		if !endpointAlert.IsSendingOnResolved() {
+			// No RESOLVED notification will carry the incident id, so the next incident must get a new one
+			clearIncidentID(endpointAlert)
 			logr.Debugf("[watchdog.handleAlertsToResolve] Not sending request to provider of alert with type=%s for endpoint with key=%s despite being RESOLVED, because send-on-resolved is set to false", endpointAlert.Type, ep.Key())
 			continue
 		}
@@ -113,25 +112,21 @@ func handleAlertsToResolve(ep *endpoint.Endpoint, result *endpoint.Result, alert
 			err := alertProvider.Send(ep, endpointAlert, result, true)
 			if err != nil {
 				logr.Errorf("[watchdog.handleAlertsToResolve] Failed to send an alert for endpoint with key=%s: %s", ep.Key(), err.Error())
+			} else {
+				clearIncidentID(endpointAlert)
 			}
 		} else {
 			logr.Warnf("[watchdog.handleAlertsToResolve] Not sending alert of type=%s for endpoint with key=%s despite being RESOLVED, because the provider wasn't configured properly", endpointAlert.Type, ep.Key())
 		}
 	}
-	clearIncidentIDsOfResolvedAlerts(ep)
 	ep.NumberOfFailuresInARow = 0
 }
 
-// clearIncidentIDsOfResolvedAlerts clears the incident id of every custom alert that is no longer triggered, so that
-// the next incident gets a new one.
-//
-// This must run after the RESOLVED notification has been sent, because that notification carries the incident id.
-// It also covers an alert whose initial notification failed to send and whose endpoint has since recovered, as well as
-// an alert that has send-on-resolved set to false.
-func clearIncidentIDsOfResolvedAlerts(ep *endpoint.Endpoint) {
-	for _, endpointAlert := range ep.Alerts {
-		if endpointAlert.Type == alert.TypeCustom && !endpointAlert.Triggered {
-			endpointAlert.ResolveKey = ""
-		}
+// clearIncidentID discards the incident id of a custom alert once the receiver has been told that the incident is
+// resolved, or will never be told (send-on-resolved is false). When the RESOLVED notification fails, the id is kept:
+// the next incident reuses it, so the receiver, for which the incident is still open, eventually gets a RESOLVED for it.
+func clearIncidentID(endpointAlert *alert.Alert) {
+	if endpointAlert.Type == alert.TypeCustom {
+		endpointAlert.ResolveKey = ""
 	}
 }

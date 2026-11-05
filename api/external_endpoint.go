@@ -43,7 +43,7 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			return c.Status(401).SendString("invalid token")
 		}
 		// The heartbeat of the endpoint is handled concurrently, and both copy the endpoint and write its counters back
-		defer watchdog.LockExternalEndpoint(key)()
+		defer watchdog.LockExternalEndpoint(externalEndpoint)()
 		// Persist the result in the storage
 		result := &endpoint.Result{
 			Timestamp: time.Now(),

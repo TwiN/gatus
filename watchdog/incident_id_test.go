@@ -98,7 +98,7 @@ func TestHandleAlertingIncidentIDIsClearedWhenSendOnResolvedIsFalse(t *testing.T
 	}
 }
 
-func TestHandleAlertingIncidentIDIsReusedWhenTheInitialNotificationFailsThenClearedOnRecovery(t *testing.T) {
+func TestHandleAlertingIncidentIDIsReusedWhenTheInitialNotificationFails(t *testing.T) {
 	statusCode := http.StatusInternalServerError
 	bodies := incidentIDRecorder(t, &statusCode)
 	alertingConfig := newIncidentIDAlertingConfig()
@@ -114,11 +114,54 @@ func TestHandleAlertingIncidentIDIsReusedWhenTheInitialNotificationFailsThenClea
 	if len(*bodies) != 2 || (*bodies)[0] != (*bodies)[1] {
 		t.Fatalf("expected two attempts with the same incident id, got %v", *bodies)
 	}
-	// The endpoint recovers before the receiver does: nothing is sent, and the id of that incident must not leak
+	// The endpoint recovers before the receiver does: nothing is sent, and the receiver never heard of that id, so the
+	// next incident reuses it
 	HandleAlerting(ep, &endpoint.Result{Success: true}, alertingConfig)
 	statusCode = http.StatusOK
 	HandleAlerting(ep, &endpoint.Result{Success: false}, alertingConfig)
-	if len(*bodies) != 3 || (*bodies)[2] == (*bodies)[0] {
-		t.Errorf("expected a new incident id after the recovery, got %v", *bodies)
+	if len(*bodies) != 3 || (*bodies)[2] != (*bodies)[0] {
+		t.Fatalf("expected the next incident to reuse the incident id, got %v", *bodies)
+	}
+	// Once the RESOLVED notification is sent, the id is discarded
+	HandleAlerting(ep, &endpoint.Result{Success: true}, alertingConfig)
+	HandleAlerting(ep, &endpoint.Result{Success: false}, alertingConfig)
+	if len(*bodies) != 5 || (*bodies)[3] != "RESOLVED "+(*bodies)[0][len("TRIGGERED "):] || (*bodies)[4] == (*bodies)[0] {
+		t.Errorf("expected a RESOLVED with the id, then a new id for the next incident, got %v", *bodies)
+	}
+}
+
+func TestHandleAlertingIncidentIDIsKeptWhenTheResolvedNotificationFailsAndReusedByTheNextIncident(t *testing.T) {
+	statusCode := http.StatusOK
+	bodies := incidentIDRecorder(t, &statusCode)
+	alertingConfig := newIncidentIDAlertingConfig()
+	enabled := true
+	ep := &endpoint.Endpoint{
+		URL:    "https://example.com",
+		Alerts: []*alert.Alert{{Type: alert.TypeCustom, Enabled: &enabled, FailureThreshold: 1, SuccessThreshold: 1, SendOnResolved: &enabled}},
+	}
+	HandleAlerting(ep, &endpoint.Result{Success: false}, alertingConfig)
+	if len(*bodies) != 1 || len((*bodies)[0]) <= len("TRIGGERED ") {
+		t.Fatalf("expected a TRIGGERED notification with an incident id, got %v", *bodies)
+	}
+	id := (*bodies)[0][len("TRIGGERED "):]
+	// The RESOLVED notification fails and is not retried. The receiver still has the incident open, so the id is kept.
+	statusCode = http.StatusInternalServerError
+	HandleAlerting(ep, &endpoint.Result{Success: true}, alertingConfig)
+	if len(*bodies) != 2 || (*bodies)[1] != "RESOLVED "+id {
+		t.Fatalf("expected a failed attempt to resolve the incident %q, got %v", id, *bodies)
+	}
+	// The next incident reuses the id, and its RESOLVED, which the receiver gets, clears it
+	statusCode = http.StatusOK
+	HandleAlerting(ep, &endpoint.Result{Success: false}, alertingConfig)
+	HandleAlerting(ep, &endpoint.Result{Success: true}, alertingConfig)
+	if len(*bodies) != 4 || (*bodies)[2] != "TRIGGERED "+id || (*bodies)[3] != "RESOLVED "+id {
+		t.Fatalf("expected the next incident to reuse the id %q, got %v", id, *bodies)
+	}
+	if ep.Alerts[0].ResolveKey != "" {
+		t.Error("expected the incident id to be cleared once the RESOLVED notification is sent")
+	}
+	HandleAlerting(ep, &endpoint.Result{Success: false}, alertingConfig)
+	if len(*bodies) != 5 || (*bodies)[4] == "TRIGGERED "+id {
+		t.Errorf("expected a new incident id after the RESOLVED notification was sent, got %v", *bodies)
 	}
 }

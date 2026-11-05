@@ -2699,7 +2699,7 @@ Furthermore, you may use the following placeholders in the body (`alerting.custo
 - `[ENDPOINT_URL]` (resolved from `endpoints[].url`)
 - `[RESULT_ERRORS]` (resolved from the health evaluation of a given health check)
 - `[RESULT_CONDITIONS]` (condition results from the health evaluation of a given health check)
-- `[INCIDENT_ID]` (a unique id generated when the alert triggers; see below)
+- `[INCIDENT_ID]` (a unique id generated when the first notification of an incident is sent; see below)
 
 If you have an alert using the `custom` provider with `send-on-resolved` set to `true`, you can use the
 `[ALERT_TRIGGERED_OR_RESOLVED]` placeholder to differentiate the notifications.
@@ -2746,10 +2746,14 @@ As a result, the `[ALERT_TRIGGERED_OR_RESOLVED]` in the body of first example of
 
 The `[INCIDENT_ID]` placeholder is replaced by a random UUID that identifies the incident, which allows a receiver to
 deduplicate notifications and to pair a `RESOLVED` notification with the `TRIGGERED` one that it closes:
-- The id is generated when the alert triggers, and is reused by every reminder (`minimum-reminder-interval`) as well as
+- The id is generated when the first notification of an incident is sent, and is reused by every reminder (`minimum-reminder-interval`) as well as
   by the `RESOLVED` notification of that incident.
 - If the initial notification fails to send, it is attempted again on the next failing check, with the same id.
-- Once the alert is resolved, the id is discarded. The next time the alert triggers, it gets a new id.
+- Once the `RESOLVED` notification is sent (or when `send-on-resolved` is `false`), the id is discarded. The next time the
+  alert triggers, it gets a new id.
+- A `RESOLVED` notification that fails to send is not attempted again. The id is kept and carried over to the next incident,
+  so that the receiver, for which the incident is still open, can close it with a later `RESOLVED`. The cost is that the
+  two outages look like one incident to the receiver.
 - With a SQL [storage](#storage) (`sqlite` or `postgres`), the id survives a restart of Gatus, so an incident that is
   ongoing when Gatus restarts is still resolved with the id it was triggered with. With the default in-memory storage,
   triggered alerts are not persisted and neither are their ids.
