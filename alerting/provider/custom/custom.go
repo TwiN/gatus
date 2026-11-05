@@ -85,7 +85,10 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	if err != nil {
 		return err
 	}
-	request := provider.buildHTTPRequest(cfg, ep, alert, result, resolved)
+	request, err := provider.buildHTTPRequest(cfg, ep, alert, result, resolved)
+	if err != nil {
+		return err
+	}
 	response, err := client.GetHTTPClient(cfg.ClientConfig).Do(request)
 	if err != nil {
 		return err
@@ -98,7 +101,7 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 	return err
 }
 
-func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) *http.Request {
+func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) (*http.Request, error) {
 	body, url, method := cfg.Body, cfg.URL, cfg.Method
 	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alert.GetDescription())
 	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", alert.GetDescription())
@@ -141,11 +144,14 @@ func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoi
 		method = http.MethodGet
 	}
 	bodyBuffer := bytes.NewBuffer([]byte(body))
-	request, _ := http.NewRequest(method, url, bodyBuffer)
+	request, err := http.NewRequest(method, url, bodyBuffer)
+	if err != nil {
+		return nil, err
+	}
 	for k, v := range cfg.Headers {
 		request.Header.Set(k, v)
 	}
-	return request
+	return request, nil
 }
 
 // GetAlertStatePlaceholderValue returns the Placeholder value for ALERT_TRIGGERED_OR_RESOLVED if configured
