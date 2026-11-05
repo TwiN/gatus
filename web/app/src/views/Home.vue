@@ -59,8 +59,8 @@
               class="endpoint-group-header flex items-center justify-between p-4 bg-card border-b cursor-pointer hover:bg-accent/50 transition-colors"
             >
               <div class="flex items-center gap-3">
-                <ChevronDown v-if="uncollapsedGroups.has(group)" class="h-5 w-5 text-muted-foreground" />
-                <ChevronUp v-else class="h-5 w-5 text-muted-foreground" />
+                <ChevronUp v-if="uncollapsedGroups.has(group)" class="h-5 w-5 text-muted-foreground" />
+                <ChevronDown v-else class="h-5 w-5 text-muted-foreground" />
                 <h2 class="text-xl font-semibold text-foreground">{{ group }}</h2>
               </div>
               <div class="flex items-center gap-2">
