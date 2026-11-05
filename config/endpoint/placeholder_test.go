@@ -38,6 +38,7 @@ func TestResolvePlaceholder(t *testing.T) {
 		{"ip", "[IP]", "127.0.0.1"},
 		{"response-time", "[RESPONSE_TIME]", "250"},
 		{"dns-rcode", "[DNS_RCODE]", "NOERROR"},
+		{"dns-answer", "[DNS_ANSWER]", `{"status":"success","items":[1,2,3],"user":{"name":"john","id":123}}`},
 		{"connected", "[CONNECTED]", "true"},
 		{"certificate-expiration", "[CERTIFICATE_EXPIRATION]", "2592000000"},
 		{"domain-expiration", "[DOMAIN_EXPIRATION]", "31536000000"},
@@ -46,11 +47,14 @@ func TestResolvePlaceholder(t *testing.T) {
 		// Case insensitive placeholders
 		{"status-lowercase", "[status]", "200"},
 		{"ip-mixed-case", "[Ip]", "127.0.0.1"},
+		{"dns-answer-lowercase", "[dns_answer]", `{"status":"success","items":[1,2,3],"user":{"name":"john","id":123}}`},
 
 		// Function wrappers on basic placeholders
 		{"len-status", "len([STATUS])", "3"},
 		{"len-ip", "len([IP])", "9"},
+		{"len-dns-answer", "len([DNS_ANSWER])", "68"},
 		{"has-status", "has([STATUS])", "true"},
+		{"has-dns-answer", "has([DNS_ANSWER])", "true"},
 		{"has-empty", "has()", "false"},
 
 		// JSONPath expressions

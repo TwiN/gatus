@@ -26,6 +26,11 @@ const (
 	// Values that could replace the placeholder: NOERROR, FORMERR, SERVFAIL, NXDOMAIN, NOTIMP, REFUSED
 	DNSRCodePlaceholder = "[DNS_RCODE]"
 
+	// DNSAnswerPlaceholder is a placeholder for the DNS query response answer
+	//
+	// Values that could replace the placeholder: 1.1.1.1, example.com., ...
+	DNSAnswerPlaceholder = "[DNS_ANSWER]"
+
 	// ResponseTimePlaceholder is a placeholder for the request response time, in milliseconds.
 	//
 	// Values that could replace the placeholder: 1, 500, 1000, ...
@@ -105,6 +110,7 @@ const (
 //   - [IP]: IP address from the response (e.g., "127.0.0.1")
 //   - [RESPONSE_TIME]: Response time in milliseconds (e.g., "250")
 //   - [DNS_RCODE]: DNS response code (e.g., "NOERROR", "NXDOMAIN")
+//   - [DNS_ANSWER]: DNS response answer (e.g., "1.1.1.1", "example.com.")
 //   - [CONNECTED]: Connection status (e.g., "true", "false")
 //   - [CERTIFICATE_EXPIRATION]: Certificate expiration time in milliseconds
 //   - [DOMAIN_EXPIRATION]: Domain expiration time in milliseconds
@@ -147,6 +153,8 @@ func ResolvePlaceholder(placeholder string, result *Result, ctx *gontext.Gontext
 		return formatWithFunction(strconv.FormatInt(result.Duration.Milliseconds(), 10), fn), nil
 	case DNSRCodePlaceholder:
 		return formatWithFunction(result.DNSRCode, fn), nil
+	case DNSAnswerPlaceholder:
+		return formatWithFunction(strings.TrimSpace(string(result.Body)), fn), nil
 	case ConnectedPlaceholder:
 		return formatWithFunction(strconv.FormatBool(result.Connected), fn), nil
 	case CertificateExpirationPlaceholder:

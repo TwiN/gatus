@@ -94,7 +94,7 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, re
 // hasBodyPlaceholder checks whether the condition has a BodyPlaceholder
 // Used for determining whether the response body should be read or not
 func (c Condition) hasBodyPlaceholder() bool {
-	return strings.Contains(string(c), BodyPlaceholder)
+	return strings.Contains(string(c), BodyPlaceholder) || strings.Contains(string(c), DNSAnswerPlaceholder)
 }
 
 // hasDomainExpirationPlaceholder checks whether the condition has a DomainExpirationPlaceholder
