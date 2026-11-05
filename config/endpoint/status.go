@@ -20,6 +20,8 @@ type Status struct {
 	// Events is a list of events
 	Events []*Event `json:"events,omitempty"`
 
+	Public bool `json:"public,omitempty"`
+
 	// Uptime information on the endpoint's uptime
 	//
 	// Used by the memory store.
@@ -29,13 +31,28 @@ type Status struct {
 }
 
 // NewStatus creates a new Status
-func NewStatus(group, name string) *Status {
+func NewStatus(group, name string, public bool) *Status {
 	return &Status{
 		Name:    name,
 		Group:   group,
 		Key:     key.ConvertGroupAndNameToKey(group, name),
 		Results: make([]*Result, 0),
 		Events:  make([]*Event, 0),
+		Public: public,
 		Uptime:  NewUptime(),
+	}
+}
+
+
+// EndpointStatusVisibility is a DTO used to manage an EndpointStatus visibility
+type EndpointStatusVisibility struct {
+	Key    string
+	Public bool
+}
+
+func NewEndpointStatusVisibility(key string, public bool) *EndpointStatusVisibility {
+	return &EndpointStatusVisibility{
+		Key:    key,
+		Public: public,
 	}
 }
