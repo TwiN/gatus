@@ -625,3 +625,21 @@ func TestAlertProvider_buildHTTPRequestEncodesValuesInAFormBody(t *testing.T) {
 		t.Errorf("expected %s, got %s", expected, body)
 	}
 }
+
+func TestAlertProvider_buildHTTPRequestInsertsThePlaceholderOverridesOfTheStateAsWritten(t *testing.T) {
+	// The operator writes the value of [ALERT_TRIGGERED_OR_RESOLVED] for the place of the placeholder, here a JSON object
+	cfg := Config{
+		Method: http.MethodPost,
+		Body:   `{"event": [ALERT_TRIGGERED_OR_RESOLVED]}`,
+		Placeholders: map[string]map[string]string{
+			"ALERT_TRIGGERED_OR_RESOLVED": {"TRIGGERED": `{"status":"degraded"}`},
+		},
+	}
+	body, _ := buildBody(t, cfg, &endpoint.Endpoint{}, &endpoint.Result{})
+	if expected := `{"event": {"status":"degraded"}}`; body != expected {
+		t.Errorf("expected %s, got %s", expected, body)
+	}
+	if !json.Valid([]byte(body)) {
+		t.Errorf("expected the body to be valid JSON, got %s", body)
+	}
+}

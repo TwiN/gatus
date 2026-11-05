@@ -112,7 +112,6 @@ func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoi
 		{"[ENDPOINT_GROUP]", ep.Group},
 		{"[ENDPOINT_URL]", ep.URL},
 		{"[RESULT_ERRORS]", strings.Join(result.Errors, ",")},
-		{"[ALERT_TRIGGERED_OR_RESOLVED]", provider.GetAlertStatePlaceholderValue(cfg, resolved)},
 	}
 	if len(result.ConditionResults) > 0 && strings.Contains(body+urlPath+urlQuery, "[RESULT_CONDITIONS]") {
 		var formattedConditionResults string
@@ -139,6 +138,12 @@ func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoi
 		pathPairs = append(pathPairs, value[0], url.PathEscape(value[1]))
 		queryPairs = append(queryPairs, value[0], url.QueryEscape(value[1]))
 	}
+	// The value of [ALERT_TRIGGERED_OR_RESOLVED] comes from the configuration of the provider, written for the place where
+	// the placeholder is (a JSON fragment in the body, say), so it is inserted as written, as it always was.
+	state := provider.GetAlertStatePlaceholderValue(cfg, resolved)
+	bodyPairs = append(bodyPairs, "[ALERT_TRIGGERED_OR_RESOLVED]", state)
+	pathPairs = append(pathPairs, "[ALERT_TRIGGERED_OR_RESOLVED]", state)
+	queryPairs = append(queryPairs, "[ALERT_TRIGGERED_OR_RESOLVED]", state)
 	body = strings.NewReplacer(bodyPairs...).Replace(body)
 	requestURL := strings.NewReplacer(pathPairs...).Replace(urlPath)
 	if hasQuery {
