@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"math"
+	"strings"
 )
 
 const (
@@ -40,6 +41,9 @@ type Config struct {
 
 	// TLS configuration (optional)
 	TLS *TLSConfig `yaml:"tls,omitempty"`
+
+	// CORS configuration (optional)
+	CORS *CORSConfig `yaml:"cors,omitempty"`
 }
 
 type TLSConfig struct {
@@ -48,6 +52,25 @@ type TLSConfig struct {
 
 	// PrivateKeyFile is the private key file for TLS in PEM format.
 	PrivateKeyFile string `yaml:"private-key-file,omitempty"`
+}
+
+// CORSConfig is the configuration for CORS
+type CORSConfig struct {
+	// AllowOrigins is a comma-separated list of origins that may access the resource.
+	// Example: "https://dashboard.example.com,https://other.example.com"
+	AllowOrigins string `yaml:"allow-origins"`
+
+	// AllowMethods is a comma-separated list of methods. Defaults to "GET,POST,OPTIONS" if empty.
+	AllowMethods string `yaml:"allow-methods,omitempty"`
+
+	// AllowHeaders is a comma-separated list of headers. Defaults to "Origin,Content-Type,Accept,Authorization" if empty.
+	AllowHeaders string `yaml:"allow-headers,omitempty"`
+
+	// AllowCredentials toggles Access-Control-Allow-Credentials. Defaults to false.
+	AllowCredentials bool `yaml:"allow-credentials,omitempty"`
+
+	// MaxAge sets Access-Control-Max-Age in seconds. Defaults to 0 (no caching).
+	MaxAge int `yaml:"max-age,omitempty"`
 }
 
 // GetDefaultConfig returns a Config struct with the default values
@@ -83,6 +106,12 @@ func (web *Config) ValidateAndSetDefaults() error {
 			return fmt.Errorf("invalid tls config: %w", err)
 		}
 	}
+	// Validate CORS
+	if web.CORS != nil {
+		if err := web.CORS.ValidateAndSetDefaults(); err != nil {
+			return fmt.Errorf("invalid cors config: %w", err)
+		}
+	}
 	return nil
 }
 
@@ -104,4 +133,21 @@ func (t *TLSConfig) isValid() error {
 		return nil
 	}
 	return errors.New("certificate-file and private-key-file must be specified")
+}
+
+// ValidateAndSetDefaults validates the CORS configuration and sets the default values if necessary.
+func (c *CORSConfig) ValidateAndSetDefaults() error {
+	if len(c.AllowOrigins) == 0 {
+		return errors.New("allow-origins must be specified when cors is enabled")
+	}
+	if c.AllowCredentials && (c.AllowOrigins == "*" || strings.Contains(c.AllowOrigins, "*")) {
+		return errors.New("allow-origins cannot contain '*' when allow-credentials is true")
+	}
+	if len(c.AllowMethods) == 0 {
+		c.AllowMethods = "GET,POST,OPTIONS"
+	}
+	if len(c.AllowHeaders) == 0 {
+		c.AllowHeaders = "Origin,Content-Type,Accept,Authorization"
+	}
+	return nil
 }
