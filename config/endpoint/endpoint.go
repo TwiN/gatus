@@ -340,6 +340,12 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 	}
 	result.Timestamp = time.Now()
 	// Clean up parameters that we don't need to keep in the results
+	if processedEndpoint.DNSConfig != nil && result.port != "" && (processedEndpoint.UIConfig.HideHostname || processedEndpoint.UIConfig.HidePort) {
+		address := net.JoinHostPort(result.Hostname, result.port)
+		for errIdx, errorString := range result.Errors {
+			result.Errors[errIdx] = redactDNSAddress(errorString, address, processedEndpoint.UIConfig.HideHostname)
+		}
+	}
 	if processedEndpoint.UIConfig.HideURL {
 		for errIdx, errorString := range result.Errors {
 			result.Errors[errIdx] = strings.ReplaceAll(errorString, processedEndpoint.URL, "<redacted>")
@@ -352,8 +358,10 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 		result.Hostname = "" // remove it from the result so it doesn't get exposed
 	}
 	if processedEndpoint.UIConfig.HidePort && len(result.port) > 0 {
-		for errIdx, errorString := range result.Errors {
-			result.Errors[errIdx] = strings.ReplaceAll(errorString, result.port, "<redacted>")
+		if processedEndpoint.DNSConfig == nil {
+			for errIdx, errorString := range result.Errors {
+				result.Errors[errIdx] = strings.ReplaceAll(errorString, result.port, "<redacted>")
+			}
 		}
 		result.port = ""
 	}
@@ -447,6 +455,22 @@ func dnsServerHostAndPort(address string) (host, port string) {
 	return strings.TrimSuffix(strings.TrimPrefix(address, "["), "]"), ""
 }
 
+// redactDNSAddress 只替换完整的目标地址，保留其他地址、较长端口和错误信息中的数字。
+func redactDNSAddress(message, address string, hideHostname bool) string {
+	host, _, err := net.SplitHostPort(address)
+	if err != nil {
+		return message
+	}
+	replacement := net.JoinHostPort(host, "<redacted>")
+	if hideHostname {
+		replacement = "<redacted>"
+	}
+	pattern := regexp.MustCompile(`(^|[^[:alnum:]_.:%\[\]-])` + regexp.QuoteMeta(address) + `\b`)
+	return pattern.ReplaceAllStringFunc(message, func(match string) string {
+		return strings.TrimSuffix(match, address) + replacement
+	})
+}
+
 func (e *Endpoint) getIP(result *Result) {
 	if ips, err := net.LookupIP(result.Hostname); err != nil {
 		result.AddError(err.Error())
@@ -469,7 +493,13 @@ func (e *Endpoint) call(result *Result) {
 	if endpointType == TypeDNS {
 		result.Connected, result.DNSRCode, result.Body, err = client.QueryDNS(e.DNSConfig.QueryType, e.DNSConfig.QueryName, e.URL)
 		if err != nil {
-			result.AddError(err.Error())
+			message := err.Error()
+			var networkError *net.OpError
+			if result.port != "" && (e.UIConfig.HideHostname || e.UIConfig.HidePort) && errors.As(err, &networkError) && networkError.Addr != nil {
+				// DNS 服务器使用域名时，网络错误中记录的目标可能是解析后的 IP 地址。
+				message = redactDNSAddress(message, networkError.Addr.String(), e.UIConfig.HideHostname)
+			}
+			result.AddError(message)
 			return
 		}
 		result.Duration = time.Since(startTime)

@@ -3250,6 +3250,23 @@ endpoints:
       - "[DNS_RCODE] == NOERROR"
 ```
 
+DNS server addresses can be hostnames, IPv4 addresses, or IPv6 addresses. Port `53` is used when omitted.
+For IPv6, `2001:db8::53` and `[2001:db8::53]` both use port `53`; an explicit port requires brackets,
+such as `[2001:db8::53]:5353`. Link-local addresses can include a zone, such as `[fe80::1%eth0]:53`.
+The interface must exist in the network namespace where Gatus runs. A custom `client.dns-resolver` requires
+both a protocol and a port, for example `udp://[fe80::1%eth0]:53` (use the literal `%eth0`, not `%25eth0`).
+
+> **Compatibility note:** DNS results now store and return `hostname` as the server host without IPv6 brackets
+> or a port. For example, `[2001:db8::53]:53` becomes `2001:db8::53`, and `8.8.8.8:5353` becomes `8.8.8.8`.
+> Consumers of the API's `hostname` field, stored results, or Opsgenie notifications that relied on the old
+> address format must account for this change. Previously stored results are not rewritten. Hostnames and
+> IPv4 addresses using the default port keep their existing `hostname` values. This correction also lets
+> `[IP]` conditions resolve the DNS server's address.
+>
+> For DNS errors, `ui.hide-hostname` continues to hide the full configured server address, including an
+> explicit port. `ui.hide-port` hides only the port of that server address; matching digits inside IP
+> addresses, other ports (such as `5353` when hiding `53`), or other error details remain visible.
+
 There are two placeholders that can be used in the conditions for endpoints of type DNS:
 - The placeholder `[BODY]` resolves to the output of the query. For instance, a query of type `A` would return an IPv4.
 - The placeholder `[DNS_RCODE]` resolves to the name associated to the response code returned by the query, such as

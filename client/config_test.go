@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"net/url"
+	"strings"
 	"testing"
 	"time"
 
@@ -103,6 +104,44 @@ func TestConfig_ValidateAndSetDefaults_withCustomDNSResolver(t *testing.T) {
 			err := cfg.ValidateAndSetDefaults()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateAndSetDefaults() error=%v, wantErr=%v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestConfig_parseDNSResolver(t *testing.T) {
+	scenarios := []struct {
+		resolver, protocol, host, port string
+	}{
+		{"udp://8.8.8.8:53", "udp", "8.8.8.8", "53"},
+		{"tcp://dns.google:5353", "tcp", "dns.google", "5353"},
+		{"udp://[2001:4860:4860::8888]:53", "udp", "2001:4860:4860::8888", "53"},
+		{"udp://[fe80::1%eth0]:53", "udp", "fe80::1%eth0", "53"},
+		{"tcp://[fe80::1%3]:5353", "tcp", "fe80::1%3", "5353"},
+		{"udp://[fe80::1%enp0s31f6.100]:53", "udp", "fe80::1%enp0s31f6.100", "53"},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.resolver, func(t *testing.T) {
+			cfg := &Config{DNSResolver: scenario.resolver}
+			if err := cfg.ValidateAndSetDefaults(); err != nil {
+				t.Fatal(err)
+			}
+			resolver, err := cfg.parseDNSResolver()
+			if err != nil {
+				t.Fatal(err)
+			}
+			if resolver.Protocol != scenario.protocol || resolver.Host != scenario.host || resolver.Port != scenario.port {
+				t.Errorf("parseDNSResolver() = %+v; want %s, %s, %s", resolver, scenario.protocol, scenario.host, scenario.port)
+			}
+			if address := net.JoinHostPort(resolver.Host, resolver.Port); address != strings.TrimPrefix(scenario.resolver, scenario.protocol+"://") {
+				t.Errorf("unexpected resolver dial address %q", address)
+			}
+		})
+	}
+	for _, resolver := range []string{"udp://[[::1]]:53", "udp://[::1:53", "udp://[fe80::1%]:53"} {
+		t.Run(resolver, func(t *testing.T) {
+			if err := (&Config{DNSResolver: resolver}).ValidateAndSetDefaults(); err == nil {
+				t.Error("expected malformed brackets or an empty zone to be rejected")
 			}
 		})
 	}
