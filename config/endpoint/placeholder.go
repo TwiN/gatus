@@ -215,7 +215,14 @@ func resolveJSONPathPlaceholder(placeholder string, fn functionType, originalPla
 	}
 	// Remove leading dot if present
 	path = strings.TrimPrefix(path, ".")
-	resolvedValue, resolvedLength, err := jsonpath.Eval(path, result.Body)
+	var resolvedValue string
+	var resolvedLength int
+	var err error
+	if result.bodyObject != nil && len(path) != 0 {
+		resolvedValue, resolvedLength, err = jsonpath.EvalFromObject(path, result.bodyObject)
+	} else {
+		resolvedValue, resolvedLength, err = jsonpath.Eval(path, result.Body)
+	}
 	if fn == functionHas {
 		return strconv.FormatBool(err == nil), nil
 	}

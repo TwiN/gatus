@@ -1,6 +1,7 @@
 package jsonpath
 
 import (
+	"encoding/json"
 	"testing"
 )
 
@@ -345,5 +346,60 @@ func TestEval(t *testing.T) {
 				t.Errorf("Expected output to be %v, but was %v", scenario.ExpectedOutput, output)
 			}
 		})
+	}
+}
+
+func TestArrayLen(t *testing.T) {
+	scenarios := []struct {
+		Name          string
+		Path          string
+		Data          string
+		ExpectedLen   int
+		ExpectedError bool
+	}{
+		{Name: "root-array", Path: "", Data: `[{"a":1},{"a":2},{"a":3}]`, ExpectedLen: 3},
+		{Name: "root-empty-array", Path: "", Data: `[]`, ExpectedLen: 0},
+		{Name: "key", Path: "servers", Data: `{"servers":[1,2]}`, ExpectedLen: 2},
+		{Name: "nested-key", Path: "status.servers", Data: `{"status":{"servers":[1,2,3,4]}}`, ExpectedLen: 4},
+		{Name: "key-after-index", Path: "data[1].items", Data: `{"data":[{"items":[1]},{"items":[1,2]}]}`, ExpectedLen: 2},
+		{Name: "empty-array", Path: "servers", Data: `{"servers":[]}`, ExpectedLen: 0},
+		{Name: "missing-key", Path: "servers", Data: `{}`, ExpectedError: true},
+		{Name: "not-an-array-string", Path: "servers", Data: `{"servers":"abc"}`, ExpectedError: true},
+		{Name: "not-an-array-object", Path: "servers", Data: `{"servers":{"a":1}}`, ExpectedError: true},
+		{Name: "root-not-an-array", Path: "", Data: `{"a":1}`, ExpectedError: true},
+		{Name: "invalid-json", Path: "servers", Data: `not json`, ExpectedError: true},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			length, err := ArrayLen(scenario.Path, []byte(scenario.Data))
+			if (err != nil) != scenario.ExpectedError {
+				t.Fatalf("expected error=%v, got %v", scenario.ExpectedError, err)
+			}
+			if length != scenario.ExpectedLen {
+				t.Errorf("expected length %d, got %d", scenario.ExpectedLen, length)
+			}
+		})
+	}
+}
+
+func TestFromObjectVariantsMatchBytesVariants(t *testing.T) {
+	data := []byte(`{"status":{"servers":[{"name":"a"},{"name":"b"}]},"count":2}`)
+	var object interface{}
+	if err := json.Unmarshal(data, &object); err != nil {
+		t.Fatal(err)
+	}
+	for _, path := range []string{"count", "status.servers[1].name", "status.servers", "status.nope"} {
+		expectedValue, expectedLength, expectedErr := Eval(path, data)
+		value, length, err := EvalFromObject(path, object)
+		if value != expectedValue || length != expectedLength || (err != nil) != (expectedErr != nil) {
+			t.Errorf("EvalFromObject(%q) = (%q, %d, %v), want (%q, %d, %v)", path, value, length, err, expectedValue, expectedLength, expectedErr)
+		}
+	}
+	for _, path := range []string{"status.servers", "status.nope", "count"} {
+		expectedLength, expectedErr := ArrayLen(path, data)
+		length, err := ArrayLenFromObject(path, object)
+		if length != expectedLength || (err != nil) != (expectedErr != nil) {
+			t.Errorf("ArrayLenFromObject(%q) = (%d, %v), want (%d, %v)", path, length, err, expectedLength, expectedErr)
+		}
 	}
 }
