@@ -521,7 +521,7 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 			}
 		case dns.TypeSOA:
 			if soa, ok := rr.(*dns.SOA); ok {
-				body = []byte(fmt.Sprintf("%s %s %d %d %d %d %d", soa.Ns, soa.Mbox, soa.Serial, soa.Refresh, soa.Retry, soa.Expire, soa.Minttl))
+				body = formatSOABody(soa)
 			}
 		case dns.TypeSRV:
 			if srv, ok := rr.(*dns.SRV); ok {
@@ -538,7 +538,22 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 			body = []byte("query type is not supported yet")
 		}
 	}
+	// Non-apex SOA queries typically return no Answer records and place the SOA
+	// in the Authority section instead. Fall back so [BODY] is still populated.
+	if len(body) == 0 && queryTypeAsUint16 == dns.TypeSOA {
+		for _, rr := range r.Ns {
+			if soa, ok := rr.(*dns.SOA); ok {
+				body = formatSOABody(soa)
+				break
+			}
+		}
+	}
 	return connected, dnsRcode, body, nil
+}
+
+// formatSOABody renders an SOA record in zone-file field order.
+func formatSOABody(soa *dns.SOA) []byte {
+	return []byte(fmt.Sprintf("%s %s %d %d %d %d %d", soa.Ns, soa.Mbox, soa.Serial, soa.Refresh, soa.Retry, soa.Expire, soa.Minttl))
 }
 
 // InjectHTTPClient is used to inject a custom HTTP client for testing purposes
