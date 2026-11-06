@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"sync"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/tunneling/sshtunnel"
@@ -20,7 +21,8 @@ import (
 )
 
 const (
-	defaultTimeout = 10 * time.Second
+	defaultTimeout   = 10 * time.Second
+	defaultMaxReuses = 3
 )
 
 var (
@@ -29,20 +31,21 @@ var (
 	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
 	ErrInvalidClientIAPConfig    = errors.New("invalid Identity-Aware-Proxy configuration: must define all fields for Google Identity-Aware-Proxy programmatic authentication (audience)")
 	ErrInvalidClientTLSConfig    = errors.New("invalid TLS configuration: certificate-file and private-key-file must be specified")
+	ErrInvalidClientMaxReuses    = errors.New("invalid max-reuses: must be greater than or equal to 0")
 
-	defaultConfig = Config{
+	defaultConfig = GetDefaultConfig()
+)
+
+// GetDefaultConfig returns a new default configuration
+func GetDefaultConfig() *Config {
+	return &Config{
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        defaultTimeout,
 		Network:        "ip",
 		StoreCookies:   false,
+		MaxReuses:      new(defaultMaxReuses),
 	}
-)
-
-// GetDefaultConfig returns a copy of the default configuration
-func GetDefaultConfig() *Config {
-	cfg := defaultConfig
-	return &cfg
 }
 
 // Config is the configuration for clients
@@ -58,6 +61,10 @@ type Config struct {
 
 	// Timeout for the client
 	Timeout time.Duration `yaml:"timeout"`
+
+	// MaxReuses is the number of requests a host can be sent before the idle connections are closed and a new
+	// connection is established, 0 meaning unlimited
+	MaxReuses *int `yaml:"max-reuses,omitempty"`
 
 	// DNSResolver override for the HTTP client
 	// Expected format is {protocol}://{host}:{port}, e.g. tcp://8.8.8.8:53
@@ -88,6 +95,14 @@ type Config struct {
 	StoreCookies bool `yaml:"store-cookies,omitempty"`
 
 	httpClient *http.Client
+
+	hostRequests *hostRequests
+}
+
+// hostRequests counts the number of requests sent to each host
+type hostRequests struct {
+	mutex  sync.Mutex
+	counts map[string]int
 }
 
 // DNSResolverConfig is the parsed configuration from the DNSResolver config string.
@@ -125,6 +140,11 @@ type TLSConfig struct {
 func (c *Config) ValidateAndSetDefaults() error {
 	if c.Timeout < time.Millisecond {
 		c.Timeout = 10 * time.Second
+	}
+	if c.MaxReuses == nil {
+		c.MaxReuses = new(defaultMaxReuses)
+	} else if *c.MaxReuses < 0 {
+		return ErrInvalidClientMaxReuses
 	}
 	if c.HasCustomDNSResolver() {
 		// Validate the DNS resolver now to make sure it will not return an error later.
@@ -224,6 +244,7 @@ func (c *Config) getHTTPClient() *http.Client {
 		tlsConfig = configureTLS(tlsConfig, *c.TLS)
 	}
 	if c.httpClient == nil {
+		c.hostRequests = &hostRequests{counts: make(map[string]int)}
 		c.httpClient = &http.Client{
 			Timeout: c.Timeout,
 			Transport: &http.Transport{
@@ -294,6 +315,22 @@ func (c *Config) getHTTPClient() *http.Client {
 		}
 	}
 	return c.httpClient
+}
+
+// EnforceMaxReuses must be called before each request to host. Once host has been requested MaxReuses times,
+// the idle connections are closed so that the next request establishes a new connection.
+func (c *Config) EnforceMaxReuses(host string) {
+	if c == nil || c.MaxReuses == nil || *c.MaxReuses < 1 {
+		return
+	}
+	httpClient := c.getHTTPClient()
+	c.hostRequests.mutex.Lock()
+	defer c.hostRequests.mutex.Unlock()
+	c.hostRequests.counts[host]++
+	if c.hostRequests.counts[host] > *c.MaxReuses {
+		httpClient.CloseIdleConnections()
+		c.hostRequests.counts[host] = 1
+	}
 }
 
 // validateIAPToken returns a boolean that will define if the Google identity-aware-proxy token can be fetched
