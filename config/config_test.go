@@ -1327,7 +1327,7 @@ endpoints:
 		t.Errorf("The failure threshold of the alert should've been %d, but it was %d", 10, config.Endpoints[0].Alerts[4].FailureThreshold)
 	}
 	if config.Endpoints[0].Alerts[4].SuccessThreshold != 8 {
-		t.Errorf("The default success threshold of the alert should've been %d because it was explicitly overriden, but it was %d", 8, config.Endpoints[0].Alerts[4].SuccessThreshold)
+		t.Errorf("The default success threshold of the alert should've been %d because it was explicitly overridden, but it was %d", 8, config.Endpoints[0].Alerts[4].SuccessThreshold)
 	}
 
 	if config.Endpoints[0].Alerts[5].Type != alert.TypeTelegram {
