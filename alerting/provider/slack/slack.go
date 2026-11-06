@@ -47,9 +47,14 @@ func (cfg *Config) Validate() error {
 func (cfg *Config) Merge(override *Config) {
 	if len(override.WebhookURL) > 0 {
 		cfg.WebhookURL = override.WebhookURL
+		cfg.BotToken = ""
+		cfg.ChannelID = ""
 	}
 	if len(override.BotToken) > 0 {
 		cfg.BotToken = override.BotToken
+		if len(override.WebhookURL) == 0 {
+			cfg.WebhookURL = ""
+		}
 	}
 	if len(override.ChannelID) > 0 {
 		cfg.ChannelID = override.ChannelID
@@ -85,11 +90,6 @@ func (provider *AlertProvider) Validate() error {
 				return ErrDuplicateGroupOverride
 			}
 			registeredGroups[override.Group] = true
-			cfg := provider.DefaultConfig
-			cfg.Merge(&override.Config)
-			if err := cfg.Validate(); err != nil {
-				return err
-			}
 		}
 	}
 	return provider.DefaultConfig.Validate()

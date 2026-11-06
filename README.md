@@ -2222,6 +2222,9 @@ Invite the bot to each destination channel (required for private channels); alte
 `chat:write.public` allows it to post to public channels without joining.
 Endpoints in the `production` group use the overridden channel; all other groups use the default channel.
 Both triggered and resolved alerts use the selected channel. Configure exactly one of `webhook-url` or `bot-token`.
+Group and alert overrides can switch authentication modes: setting `webhook-url` clears the inherited bot token and channel,
+while setting `bot-token` clears the inherited webhook URL. Bot mode requires a `channel-id` in the effective configuration.
+In webhook mode, `channel-id` is ignored; the incoming webhook determines the destination channel.
 
 Here's an example of what the notifications look like:
 

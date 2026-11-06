@@ -23,6 +23,7 @@ func TestConfig_Validate(t *testing.T) {
 	}{
 		{name: "missing credentials", err: ErrWebhookURLNotSet},
 		{name: "webhook", cfg: Config{WebhookURL: "https://example.com"}},
+		{name: "webhook ignores channel", cfg: Config{WebhookURL: "https://example.com", ChannelID: "C123"}},
 		{name: "bot", cfg: Config{BotToken: "test-token", ChannelID: "C123"}},
 		{name: "missing channel", cfg: Config{BotToken: "test-token"}, err: ErrChannelIDNotSet},
 		{name: "channel without credentials", cfg: Config{ChannelID: "C123"}, err: ErrWebhookURLNotSet},
@@ -35,6 +36,62 @@ func TestConfig_Validate(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
 			t.Parallel()
+			if err := scenario.cfg.Validate(); !errors.Is(err, scenario.err) {
+				t.Errorf("expected %v, got %v", scenario.err, err)
+			}
+		})
+	}
+}
+
+func TestConfig_Merge(t *testing.T) {
+	t.Parallel()
+	scenarios := []struct {
+		name     string
+		cfg      Config
+		override Config
+		want     Config
+		err      error
+	}{
+		{
+			name:     "bot to webhook",
+			cfg:      Config{BotToken: "test-token", ChannelID: "C123", Title: "Default title"},
+			override: Config{WebhookURL: "https://example.com"},
+			want:     Config{WebhookURL: "https://example.com", Title: "Default title"},
+		},
+		{
+			name:     "webhook to bot",
+			cfg:      Config{WebhookURL: "https://example.com"},
+			override: Config{BotToken: "test-token", ChannelID: "C123"},
+			want:     Config{BotToken: "test-token", ChannelID: "C123"},
+		},
+		{
+			name:     "bot token inherits channel",
+			cfg:      Config{BotToken: "test-token", ChannelID: "C123"},
+			override: Config{BotToken: "override-token"},
+			want:     Config{BotToken: "override-token", ChannelID: "C123"},
+		},
+		{
+			name:     "webhook to bot requires channel",
+			cfg:      Config{WebhookURL: "https://example.com"},
+			override: Config{BotToken: "test-token"},
+			want:     Config{BotToken: "test-token"},
+			err:      ErrChannelIDNotSet,
+		},
+		{
+			name:     "explicitly conflicting credentials remain invalid",
+			cfg:      Config{BotToken: "default-token", ChannelID: "C123"},
+			override: Config{WebhookURL: "https://example.com", BotToken: "test-token", ChannelID: "C456"},
+			want:     Config{WebhookURL: "https://example.com", BotToken: "test-token", ChannelID: "C456"},
+			err:      ErrMultipleAuthMethods,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+			scenario.cfg.Merge(&scenario.override)
+			if scenario.cfg != scenario.want {
+				t.Error("merged configuration does not match expected configuration")
+			}
 			if err := scenario.cfg.Validate(); !errors.Is(err, scenario.err) {
 				t.Errorf("expected %v, got %v", scenario.err, err)
 			}
@@ -87,6 +144,27 @@ func TestAlertProvider_ValidateWithOverride(t *testing.T) {
 	}
 	if err := providerWithValidOverride.Validate(); err != nil {
 		t.Error("provider should've been valid")
+	}
+}
+
+func TestAlertProvider_ValidateDefersOverrideValidation(t *testing.T) {
+	t.Parallel()
+	provider := AlertProvider{
+		DefaultConfig: Config{WebhookURL: "https://example.com"},
+		Overrides:     []Override{{Group: "production", Config: Config{BotToken: "test-token"}}},
+	}
+	if err := provider.Validate(); err != nil {
+		t.Fatalf("provider validation must allow partial overrides: %v", err)
+	}
+	if err := provider.ValidateOverrides("production", &alert.Alert{}); !errors.Is(err, ErrChannelIDNotSet) {
+		t.Errorf("expected missing channel error for effective configuration, got %v", err)
+	}
+	if err := provider.ValidateOverrides("staging", &alert.Alert{}); err != nil {
+		t.Errorf("unmatched override must not affect other groups: %v", err)
+	}
+	provider.Overrides = append(provider.Overrides, provider.Overrides[0])
+	if err := provider.Validate(); !errors.Is(err, ErrDuplicateGroupOverride) {
+		t.Errorf("expected duplicate group error, got %v", err)
 	}
 }
 
@@ -365,6 +443,54 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 		InputAlert     alert.Alert
 		ExpectedOutput Config
 	}{
+		{
+			Name: "bot-default-with-webhook-group",
+			Provider: AlertProvider{
+				DefaultConfig: Config{BotToken: "test-token", ChannelID: "C123"},
+				Overrides:     []Override{{Group: "group", Config: Config{WebhookURL: "https://example.com"}}},
+			},
+			InputGroup:     "group",
+			ExpectedOutput: Config{WebhookURL: "https://example.com"},
+		},
+		{
+			Name: "webhook-default-with-bot-group",
+			Provider: AlertProvider{
+				DefaultConfig: Config{WebhookURL: "https://example.com"},
+				Overrides:     []Override{{Group: "group", Config: Config{BotToken: "test-token", ChannelID: "C123"}}},
+			},
+			InputGroup:     "group",
+			ExpectedOutput: Config{BotToken: "test-token", ChannelID: "C123"},
+		},
+		{
+			Name: "alert-completes-partial-bot-group",
+			Provider: AlertProvider{
+				DefaultConfig: Config{WebhookURL: "https://example.com"},
+				Overrides:     []Override{{Group: "group", Config: Config{BotToken: "test-token"}}},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"channel-id": "C123"}},
+			ExpectedOutput: Config{BotToken: "test-token", ChannelID: "C123"},
+		},
+		{
+			Name: "alert-switches-bot-group-to-webhook",
+			Provider: AlertProvider{
+				DefaultConfig: Config{WebhookURL: "https://default.example.com"},
+				Overrides:     []Override{{Group: "group", Config: Config{BotToken: "test-token", ChannelID: "C123"}}},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"webhook-url": "https://alert.example.com"}},
+			ExpectedOutput: Config{WebhookURL: "https://alert.example.com"},
+		},
+		{
+			Name: "alert-switches-webhook-group-to-bot",
+			Provider: AlertProvider{
+				DefaultConfig: Config{BotToken: "test-token", ChannelID: "C123"},
+				Overrides:     []Override{{Group: "group", Config: Config{WebhookURL: "https://example.com"}}},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"bot-token": "override-token", "channel-id": "C456"}},
+			ExpectedOutput: Config{BotToken: "override-token", ChannelID: "C456"},
+		},
 		{
 			Name:           "bot-default",
 			Provider:       AlertProvider{DefaultConfig: Config{BotToken: "test-token", ChannelID: "C123"}},
