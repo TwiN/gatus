@@ -17,8 +17,9 @@ type Config struct {
 }
 
 type Instance struct {
-	EndpointPrefix string `yaml:"endpoint-prefix"`
-	URL            string `yaml:"url"`
+	EndpointPrefix string   `yaml:"endpoint-prefix"`
+	FilterGroups   []string `yaml:"filter-groups"`
+	URL            string   `yaml:"url"`
 }
 
 func (c *Config) ValidateAndSetDefaults() error {
