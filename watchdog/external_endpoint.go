@@ -39,6 +39,9 @@ func executeExternalEndpointHeartbeat(ee *endpoint.ExternalEndpoint, cfg *config
 		return
 	}
 	logr.Debugf("[watchdog.monitorExternalEndpointHeartbeat] Checking heartbeat for group=%s; endpoint=%s; key=%s", ee.Group, ee.Name, ee.Key())
+	// Recheck freshness and update alert state under the same lock as pushed results.
+	ee.Lock()
+	defer ee.Unlock()
 	convertedEndpoint := ee.ToEndpoint()
 	hasReceivedResultWithinHeartbeatInterval, err := store.Get().HasEndpointStatusNewerThan(ee.Key(), time.Now().Add(-ee.Heartbeat.Interval))
 	if err != nil {
