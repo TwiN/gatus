@@ -1,6 +1,16 @@
 <!doctype html><html lang="en" class="{{ .Theme }}"><head><meta charset="utf-8"/><script>window.config = {logo: "{{ .UI.Logo }}", header: "{{ .UI.Header }}", dashboardHeading: "{{ .UI.DashboardHeading }}", dashboardSubheading: "{{ .UI.DashboardSubheading }}", link: "{{ .UI.Link }}", buttons: [], maximumNumberOfResults: "{{ .UI.MaximumNumberOfResults }}", defaultSortBy: "{{ .UI.DefaultSortBy }}", defaultFilterBy: "{{ .UI.DefaultFilterBy }}", loginSubtitle: "{{ .UI.LoginSubtitle }}"};{{- range .UI.Buttons}}window.config.buttons.push({name:"{{ .Name }}",link:"{{ .Link }}"});{{end}}
       // Initialize theme immediately to prevent flash
+      // Precedence: valid ?theme= query > cookie > prefers-color-scheme
       (function() {
+        const themeFromUrl = new URLSearchParams(window.location.search).get('theme');
+        if (themeFromUrl === 'dark') {
+          document.documentElement.classList.add('dark');
+          return;
+        }
+        if (themeFromUrl === 'light') {
+          document.documentElement.classList.remove('dark');
+          return;
+        }
         const themeFromCookie = document.cookie.match(/theme=(dark|light);?/)?.[1];
         const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
         if (themeFromCookie === 'dark' || (!themeFromCookie && prefersDark)) {

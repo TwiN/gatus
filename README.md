@@ -558,6 +558,13 @@ Allows you to configure the application wide defaults for the dashboard's UI. So
 | `ui.default-filter-by`    | Default filter option for endpoints in the dashboard. Can be `none`, `failing`, or `unstable`. Note that user preferences override this. | `none`                                              |
 | `ui.login-subtitle`       | Subtitle displayed on the OIDC login page.                                                                                               | `System Monitoring Dashboard`                       |
 
+You can also force the dashboard theme via the URL query parameter `theme`, which is useful when embedding Gatus in an iframe:
+
+- `?theme=dark` — force dark mode
+- `?theme=light` — force light mode
+
+Precedence: a valid `theme` query parameter overrides the `theme` cookie, which in turn overrides `ui.dark-mode` / system preference. Invalid values are ignored.
+
 ### Announcements
 System-wide announcements allow you to display important messages at the top of the status page. These can be used to inform users about planned maintenance, ongoing issues, or general information. You can use markdown to format your announcements.
 
