@@ -1,6 +1,7 @@
 package api
 
 import (
+	"io/fs"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -8,10 +9,33 @@ import (
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/ui"
 	"github.com/TwiN/gatus/v5/security"
+	static "github.com/TwiN/gatus/v5/web"
 	"github.com/gofiber/fiber/v2"
 )
 
+// findStaticAsset resolves a glob (e.g. "js/app*.js") to the single matching path in the built
+// static FileSystem. filenameHashing in web/app/vue.config.js means the exact filename isn't
+// fixed -- this keeps the test correct whether hashing is on or off, instead of hardcoding
+// "app.js".
+func findStaticAsset(t *testing.T, pattern string) string {
+	t.Helper()
+	staticFileSystem, err := fs.Sub(static.FileSystem, static.RootPath)
+	if err != nil {
+		t.Fatal(err)
+	}
+	matches, err := fs.Glob(staticFileSystem, pattern)
+	if err != nil {
+		t.Fatalf("glob %s: %s", pattern, err)
+	}
+	if len(matches) != 1 {
+		t.Fatalf("expected exactly one match for %s, got %v", pattern, matches)
+	}
+	return "/" + matches[0]
+}
+
 func TestNew(t *testing.T) {
+	appJS := findStaticAsset(t, "js/app*.js")
+	chunkVendorsJS := findStaticAsset(t, "js/chunk-vendors*.js")
 	type Scenario struct {
 		Name         string
 		Path         string
@@ -48,23 +72,23 @@ func TestNew(t *testing.T) {
 		},
 		{
 			Name:         "app.js",
-			Path:         "/js/app.js",
+			Path:         appJS,
 			ExpectedCode: fiber.StatusOK,
 		},
 		{
 			Name:         "app.js-gzipped",
-			Path:         "/js/app.js",
+			Path:         appJS,
 			ExpectedCode: fiber.StatusOK,
 			Gzip:         true,
 		},
 		{
 			Name:         "chunk-vendors.js",
-			Path:         "/js/chunk-vendors.js",
+			Path:         chunkVendorsJS,
 			ExpectedCode: fiber.StatusOK,
 		},
 		{
 			Name:         "chunk-vendors.js-gzipped",
-			Path:         "/js/chunk-vendors.js",
+			Path:         chunkVendorsJS,
 			ExpectedCode: fiber.StatusOK,
 			Gzip:         true,
 		},
