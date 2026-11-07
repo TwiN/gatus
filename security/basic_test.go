@@ -21,3 +21,25 @@ func TestBasicConfig_IsValidWhenPasswordIsInvalidUsingBcrypt(t *testing.T) {
 		t.Error("basicConfig shouldn't have been valid")
 	}
 }
+
+func TestBasicConfig_IsValidWithAPITokens(t *testing.T) {
+	basicConfig := &BasicConfig{
+		Username:                        "admin",
+		PasswordBcryptHashBase64Encoded: "JDJhJDA4JDFoRnpPY1hnaFl1OC9ISlFsa21VS09wOGlPU1ZOTDlHZG1qeTFvb3dIckRBUnlHUmNIRWlT",
+		APITokens:                       []string{"token"},
+	}
+	if !basicConfig.isValid() {
+		t.Error("basicConfig should've been valid")
+	}
+}
+
+func TestBasicConfig_IsValidWhenAPITokenIsEmpty(t *testing.T) {
+	basicConfig := &BasicConfig{
+		Username:                        "admin",
+		PasswordBcryptHashBase64Encoded: "JDJhJDA4JDFoRnpPY1hnaFl1OC9ISlFsa21VS09wOGlPU1ZOTDlHZG1qeTFvb3dIckRBUnlHUmNIRWlT",
+		APITokens:                       []string{"token", ""},
+	}
+	if basicConfig.isValid() {
+		t.Error("basicConfig shouldn't have been valid")
+	}
+}
