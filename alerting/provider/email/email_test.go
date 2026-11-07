@@ -1,7 +1,9 @@
 package email
 
 import (
+	"strings"
 	"testing"
+	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/config/endpoint"
@@ -147,6 +149,92 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestAlertProvider_buildBatchedMessageSubjectAndBody(t *testing.T) {
+	description := "api down"
+	provider := AlertProvider{}
+	subject, body := provider.buildBatchedMessageSubjectAndBody([]batchMessage{
+		{endpoint: &endpoint.Endpoint{Name: "service-a", Group: "core", URL: "https://a.example.com"}, alert: &alert.Alert{Description: &description}, result: &endpoint.Result{ConditionResults: []*endpoint.ConditionResult{{Condition: "[STATUS] == 200", Success: false}}}, resolved: false},
+		{endpoint: &endpoint.Endpoint{Name: "service-b", Group: "core"}, alert: &alert.Alert{}, resolved: true},
+	})
+	if subject != "[Gatus] 1 service(s) DOWN / 1 service(s) recovered" {
+		t.Fatalf("expected batched subject, got %q", subject)
+	}
+	if !contains(body, "TRIGGERED (1)") || !contains(body, "RESOLVED (1)") {
+		t.Fatalf("expected body to contain both sections, got %q", body)
+	}
+	if !contains(body, "- core/service-a") || !contains(body, "URL: https://a.example.com") || !contains(body, "❌ [STATUS] == 200") {
+		t.Fatalf("expected triggered details in body, got %q", body)
+	}
+	if !contains(body, "- core/service-b") {
+		t.Fatalf("expected resolved service in body, got %q", body)
+	}
+}
+
+func TestAppendOrReplace_DedupesSameEndpointAndState(t *testing.T) {
+	messages := []batchMessage{{
+		endpoint: &endpoint.Endpoint{Name: "service-a", Group: "core"},
+		alert:    &alert.Alert{},
+		result:   &endpoint.Result{},
+		resolved: false,
+	}}
+	replaced := appendOrReplace(messages, batchMessage{
+		endpoint: &endpoint.Endpoint{Name: "service-a", Group: "core"},
+		alert:    &alert.Alert{},
+		result:   &endpoint.Result{ConditionResults: []*endpoint.ConditionResult{{Condition: "[STATUS] == 200", Success: false}}},
+		resolved: false,
+	})
+	if len(replaced) != 1 {
+		t.Fatalf("expected one deduped message, got %d", len(replaced))
+	}
+	if len(replaced[0].result.ConditionResults) != 1 {
+		t.Fatalf("expected replacement payload to be kept")
+	}
+}
+
+func TestAppendOrReplace_KeepsTriggeredAndResolvedSeparate(t *testing.T) {
+	messages := []batchMessage{{
+		endpoint: &endpoint.Endpoint{Name: "service-a", Group: "core"},
+		alert:    &alert.Alert{},
+		result:   &endpoint.Result{},
+		resolved: false,
+	}}
+	result := appendOrReplace(messages, batchMessage{
+		endpoint: &endpoint.Endpoint{Name: "service-a", Group: "core"},
+		alert:    &alert.Alert{},
+		result:   &endpoint.Result{},
+		resolved: true,
+	})
+	if len(result) != 2 {
+		t.Fatalf("expected triggered and resolved entries to both remain, got %d", len(result))
+	}
+}
+
+func TestBatchManager_TakeRemovesPendingEntry(t *testing.T) {
+	manager := &batchManager{entries: make(map[batchKey]*batchEntry)}
+	key := batchKey{from: "from@example.com", to: "to@example.com", host: "smtp.example.com", port: 587}
+	manager.entries[key] = &batchEntry{
+		cfg: &Config{From: "from@example.com", To: "to@example.com", Host: "smtp.example.com", Port: 587, Password: "password"},
+		messages: []batchMessage{{
+			endpoint: &endpoint.Endpoint{Name: "service-a"},
+			alert:    &alert.Alert{},
+			result:   &endpoint.Result{},
+			resolved: false,
+		}},
+		timer: time.NewTimer(time.Hour),
+	}
+	entry := manager.take(key)
+	if entry == nil {
+		t.Fatal("expected take to return the pending batch entry")
+	}
+	if len(manager.entries) != 0 {
+		t.Fatalf("expected take to remove pending entry, got %d", len(manager.entries))
+	}
+}
+
+func contains(s, needle string) bool {
+	return strings.Contains(s, needle)
 }
 
 func TestAlertProvider_GetDefaultAlert(t *testing.T) {
