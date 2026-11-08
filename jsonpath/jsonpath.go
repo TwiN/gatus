@@ -8,6 +8,11 @@ import (
 )
 
 // Eval is a half-baked json path implementation that needs some love
+//
+// Keys are separated by dots (i.e. data.name). Array elements are addressed by their index
+// between brackets (i.e. data[0].name). Object keys that contain dots must be wrapped in
+// single or double quotes between brackets (i.e. data["name.with.dots"]), because an unquoted
+// dot is always treated as a key separator.
 func Eval(path string, b []byte) (string, int, error) {
 	if len(path) == 0 && !(len(b) != 0 && b[0] == '[' && b[len(b)-1] == ']') {
 		// if there's no path AND the value is not a JSON array, then there's nothing to walk
@@ -24,7 +29,19 @@ func Eval(path string, b []byte) (string, int, error) {
 func walk(path string, object interface{}) (string, int, error) {
 	var keys []string
 	startOfCurrentKey, bracketDepth := 0, 0
+	var quoteCharacter byte
 	for i := range path {
+		// If we're inside a quoted accessor, everything up to the closing quote is part of the key
+		if quoteCharacter != 0 {
+			if path[i] == quoteCharacter {
+				quoteCharacter = 0
+			}
+			continue
+		}
+		if (path[i] == '"' || path[i] == '\'') && bracketDepth > 0 {
+			quoteCharacter = path[i]
+			continue
+		}
 		if path[i] == '[' {
 			bracketDepth++
 		} else if path[i] == ']' {
@@ -67,53 +84,70 @@ func walk(path string, object interface{}) (string, int, error) {
 }
 
 func extractValue(currentKey string, value interface{}) interface{} {
-	// Check if the current key ends with [#]
+	// Check if the current key has an accessor, i.e. [#] for an array index or ["key"] for an object key
 	if strings.HasSuffix(currentKey, "]") && strings.Contains(currentKey, "[") {
-		var isNestedArray bool
-		var index string
+		var hasMoreAccessors bool
+		var accessor string
 		startOfBracket, endOfBracket, bracketDepth := 0, 0, 0
+		var quoteCharacter byte
 		for i := range currentKey {
-			if currentKey[i] == '[' {
+			// If we're inside a quoted accessor, everything up to the closing quote is part of the key
+			if quoteCharacter != 0 {
+				if currentKey[i] == quoteCharacter {
+					quoteCharacter = 0
+				}
+				continue
+			}
+			if (currentKey[i] == '"' || currentKey[i] == '\'') && bracketDepth == 1 {
+				quoteCharacter = currentKey[i]
+			} else if currentKey[i] == '[' {
 				startOfBracket = i
 				bracketDepth++
 			} else if currentKey[i] == ']' && bracketDepth == 1 {
 				bracketDepth--
 				endOfBracket = i
-				index = currentKey[startOfBracket+1 : i]
+				accessor = currentKey[startOfBracket+1 : i]
 				if len(currentKey) > i+1 && currentKey[i+1] == '[' {
-					isNestedArray = true // there's more keys.
+					hasMoreAccessors = true // there's more accessors.
 				}
 				break
 			}
 		}
-		arrayIndex, err := strconv.Atoi(index)
-		if err != nil {
-			return nil
-		}
-		currentKeyWithoutIndex := currentKey[:startOfBracket]
-		// if currentKeyWithoutIndex contains only an index (i.e. [0] or 0)
-		if len(currentKeyWithoutIndex) == 0 {
-			array, _ := value.([]interface{})
-			if len(array) > arrayIndex {
-				if isNestedArray {
-					return extractValue(currentKey[endOfBracket+1:], array[arrayIndex])
-				}
-				return array[arrayIndex]
+		// Resolve the value that the accessor applies to. If there's a key before the accessor
+		// (i.e. data[0]), then the accessor applies to the value behind that key.
+		target := value
+		if keyBeforeAccessor := currentKey[:startOfBracket]; len(keyBeforeAccessor) > 0 {
+			valueAsMap, ok := value.(map[string]interface{})
+			if !ok || valueAsMap[keyBeforeAccessor] == nil {
+				return nil
 			}
-			return nil
+			target = valueAsMap[keyBeforeAccessor]
 		}
-		if value == nil || value.(map[string]interface{})[currentKeyWithoutIndex] == nil {
-			return nil
-		}
-		// if currentKeyWithoutIndex contains both a key and an index (i.e. data[0])
-		array, _ := value.(map[string]interface{})[currentKeyWithoutIndex].([]interface{})
-		if len(array) > arrayIndex {
-			if isNestedArray {
-				return extractValue(currentKey[endOfBracket+1:], array[arrayIndex])
+		var extractedValue interface{}
+		if key, isQuoted := unquote(accessor); isQuoted {
+			// A quoted accessor (i.e. ["key"]) is an object key rather than an array index.
+			// This is the only way to address keys that contain dots, because an unquoted dot
+			// is always treated as a key separator.
+			valueAsMap, ok := target.(map[string]interface{})
+			if !ok {
+				return nil
 			}
-			return array[arrayIndex]
+			extractedValue = valueAsMap[key]
+		} else {
+			arrayIndex, err := strconv.Atoi(accessor)
+			if err != nil || arrayIndex < 0 {
+				return nil
+			}
+			array, _ := target.([]interface{})
+			if len(array) <= arrayIndex {
+				return nil
+			}
+			extractedValue = array[arrayIndex]
 		}
-		return nil
+		if hasMoreAccessors {
+			return extractValue(currentKey[endOfBracket+1:], extractedValue)
+		}
+		return extractedValue
 	}
 	if valueAsSlice, ok := value.([]interface{}); ok {
 		// If the type is a slice, return it
@@ -128,4 +162,13 @@ func extractValue(currentKey string, value interface{}) interface{} {
 	// If the value is neither a map, nor a slice, nor an index, then we cannot retrieve the currentKey
 	// from said value. This usually happens when the body (value) is null.
 	return value
+}
+
+// unquote removes the surrounding single or double quotes from s, if there are any.
+// The second return value indicates whether s was quoted.
+func unquote(s string) (string, bool) {
+	if len(s) >= 2 && (s[0] == '"' || s[0] == '\'') && s[len(s)-1] == s[0] {
+		return s[1 : len(s)-1], true
+	}
+	return s, false
 }

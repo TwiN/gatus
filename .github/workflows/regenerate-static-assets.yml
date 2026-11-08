@@ -46,7 +46,7 @@ jobs:
             core.setOutput('ref', pr.data.head.ref);
             core.setOutput('repo', pr.data.head.repo.full_name);
       - name: Checkout PR branch
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: ${{ steps.pr.outputs.repo }}
           ref: ${{ steps.pr.outputs.ref }}

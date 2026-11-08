@@ -2,7 +2,6 @@
 
 ![test](https://github.com/TwiN/gatus/actions/workflows/test.yml/badge.svg)
 [![Go Report Card](https://goreportcard.com/badge/github.com/TwiN/gatus?)](https://goreportcard.com/report/github.com/TwiN/gatus)
-[![codecov](https://codecov.io/gh/TwiN/gatus/branch/master/graph/badge.svg)](https://codecov.io/gh/TwiN/gatus)
 [![Go version](https://img.shields.io/github/go-mod/go-version/TwiN/gatus.svg)](https://github.com/TwiN/gatus)
 [![Docker pulls](https://img.shields.io/docker/pulls/twinproduction/gatus.svg)](https://cloud.docker.com/repository/docker/twinproduction/gatus)
 [![Follow TwiN](https://img.shields.io/github/followers/TwiN?label=Follow&style=social)](https://github.com/TwiN)
@@ -58,6 +57,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Tunneling](#tunneling)
   - [Alerting](#alerting)
     - [Configuring AWS SES alerts](#configuring-aws-ses-alerts)
+    - [Configuring Bark alerts](#configuring-bark-alerts)
     - [Configuring ClickUp alerts](#configuring-clickup-alerts)
     - [Configuring Datadog alerts](#configuring-datadog-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
@@ -82,6 +82,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
     - [Configuring Plivo alerts](#configuring-plivo-alerts)
     - [Configuring Pushover alerts](#configuring-pushover-alerts)
+    - [Configuring Resend alerts](#configuring-resend-alerts)
     - [Configuring Rocket.Chat alerts](#configuring-rocketchat-alerts)
     - [Configuring SendGrid alerts](#configuring-sendgrid-alerts)
     - [Configuring Signal alerts](#configuring-signal-alerts)
@@ -480,6 +481,7 @@ Here are some examples of conditions you can use:
 | `[BODY] == 1`                    | The body must be equal to 1                         | 1                          | `{}`, `2`, ...   |
 | `[BODY].user.name == john`       | JSONPath value of `$.user.name` is equal to `john`  | `{"user":{"name":"john"}}` |                  |
 | `[BODY].data[0].id == 1`         | JSONPath value of `$.data[0].id` is equal to 1      | `{"data":[{"id":1}]}`      |                  |
+| `[BODY]["a.b"] == ok`            | JSONPath value of `$["a.b"]` is equal to `ok`       | `{"a.b":"ok"}`             |                  |
 | `[BODY].age == [BODY].id`        | JSONPath value of `$.age` is equal JSONPath `$.id`  | `{"age":1,"id":1}`         |                  |
 | `len([BODY].data) < 5`           | Array at JSONPath `$.data` has less than 5 elements | `{"data":[{"id":1}]}`      |                  |
 | `len([BODY].name) == 8`          | String at JSONPath `$.name` has a length of 8       | `{"name":"john.doe"}`      | `{"name":"bob"}` |
@@ -513,6 +515,11 @@ Here are some examples of conditions you can use:
 | `any`    | Specifies that any one of the values passed as parameters is a valid value. Works only with `==` and `!=`.                                                                                                                          | `[BODY].ip == any(127.0.0.1, ::1)` |
 
 > 💡 Use `pat` only when you need to. `[STATUS] == pat(2*)` is a lot more expensive than `[STATUS] < 300`.
+
+> 💡 Because an unquoted dot always separates two keys, object keys that contain dots must be wrapped in
+> single or double quotes between brackets. For instance, given the body
+> `{"status": {"core.integrations.key_1": "ok"}}`, the condition to use is
+> `[BODY].status["core.integrations.key_1"] == ok`.
 
 ### Web
 Allows you to configure how and where the dashboard is being served.
@@ -655,6 +662,7 @@ the client used to send the request.
 | `client.tls.renegotiation`             | Type of renegotiation support to provide. (`never`, `freely`, `once`).        | `"never"`       |
 | `client.network`                       | The network to use for ICMP endpoint client (`ip`, `ip4` or `ip6`).           | `"ip"`          |
 | `client.tunnel`                        | Name of the SSH tunnel to use for this endpoint. See [Tunneling](#tunneling). | `""`            |
+| `client.store-cookies`                 | Whether to store cookies between requests.                                    | `false`         |
 
 
 > 📝 Some of these parameters are ignored based on the type of endpoint. For instance, there's no certificate involved
@@ -667,6 +675,7 @@ client:
   insecure: false
   ignore-redirect: false
   timeout: 10s
+  store-cookies: false
 ```
 
 Note that this configuration is only available under `endpoints[]`, `alerting.mattermost` and `alerting.custom`.
@@ -783,6 +792,10 @@ endpoints:
       - "[STATUS] == 200"
 ```
 
+> [!NOTE]
+> As with [SSH endpoints](#monitoring-an-endpoint-using-ssh), password authentication also works with
+> servers that only offer the `keyboard-interactive` authentication method.
+
 > ⚠️ **WARNING**:: Tunneling may introduce additional latency, especially if the connection to the tunnel is retried frequently.
 > This may lead to inaccurate response time measurements.
 
@@ -837,6 +850,7 @@ endpoints:
 | Parameter                  | Description                                                                                                                             | Default |
 |:---------------------------|:----------------------------------------------------------------------------------------------------------------------------------------|:--------|
 | `alerting.awsses`          | Configuration for alerts of type `awsses`. <br />See [Configuring AWS SES alerts](#configuring-aws-ses-alerts).                         | `{}`    |
+| `alerting.bark`            | Configuration for alerts of type `bark`. <br />See [Configuring Bark alerts](#configuring-bark-alerts).                                 | `{}`    |
 | `alerting.clickup`         | Configuration for alerts of type `clickup`. <br />See [Configuring ClickUp alerts](#configuring-clickup-alerts).                        | `{}`    |
 | `alerting.custom`          | Configuration for custom actions on failure or alerts. <br />See [Configuring Custom alerts](#configuring-custom-alerts).               | `{}`    |
 | `alerting.datadog`         | Configuration for alerts of type `datadog`. <br />See [Configuring Datadog alerts](#configuring-datadog-alerts).                        | `{}`    |
@@ -862,6 +876,7 @@ endpoints:
 | `alerting.pagerduty`       | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).                  | `{}`    |
 | `alerting.plivo`           | Configuration for alerts of type `plivo`. <br />See [Configuring Plivo alerts](#configuring-plivo-alerts).                              | `{}`    |
 | `alerting.pushover`        | Configuration for alerts of type `pushover`. <br />See [Configuring Pushover alerts](#configuring-pushover-alerts).                     | `{}`    |
+| `alerting.resend`          | Configuration for alerts of type `resend`. <br />See [Configuring Resend alerts](#configuring-resend-alerts).                           | `{}`    |
 | `alerting.rocketchat`      | Configuration for alerts of type `rocketchat`. <br />See [Configuring Rocket.Chat alerts](#configuring-rocketchat-alerts).              | `{}`    |
 | `alerting.sendgrid`        | Configuration for alerts of type `sendgrid`. <br />See [Configuring SendGrid alerts](#configuring-sendgrid-alerts).                     | `{}`    |
 | `alerting.signal`          | Configuration for alerts of type `signal`. <br />See [Configuring Signal alerts](#configuring-signal-alerts).                           | `{}`    |
@@ -920,6 +935,64 @@ endpoints:
 If the `access-key-id` and `secret-access-key` are not defined Gatus will fall back to IAM authentication.
 
 Make sure you have the ability to use `ses:SendEmail`.
+
+
+#### Configuring Bark alerts
+
+| Parameter                            | Description                                                                                                                       | Default                 |
+|:-------------------------------------|:----------------------------------------------------------------------------------------------------------------------------------|:------------------------|
+| `alerting.bark`                      | Configuration for alerts of type `bark`                                                                                           | `{}`                    |
+| `alerting.bark.server-url`           | Base URL of the official or self-hosted Bark server. A URL ending in `/push` is also accepted                                    | `https://api.day.app`   |
+| `alerting.bark.device-key`           | Bark device key                                                                                                                   | Required `""`           |
+| `alerting.bark.title`                | Notification title. When empty, Gatus uses `Gatus: <endpoint>`                                                                    | `""`                    |
+| `alerting.bark.group`                | Bark notification group                                                                                                           | `""`                    |
+| `alerting.bark.sound`                | Bark notification sound                                                                                                           | `""`                    |
+| `alerting.bark.icon`                 | URL of the notification icon                                                                                                      | `""`                    |
+| `alerting.bark.url`                  | URL or URL scheme opened when the notification is selected                                                                        | `""`                    |
+| `alerting.bark.level`                | Bark notification level: `critical`, `active`, `timeSensitive`, or `passive`                                                     | `""`                    |
+| `alerting.bark.default-alert`        | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)                                       | N/A                     |
+| `alerting.bark.overrides`            | List of overrides selected by endpoint group                                                                                       | `[]`                    |
+| `alerting.bark.overrides[].group`    | Endpoint group for which the configuration is overridden                                                                          | `""`                    |
+| `alerting.bark.overrides[].*`        | See `alerting.bark.*` parameters, except `group`, which selects the endpoint group and inherits the default Bark notification group | `{}`                    |
+
+```yaml
+alerting:
+  bark:
+    server-url: "https://api.day.app"
+    device-key: "${BARK_DEVICE_KEY}"
+    group: "gatus"
+    default-alert:
+      failure-threshold: 3
+      success-threshold: 2
+      send-on-resolved: true
+    overrides:
+      - group: "production"
+        sound: "alarm"
+        level: "timeSensitive"
+
+endpoints:
+  - name: website
+    group: production
+    interval: 30s
+    url: "https://twin.sh/health"
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: bark
+        description: "health check failed"
+        provider-override:
+          title: "Production website"
+          group: "gatus-production"
+          level: "critical"
+```
+
+The device key is a push credential: anyone who has it can send notifications to the device. Keep it out of public
+configuration files and inject it through an environment variable such as `BARK_DEVICE_KEY`. Use HTTPS for remote
+Bark servers; an HTTP connection sends the device key without transport encryption.
+
+See the [Bark project](https://github.com/finb/bark) and the
+[Bark server API V2 documentation](https://github.com/Finb/bark-server/blob/master/docs/API_V2.md) for server and
+notification details.
 
 
 #### Configuring ClickUp alerts
@@ -1303,6 +1376,10 @@ Here's an example of what the notifications look like:
 
 
 #### Configuring HomeAssistant alerts
+
+> [!NOTE]
+> It is recommended to use the native Home Assistant integration instead (see below).
+
 | Parameter                                  | Description                                                                            | Default Value |
 |:-------------------------------------------|:---------------------------------------------------------------------------------------|:--------------|
 | `alerting.homeassistant.url`               | HomeAssistant instance URL                                                             | Required `""` |
@@ -1376,6 +1453,61 @@ To get your HomeAssistant long-lived access token:
 4. Click "Create Token"
 5. Give it a name (e.g., "Gatus")
 6. Copy the token - you'll only see it once!
+
+##### Native Home Assistant Integration
+
+Gatus can be integrated into [Home Assistant](https://www.home-assistant.io/) to monitor the status of your endpoints directly from your home automation dashboard.
+
+[![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=gatus)
+
+<details>
+  <summary>Configuration & Automation Examples</summary>
+
+###### Configuration
+
+To add the integration, click the button above or:
+
+1. In Home Assistant, navigate to **Settings** > **Devices & Services**.
+2. Click **Add Integration** in the bottom-right corner.
+3. Search for **Gatus** and select it.
+4. Enter the base URL of your Gatus instance (e.g., `http://192.168.1.50:8080`).
+
+Home Assistant will create a binary sensor for each endpoint configured in Gatus. Because these sensors use the `connectivity` device class, they will show as `Connected` (Up) when the endpoint is healthy, and `Disconnected` (Down) when the endpoint is unhealthy.
+
+###### Automation Example
+
+You can easily set up a UI automation in Home Assistant to receive mobile notifications if any endpoint goes down:
+
+1. Navigate to **Settings** > **Automations & Scenes** > **Create Automation** > **Create new automation**.
+2. Under **Triggers**, click **Add Trigger** and select **State**.
+3. In the **Entity** field, select the Gatus binary sensor(s) you want to monitor.
+4. Set the **To** field to `off` (since a state of `off` represents a disconnected/down endpoint).
+5. Under **Actions**, click **Add Action** and select **Perform action**.
+6. Select your notification service (e.g., `Send a notification via mobile_app_<your_device_name>`).
+7. Set the **Message** field. You can use template values to dynamically include the endpoint name:
+   ```yaml
+   message: "The endpoint {{ trigger.to_state.name }} is down!"
+   ```
+
+For advanced users, here is the YAML representation of the automation:
+
+```yaml
+alias: "Notify when Gatus endpoint goes down"
+description: "Sends a mobile notification if a Gatus endpoint goes down"
+trigger:
+  - platform: state
+    entity_id:
+      - binary_sensor.website
+      - binary_sensor.make_sure_header_is_rendered
+    to: "off"
+action:
+  - action: notify.mobile_app_your_device_name
+    data:
+      title: "Gatus Alert"
+      message: "The endpoint {{ trigger.to_state.name }} is down!"
+```
+
+</details>
 
 
 #### Configuring IFTTT alerts
@@ -1930,6 +2062,46 @@ endpoints:
 ```
 
 
+#### Configuring Resend alerts
+| Parameter                           | Description                                                                                         | Default       |
+|:------------------------------------|:----------------------------------------------------------------------------------------------------|:--------------|
+| `alerting.resend`                   | Configuration for alerts of type `resend`                                                           | `{}`          |
+| `alerting.resend.api-key`           | Resend API key                                                                                      | Required `""` |
+| `alerting.resend.from`              | Email address to send from (e.g. `alerts@example.com` or `Gatus <alerts@example.com>`)              | Required `""` |
+| `alerting.resend.to`                | Email address(es) to send alerts to (comma-separated for multiple recipients, up to 50)             | Required `""` |
+| `alerting.resend.client`            | Client configuration. <br />See [Client configuration](#client-configuration).                      | `{}`          |
+| `alerting.resend.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert)          | N/A           |
+| `alerting.resend.overrides`         | List of overrides that may be prioritized over the default configuration                            | `[]`          |
+| `alerting.resend.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration                 | `""`          |
+| `alerting.resend.overrides[].*`     | See `alerting.resend.*` parameters                                                                  | `{}`          |
+
+The `from` address must belong to a domain that has been verified in your Resend account.
+
+```yaml
+alerting:
+  resend:
+    api-key: "re_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"
+    from: "Gatus <alerts@example.com>"
+    to: "admin@example.com,ops@example.com"
+    # You can also add group-specific to keys, which will
+    # override the to key above for the specified groups
+    overrides:
+      - group: "core"
+        to: "core-team@example.com"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: resend
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
+
 #### Configuring Rocket.Chat alerts
 
 > ⚠️ **WARNING**: This alerting provider has not been tested yet. If you've tested it and confirmed that it works, please remove this warning and create a pull request, or comment on [#1223](https://github.com/TwiN/gatus/discussions/1223) with whether the provider works as intended. Thank you for your cooperation.
@@ -2470,7 +2642,7 @@ endpoints:
 | `alerting.zulip.bot-api-key`       | Bot API key                                                                         | Required `""` |
 | `alerting.zulip.domain`            | Full organization domain (e.g.: yourZulipDomain.zulipchat.com)                      | Required `""` |
 | `alerting.zulip.channel-id`        | The channel ID where Gatus will send the alerts                                     | Required `""` |
-| `alerting.zulip.topic`             | The topic name where Gatus will send the alerts                                     | `"Gatus"`     |
+| `alerting.zulip.topic`             | The topic under which the alerts will be sent.<br />Supports the `[ENDPOINT_NAME]`, `[ENDPOINT_GROUP]` and `[ALERT_DESCRIPTION]` placeholders. | `Gatus`       |
 | `alerting.zulip.overrides`         | List of overrides that may be prioritized over the default configuration            | `[]`          |
 | `alerting.zulip.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration | `""`          |
 | `alerting.zulip.overrides[].*`     | See `alerting.zulip.*` parameters                                                   | `{}`          |
@@ -2482,6 +2654,7 @@ alerting:
     bot-api-key: "********************************"
     domain: some.zulip.org
     channel-id: 123456
+    topic: "[ENDPOINT_NAME]" # Optional; groups each endpoint's alerts under its own topic. Defaults to "Gatus"
 
 endpoints:
   - name: website
@@ -2908,6 +3081,7 @@ To get more details, please check [chart's configuration](https://github.com/Twi
 
 Gatus can be deployed on Kubernetes using Terraform by using the following module: [terraform-kubernetes-gatus](https://github.com/TwiN/terraform-kubernetes-gatus).
 
+
 ## Running the tests
 ```console
 go test -v ./...
@@ -3176,6 +3350,12 @@ endpoints:
       - "[CONNECTED] == true"
       - "[STATUS] == 0"
 ```
+
+> [!NOTE]
+> When a password is provided, Gatus authenticates using both the `password` and the `keyboard-interactive`
+> SSH authentication methods, using whichever the server offers. This means servers with `PasswordAuthentication no`
+> but `KbdInteractiveAuthentication yes` (e.g. PAM-based password prompts) are supported, just like with the OpenSSH CLI.
+> Every keyboard-interactive prompt is answered with the configured password, so multi-factor prompts (e.g. OTP) are not supported.
 
 you can also use no authentication to monitor the endpoint by not specifying the username,
 password and private key fields.

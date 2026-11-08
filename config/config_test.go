@@ -13,6 +13,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider"
 	"github.com/TwiN/gatus/v5/alerting/provider/awsses"
+	"github.com/TwiN/gatus/v5/alerting/provider/bark"
 	"github.com/TwiN/gatus/v5/alerting/provider/clickup"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/datadog"
@@ -37,6 +38,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
 	"github.com/TwiN/gatus/v5/alerting/provider/plivo"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
+	"github.com/TwiN/gatus/v5/alerting/provider/resend"
 	"github.com/TwiN/gatus/v5/alerting/provider/rocketchat"
 	"github.com/TwiN/gatus/v5/alerting/provider/sendgrid"
 	"github.com/TwiN/gatus/v5/alerting/provider/signal"
@@ -65,6 +67,7 @@ import (
 func TestLoadConfiguration(t *testing.T) {
 	yes := true
 	dir := t.TempDir()
+	symlinkDir := dir + "-sym"
 	scenarios := []struct {
 		name           string
 		configPath     string            // value to pass as the configPath parameter in LoadConfiguration
@@ -140,6 +143,27 @@ endpoints:
 				"config.yaml": "",
 			},
 			expectedError: ErrNoEndpointOrSuiteInConfig,
+		},
+		{
+			name:       "dir-symlink",
+			configPath: symlinkDir,
+			pathAndFiles: map[string]string{
+				"config.yaml": `
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"`,
+			},
+			expectedConfig: &Config{
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name:       "website",
+						URL:        "https://twin.sh/health",
+						Conditions: []endpoint.Condition{"[STATUS] == 200"},
+					},
+				},
+			},
 		},
 		{
 			name:       "dir-with-two-config-files",
@@ -262,10 +286,14 @@ endpoints:
 					t.Fatalf("[%s] failed to write file: %v", scenario.name, err)
 				}
 			}
+			if err := os.Symlink(dir, symlinkDir); err != nil {
+				t.Fatalf("[%s] failed to write symlink: %v", scenario.name, err)
+			}
 			defer func(pathAndFiles map[string]string) {
 				for path := range pathAndFiles {
 					_ = os.Remove(filepath.Join(dir, path))
 				}
+				_ = os.Remove(symlinkDir)
 			}(scenario.pathAndFiles)
 			config, err := LoadConfiguration(scenario.configPath)
 			if !errors.Is(err, scenario.expectedError) {
@@ -313,20 +341,32 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
 		if config.HasLoadedConfigurationBeenModified() {
 			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return false because nothing has happened since it was created")
 		}
-		time.Sleep(time.Second) // Because the file mod time only has second precision, we have to wait for a second
-		// Update the config file
-		if err = os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(`endpoints:
+		if err = os.WriteFile(configFilePath, []byte(`endpoints:
   - name: website
     url: https://twin.sh/health
     conditions:
       - "[STATUS] == 200"`), 0o644); err != nil {
 			t.Fatalf("failed to overwrite config file: %v", err)
 		}
+		// File mod times have second precision, so advance it explicitly.
+		future := time.Now().Add(2 * time.Second)
+		if err = os.Chtimes(configFilePath, future, future); err != nil {
+			t.Fatalf("failed to advance config file mod time: %v", err)
+		}
 		if !config.HasLoadedConfigurationBeenModified() {
-			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because a new file has been added in the directory")
+			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because the config file has been modified")
 		}
 	})
 	t.Run("config-directory-as-config-path", func(t *testing.T) {
+		dir := t.TempDir()
+		if err := os.WriteFile(filepath.Join(dir, "config.yaml"), []byte(`endpoints:
+  - name: website
+    url: https://twin.sh/health
+    conditions:
+      - "[STATUS] == 200"
+`), 0o644); err != nil {
+			t.Fatalf("failed to write config file: %v", err)
+		}
 		config, err := LoadConfiguration(dir)
 		if err != nil {
 			t.Fatalf("failed to load configuration: %v", err)
@@ -334,10 +374,13 @@ func TestConfig_HasLoadedConfigurationBeenModified(t *testing.T) {
 		if config.HasLoadedConfigurationBeenModified() {
 			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return false because nothing has happened since it was created")
 		}
-		time.Sleep(time.Second) // Because the file mod time only has second precision, we have to wait for a second
-		// Update the config file
 		if err = os.WriteFile(filepath.Join(dir, "metrics.yaml"), []byte(`metrics: true`), 0o644); err != nil {
-			t.Fatalf("failed to overwrite config file: %v", err)
+			t.Fatalf("failed to add config file: %v", err)
+		}
+		// File mod times have second precision, so advance it explicitly.
+		future := time.Now().Add(2 * time.Second)
+		if err = os.Chtimes(filepath.Join(dir, "metrics.yaml"), future, future); err != nil {
+			t.Fatalf("failed to advance config file mod time: %v", err)
 		}
 		if !config.HasLoadedConfigurationBeenModified() {
 			t.Errorf("expected config.HasLoadedConfigurationBeenModified() to return true because a new file has been added in the directory")
@@ -1856,6 +1899,7 @@ func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 func TestGetAlertingProviderByAlertType(t *testing.T) {
 	alertingConfig := &alerting.Config{
 		AWSSimpleEmailService: &awsses.AlertProvider{},
+		Bark:                  &bark.AlertProvider{},
 		ClickUp:               &clickup.AlertProvider{},
 		Custom:                &custom.AlertProvider{},
 		Datadog:               &datadog.AlertProvider{},
@@ -1880,6 +1924,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		PagerDuty:             &pagerduty.AlertProvider{},
 		Plivo:                 &plivo.AlertProvider{},
 		Pushover:              &pushover.AlertProvider{},
+		Resend:                &resend.AlertProvider{},
 		RocketChat:            &rocketchat.AlertProvider{},
 		SendGrid:              &sendgrid.AlertProvider{},
 		Signal:                &signal.AlertProvider{},
@@ -1901,6 +1946,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		expected  provider.AlertProvider
 	}{
 		{alertType: alert.TypeAWSSES, expected: alertingConfig.AWSSimpleEmailService},
+		{alertType: alert.TypeBark, expected: alertingConfig.Bark},
 		{alertType: alert.TypeClickUp, expected: alertingConfig.ClickUp},
 		{alertType: alert.TypeCustom, expected: alertingConfig.Custom},
 		{alertType: alert.TypeDatadog, expected: alertingConfig.Datadog},
@@ -1925,6 +1971,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypePagerDuty, expected: alertingConfig.PagerDuty},
 		{alertType: alert.TypePlivo, expected: alertingConfig.Plivo},
 		{alertType: alert.TypePushover, expected: alertingConfig.Pushover},
+		{alertType: alert.TypeResend, expected: alertingConfig.Resend},
 		{alertType: alert.TypeRocketChat, expected: alertingConfig.RocketChat},
 		{alertType: alert.TypeSendGrid, expected: alertingConfig.SendGrid},
 		{alertType: alert.TypeSignal, expected: alertingConfig.Signal},
@@ -1947,6 +1994,70 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 				t.Errorf("expected %s configuration", scenario.alertType)
 			}
 		})
+	}
+}
+
+func TestParseAndValidateConfigBytesWithBarkAlerting(t *testing.T) {
+	t.Parallel()
+
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  bark:
+    server-url: https://bark.example.com/
+    device-key: test-device-key
+    title: Gatus status
+    group: gatus
+    default-alert:
+      failure-threshold: 7
+      success-threshold: 4
+      send-on-resolved: true
+    overrides:
+      - group: production
+        level: passive
+
+endpoints:
+  - name: api
+    group: production
+    url: https://example.com/health
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: bark
+        provider-override:
+          group: incident
+          sound: alarm
+`))
+	if err != nil {
+		t.Fatal("expected Bark configuration to parse, got", err)
+	}
+	if config.Alerting == nil || config.Alerting.Bark == nil {
+		t.Fatal("expected Bark alerting provider")
+	}
+	if config.Alerting.Bark.DefaultConfig.ServerURL != "https://bark.example.com" {
+		t.Errorf("expected normalized Bark server URL, got %q", config.Alerting.Bark.DefaultConfig.ServerURL)
+	}
+	if config.Alerting.Bark.DefaultConfig.DeviceKey != "test-device-key" {
+		t.Error("expected Bark device key to be parsed")
+	}
+	if config.Alerting.Bark.DefaultConfig.Group != "gatus" {
+		t.Errorf("expected Bark notification group %q, got %q", "gatus", config.Alerting.Bark.DefaultConfig.Group)
+	}
+	if config.Alerting.GetAlertingProviderByAlertType(alert.TypeBark) != config.Alerting.Bark {
+		t.Error("expected Bark provider to be discoverable by alert type")
+	}
+	endpointAlert := config.Endpoints[0].Alerts[0]
+	if endpointAlert.Type != alert.TypeBark {
+		t.Errorf("expected alert type %q, got %q", alert.TypeBark, endpointAlert.Type)
+	}
+	if endpointAlert.FailureThreshold != 7 || endpointAlert.SuccessThreshold != 4 || !endpointAlert.IsSendingOnResolved() {
+		t.Errorf("expected Bark default alert to be merged, got %#v", endpointAlert)
+	}
+	merged, err := config.Alerting.Bark.GetConfig(config.Endpoints[0].Group, endpointAlert)
+	if err != nil {
+		t.Fatal("expected merged Bark configuration to be valid, got", err)
+	}
+	if merged.Level != "passive" || merged.Sound != "alarm" || merged.Group != "incident" {
+		t.Errorf("expected group and alert overrides, got %#v", merged)
 	}
 }
 

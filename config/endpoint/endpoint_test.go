@@ -616,6 +616,70 @@ func TestEndpoint_ValidateAndSetDefaultsWithSSH(t *testing.T) {
 	}
 }
 
+func TestEndpoint_ValidateAndSetDefaultsWithMaintenanceWindowOnDNSAndSSH(t *testing.T) {
+	scenarios := []struct {
+		name     string
+		endpoint func(windows []*maintenance.Config) *Endpoint
+	}{
+		{
+			name: "dns",
+			endpoint: func(windows []*maintenance.Config) *Endpoint {
+				return &Endpoint{
+					Name:               "dns-test",
+					URL:                "8.8.8.8",
+					DNSConfig:          &dns.Config{QueryType: "A", QueryName: "example.com"},
+					Conditions:         []Condition{Condition("[DNS_RCODE] == NOERROR")},
+					MaintenanceWindows: windows,
+				}
+			},
+		},
+		{
+			name: "ssh",
+			endpoint: func(windows []*maintenance.Config) *Endpoint {
+				return &Endpoint{
+					Name:               "ssh-test",
+					URL:                "ssh://example.com:22",
+					SSHConfig:          &ssh.Config{Username: "username", Password: "password"},
+					Conditions:         []Condition{Condition("[CONNECTED] == true")},
+					MaintenanceWindows: windows,
+				}
+			},
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name+"-invalid-maintenance-window", func(t *testing.T) {
+			endpoint := scenario.endpoint([]*maintenance.Config{{Start: "25:00", Duration: time.Hour}})
+			if err := endpoint.ValidateAndSetDefaults(); err == nil {
+				t.Error("expected an error because the maintenance window has an invalid start, got none")
+			}
+		})
+		t.Run(scenario.name+"-under-maintenance", func(t *testing.T) {
+			window := newMaintenanceWindowThatStartedAMinuteAgo(t, "Europe/Berlin")
+			endpoint := scenario.endpoint([]*maintenance.Config{window})
+			if err := endpoint.ValidateAndSetDefaults(); err != nil {
+				t.Fatal("did not expect an error, got", err)
+			}
+			if !endpoint.MaintenanceWindows[0].IsUnderMaintenance() {
+				t.Errorf("expected endpoint to be under maintenance (window starting at %s %s)", window.Start, window.Timezone)
+			}
+		})
+	}
+}
+
+// newMaintenanceWindowThatStartedAMinuteAgo returns a one-hour maintenance window whose start
+// is one minute before the current time in the given timezone
+func newMaintenanceWindowThatStartedAMinuteAgo(t *testing.T, timezone string) *maintenance.Config {
+	location, err := time.LoadLocation(timezone)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return &maintenance.Config{
+		Start:    time.Now().In(location).Add(-time.Minute).Format("15:04"),
+		Duration: time.Hour,
+		Timezone: timezone,
+	}
+}
+
 func TestEndpoint_ValidateAndSetDefaultsWithSimpleErrors(t *testing.T) {
 	scenarios := []struct {
 		endpoint    *Endpoint

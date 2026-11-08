@@ -114,6 +114,33 @@ func TestExternalEndpoint_ValidateAndSetDefaults(t *testing.T) {
 	}
 }
 
+func TestExternalEndpoint_ValidateAndSetDefaultsWithMaintenanceWindow(t *testing.T) {
+	t.Run("invalid-maintenance-window", func(t *testing.T) {
+		externalEndpoint := &ExternalEndpoint{
+			Name:               "test-endpoint",
+			Token:              "valid-token",
+			MaintenanceWindows: []*maintenance.Config{{Start: "25:00", Duration: time.Hour}},
+		}
+		if err := externalEndpoint.ValidateAndSetDefaults(); err == nil {
+			t.Error("expected an error because the maintenance window has an invalid start, got none")
+		}
+	})
+	t.Run("under-maintenance", func(t *testing.T) {
+		window := newMaintenanceWindowThatStartedAMinuteAgo(t, "Europe/Berlin")
+		externalEndpoint := &ExternalEndpoint{
+			Name:               "test-endpoint",
+			Token:              "valid-token",
+			MaintenanceWindows: []*maintenance.Config{window},
+		}
+		if err := externalEndpoint.ValidateAndSetDefaults(); err != nil {
+			t.Fatal("did not expect an error, got", err)
+		}
+		if !externalEndpoint.MaintenanceWindows[0].IsUnderMaintenance() {
+			t.Errorf("expected external endpoint to be under maintenance (window starting at %s %s)", window.Start, window.Timezone)
+		}
+	})
+}
+
 func TestExternalEndpoint_IsEnabled(t *testing.T) {
 	tests := []struct {
 		name     string
