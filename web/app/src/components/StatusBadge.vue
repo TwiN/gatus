@@ -1,5 +1,5 @@
 <template>
-  <Badge :variant="variant" class="flex items-center gap-1">
+  <Badge :variant="variant" class="flex items-center gap-1.5">
     <span :class="['w-2 h-2 rounded-full', dotClass]"></span>
     {{ label }}
   </Badge>
@@ -46,13 +46,13 @@ const label = computed(() => {
 const dotClass = computed(() => {
   switch (props.status) {
     case 'healthy':
-      return 'bg-green-400'
+      return 'bg-green-500'
     case 'unhealthy':
-      return 'bg-red-400'
+      return 'bg-red-500'
     case 'degraded':
-      return 'bg-yellow-400'
+      return 'bg-yellow-500'
     default:
-      return 'bg-gray-400'
+      return 'bg-gray-500'
   }
 })
 </script>

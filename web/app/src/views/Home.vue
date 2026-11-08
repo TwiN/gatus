@@ -4,7 +4,7 @@
       <div class="mb-6">
         <div class="flex items-center justify-between mb-6">
           <div>
-            <h1 class="text-4xl font-bold tracking-tight">{{ dashboardHeading }}</h1>
+            <h1 class="text-3xl font-semibold tracking-tight">{{ dashboardHeading }}</h1>
             <p class="text-muted-foreground mt-2">{{ dashboardSubheading }}</p>
           </div>
           <div class="flex items-center gap-4">
