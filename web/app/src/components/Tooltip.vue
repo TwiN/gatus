@@ -31,6 +31,32 @@
         </div>
       </div>
 
+      <!-- Conditions and errors of the last check of the bin (or of the check its state was carried over from) -->
+      <div v-if="result.lastCheckConditionResults && result.lastCheckConditionResults.length">
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conditions (last check)</div>
+        <div class="font-mono text-xs space-y-0.5">
+          <div
+            v-for="(conditionResult, index) in result.lastCheckConditionResults"
+            :key="index"
+            class="flex items-start gap-1"
+          >
+            <span :class="conditionResult.success ? 'text-green-500' : 'text-red-500'">
+              {{ conditionResult.success ? '✓' : '✗' }}
+            </span>
+            <span class="break-all">{{ conditionResult.condition }}</span>
+          </div>
+        </div>
+      </div>
+
+      <div v-if="result.lastCheckErrors && result.lastCheckErrors.length">
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Errors (last check)</div>
+        <div class="font-mono text-xs space-y-0.5">
+          <div v-for="(error, index) in result.lastCheckErrors" :key="index" class="text-red-500 dark:text-red-400">
+            • {{ error }}
+          </div>
+        </div>
+      </div>
+
       <div v-if="result.checks > 0">
         <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Response Time</div>
         <div class="font-mono text-xs">

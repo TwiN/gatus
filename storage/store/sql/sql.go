@@ -784,7 +784,7 @@ func (s *Store) populateEndpointHistory(tx *sql.Tx, endpointID int64, history *e
 	}
 	rows, err := tx.Query(
 		`
-			SELECT bins.bin, bins.checks, bins.successful_checks, bins.total_duration, bins.minimum_duration, bins.maximum_duration, last_result.timestamp, last_result.success
+			SELECT bins.bin, bins.checks, bins.successful_checks, bins.total_duration, bins.minimum_duration, bins.maximum_duration, last_result.endpoint_result_id, last_result.timestamp, last_result.success, last_result.errors
 			FROM (
 				SELECT CAST(FLOOR((`+unixTimestampExpression+` - $4) / $5) AS BIGINT) AS bin,
 					COUNT(*) AS checks,
@@ -808,29 +808,37 @@ func (s *Store) populateEndpointHistory(tx *sql.Tx, endpointID int64, history *e
 	if err != nil {
 		return err
 	}
+	// The last result of each bin, by endpoint_result_id, so that their condition results can be retrieved afterward
+	lastResults := make(map[int64]*endpoint.Result)
 	for rows.Next() {
 		var bin, checks, successfulChecks int
 		var totalDuration, minimumDuration, maximumDuration time.Duration
-		var lastCheck time.Time
-		var lastCheckSuccess bool
-		if err = rows.Scan(&bin, &checks, &successfulChecks, &totalDuration, &minimumDuration, &maximumDuration, &lastCheck, &lastCheckSuccess); err != nil {
+		var lastResultID int64
+		var joinedErrors string
+		lastResult := &endpoint.Result{}
+		if err = rows.Scan(&bin, &checks, &successfulChecks, &totalDuration, &minimumDuration, &maximumDuration, &lastResultID, &lastResult.Timestamp, &lastResult.Success, &joinedErrors); err != nil {
 			_ = rows.Close()
 			return err
 		}
+		if len(joinedErrors) != 0 {
+			lastResult.Errors = strings.Split(joinedErrors, arraySeparator)
+		}
+		lastResults[lastResultID] = lastResult
 		// Guard against rounding errors at the edges of the time range
 		bin = min(max(bin, 0), len(history.Bins)-1)
-		history.AddAggregatedChecks(bin, checks, successfulChecks, totalDuration, minimumDuration, maximumDuration, lastCheck, lastCheckSuccess)
+		history.AddAggregatedChecks(bin, checks, successfulChecks, totalDuration, minimumDuration, maximumDuration, lastResult)
 	}
 	_ = rows.Close()
 	if err = rows.Err(); err != nil {
 		return err
 	}
 	// Retrieve the last result that preceded the time range so that its state can be carried over into the first bins
-	var previousCheck time.Time
-	var previousCheckSuccess bool
+	var previousResultID int64
+	var joinedErrors string
+	previousResult := &endpoint.Result{}
 	err = tx.QueryRow(
 		`
-			SELECT timestamp, success
+			SELECT endpoint_result_id, timestamp, success, errors
 			FROM endpoint_results
 			WHERE endpoint_id = $1 AND timestamp < $2
 			ORDER BY timestamp DESC
@@ -838,15 +846,55 @@ func (s *Store) populateEndpointHistory(tx *sql.Tx, endpointID int64, history *e
 		`,
 		endpointID,
 		history.From().UTC(),
-	).Scan(&previousCheck, &previousCheckSuccess)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil
+	).Scan(&previousResultID, &previousResult.Timestamp, &previousResult.Success, &joinedErrors)
+	if err == nil {
+		if len(joinedErrors) != 0 {
+			previousResult.Errors = strings.Split(joinedErrors, arraySeparator)
 		}
+		lastResults[previousResultID] = previousResult
+		history.SetPreviousCheck(previousResult)
+	} else if !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
-	history.SetPreviousCheck(previousCheck, previousCheckSuccess)
-	return nil
+	// Retrieve the condition results of the last result of each bin (at most one per bin + the previous result)
+	return s.populateConditionResultsOfResults(tx, lastResults)
+}
+
+// populateConditionResultsOfResults retrieves the condition results of the given results, mapped by endpoint_result_id
+func (s *Store) populateConditionResultsOfResults(tx *sql.Tx, resultsByID map[int64]*endpoint.Result) error {
+	if len(resultsByID) == 0 {
+		return nil
+	}
+	args := make([]any, 0, len(resultsByID))
+	placeholders := make([]string, 0, len(resultsByID))
+	for endpointResultID := range resultsByID {
+		args = append(args, endpointResultID)
+		placeholders = append(placeholders, "$"+strconv.Itoa(len(args)))
+	}
+	rows, err := tx.Query(
+		`
+			SELECT endpoint_result_id, condition, success
+			FROM endpoint_result_conditions
+			WHERE endpoint_result_id IN (`+strings.Join(placeholders, ",")+`)
+			ORDER BY endpoint_result_condition_id
+		`,
+		args...,
+	)
+	if err != nil {
+		return err
+	}
+	defer rows.Close()
+	for rows.Next() {
+		conditionResult := &endpoint.ConditionResult{}
+		var endpointResultID int64
+		if err = rows.Scan(&endpointResultID, &conditionResult.Condition, &conditionResult.Success); err != nil {
+			return err
+		}
+		if result, exists := resultsByID[endpointResultID]; exists {
+			result.ConditionResults = append(result.ConditionResults, conditionResult)
+		}
+	}
+	return rows.Err()
 }
 
 func (s *Store) getEndpointIDGroupAndNameByKey(tx *sql.Tx, key string) (id int64, group, name string, err error) {

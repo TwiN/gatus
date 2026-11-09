@@ -732,6 +732,32 @@ func TestStore_GetEndpointHistoryByKey(t *testing.T) {
 				if !history.Bins[0].LastCheck.Equal(results[0].Timestamp) {
 					t.Errorf("expected carried over bin 0 to reference the result before the window (%s), got %s", results[0].Timestamp, history.Bins[0].LastCheck)
 				}
+				// The last result of bin 2 is unsuccessful, so its errors and condition results must be returned
+				checkLastCheckDetails := func(t *testing.T, bin *endpoint.HistoryBin, expected *endpoint.Result) {
+					if len(bin.LastCheckErrors) != len(expected.Errors) {
+						t.Fatalf("expected %d errors, got %d", len(expected.Errors), len(bin.LastCheckErrors))
+					}
+					for i := range expected.Errors {
+						if bin.LastCheckErrors[i] != expected.Errors[i] {
+							t.Errorf("expected error %q, got %q", expected.Errors[i], bin.LastCheckErrors[i])
+						}
+					}
+					if len(bin.LastCheckConditionResults) != len(expected.ConditionResults) {
+						t.Fatalf("expected %d condition results, got %d", len(expected.ConditionResults), len(bin.LastCheckConditionResults))
+					}
+					for i, conditionResult := range expected.ConditionResults {
+						if *bin.LastCheckConditionResults[i] != *conditionResult {
+							t.Errorf("expected condition result %v, got %v", *conditionResult, *bin.LastCheckConditionResults[i])
+						}
+					}
+				}
+				checkLastCheckDetails(t, degradedBin, results[2])
+				// Bin 3 has no result, so it must have the details of the result it was carried over from (bin 2's last)
+				checkLastCheckDetails(t, history.Bins[3], results[2])
+				// Bin 0 is carried over from the result that preceded the window
+				checkLastCheckDetails(t, history.Bins[0], results[0])
+				// Bin 5's last result is successful
+				checkLastCheckDetails(t, history.Bins[5], results[3])
 			})
 			t.Run("limited-carry-over", func(t *testing.T) {
 				history, err := scenario.Store.GetEndpointHistoryByKey(testEndpoint.Key(), from, to, 10, 2*time.Minute)

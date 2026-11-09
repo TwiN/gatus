@@ -28,10 +28,9 @@ type History struct {
 
 	from, to time.Time
 
-	// previousCheckTimestamp and previousCheckSuccess hold the last check that happened before the window
+	// previousCheck is the last check that happened before the window,
 	// so that its state can be carried over into the first bins of the window
-	previousCheckTimestamp time.Time
-	previousCheckSuccess   bool
+	previousCheck *Result
 }
 
 // HistoryBin is the aggregation of all results that occurred within [Start, End)
@@ -64,8 +63,14 @@ type HistoryBin struct {
 	// has no check and its state was carried over from a previous check, the timestamp of said check
 	LastCheck time.Time `json:"lastCheck,omitzero"`
 
-	totalDuration    time.Duration
-	lastCheckSuccess bool
+	// LastCheckErrors are the errors of the check referenced by LastCheck
+	LastCheckErrors []string `json:"lastCheckErrors,omitempty"`
+
+	// LastCheckConditionResults are the condition results of the check referenced by LastCheck
+	LastCheckConditionResults []*ConditionResult `json:"lastCheckConditionResults,omitempty"`
+
+	totalDuration time.Duration
+	lastResult    *Result
 }
 
 // NewHistory creates a History made of numberOfBins empty bins of equal width spanning [from, to)
@@ -133,21 +138,27 @@ func (h *History) BinIndex(timestamp time.Time) int {
 
 // AddCheck adds a single check to the bin its timestamp falls in.
 // Checks that happened before the history's range are used as the previous check.
-func (h *History) AddCheck(timestamp time.Time, success bool, duration time.Duration) {
-	if timestamp.Before(h.from) {
-		h.SetPreviousCheck(timestamp, success)
+func (h *History) AddCheck(result *Result) {
+	if result == nil {
 		return
 	}
-	index := h.BinIndex(timestamp)
+	if result.Timestamp.Before(h.from) {
+		h.SetPreviousCheck(result)
+		return
+	}
+	index := h.BinIndex(result.Timestamp)
 	if index < 0 {
 		return
 	}
-	h.AddAggregatedChecks(index, 1, boolToInt(success), duration, duration, duration, timestamp, success)
+	h.AddAggregatedChecks(index, 1, boolToInt(result.Success), result.Duration, result.Duration, result.Duration, result)
 }
 
-// AddAggregatedChecks adds pre-aggregated checks to the bin at the given index
-func (h *History) AddAggregatedChecks(index, checks, successfulChecks int, totalDuration, minimumDuration, maximumDuration time.Duration, lastCheck time.Time, lastCheckSuccess bool) {
-	if index < 0 || index >= len(h.Bins) || checks <= 0 {
+// AddAggregatedChecks adds pre-aggregated checks to the bin at the given index.
+//
+// lastResult is the most recent of the aggregated checks. Only its Timestamp, Success, Errors and ConditionResults
+// are used, and since it is used by reference, its Errors and ConditionResults may be populated until Finalize is called.
+func (h *History) AddAggregatedChecks(index, checks, successfulChecks int, totalDuration, minimumDuration, maximumDuration time.Duration, lastResult *Result) {
+	if index < 0 || index >= len(h.Bins) || checks <= 0 || lastResult == nil {
 		return
 	}
 	bin := h.Bins[index]
@@ -157,22 +168,22 @@ func (h *History) AddAggregatedChecks(index, checks, successfulChecks int, total
 	if bin.Checks == 0 || maximumDuration > bin.MaximumDuration {
 		bin.MaximumDuration = maximumDuration
 	}
-	if bin.Checks == 0 || !lastCheck.Before(bin.LastCheck) {
-		bin.LastCheck = lastCheck
-		bin.lastCheckSuccess = lastCheckSuccess
+	if bin.lastResult == nil || !lastResult.Timestamp.Before(bin.lastResult.Timestamp) {
+		bin.lastResult = lastResult
 	}
 	bin.Checks += checks
 	bin.SuccessfulChecks += successfulChecks
 	bin.totalDuration += totalDuration
 }
 
-// SetPreviousCheck sets the check that happened before the history's range, if it is more recent than the current one
-func (h *History) SetPreviousCheck(timestamp time.Time, success bool) {
-	if !timestamp.Before(h.from) || timestamp.Before(h.previousCheckTimestamp) {
+// SetPreviousCheck sets the check that happened before the history's range, if it is more recent than the current one.
+//
+// Like for AddAggregatedChecks, the result is used by reference.
+func (h *History) SetPreviousCheck(result *Result) {
+	if result == nil || !result.Timestamp.Before(h.from) || (h.previousCheck != nil && result.Timestamp.Before(h.previousCheck.Timestamp)) {
 		return
 	}
-	h.previousCheckTimestamp = timestamp
-	h.previousCheckSuccess = success
+	h.previousCheck = result
 }
 
 // Finalize computes the state of every bin.
@@ -181,8 +192,11 @@ func (h *History) SetPreviousCheck(timestamp time.Time, success bool) {
 // Bins without any check inherit the state of the most recent check that preceded them, as long as said check
 // is not older than maximumCarryOver (a maximumCarryOver of 0 or less means there is no limit). Otherwise, their
 // state is "unknown".
+//
+// Every bin with a state other than "unknown" also references its last check (or the check its state was carried
+// over from) through LastCheck, LastCheckErrors and LastCheckConditionResults.
 func (h *History) Finalize(maximumCarryOver time.Duration) {
-	lastCheck, lastCheckSuccess := h.previousCheckTimestamp, h.previousCheckSuccess
+	lastResult := h.previousCheck
 	for _, bin := range h.Bins {
 		if bin.Checks > 0 {
 			switch bin.SuccessfulChecks {
@@ -194,20 +208,27 @@ func (h *History) Finalize(maximumCarryOver time.Duration) {
 				bin.State = HistoryStateDegraded
 			}
 			bin.AverageDuration = bin.totalDuration / time.Duration(bin.Checks)
-			lastCheck, lastCheckSuccess = bin.LastCheck, bin.lastCheckSuccess
+			lastResult = bin.lastResult
+			bin.setLastCheck(lastResult)
 			continue
 		}
 		bin.State = HistoryStateUnknown
-		if lastCheck.IsZero() || (maximumCarryOver > 0 && bin.Start.Sub(lastCheck) > maximumCarryOver) {
+		if lastResult == nil || (maximumCarryOver > 0 && bin.Start.Sub(lastResult.Timestamp) > maximumCarryOver) {
 			continue
 		}
-		if lastCheckSuccess {
+		if lastResult.Success {
 			bin.State = HistoryStateUp
 		} else {
 			bin.State = HistoryStateDown
 		}
-		bin.LastCheck = lastCheck
+		bin.setLastCheck(lastResult)
 	}
+}
+
+func (bin *HistoryBin) setLastCheck(result *Result) {
+	bin.LastCheck = result.Timestamp
+	bin.LastCheckErrors = result.Errors
+	bin.LastCheckConditionResults = result.ConditionResults
 }
 
 func boolToInt(b bool) int {

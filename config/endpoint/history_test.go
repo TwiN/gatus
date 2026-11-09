@@ -5,6 +5,17 @@ import (
 	"time"
 )
 
+func newTestResult(timestamp time.Time, success bool, duration time.Duration) *Result {
+	return &Result{
+		Timestamp: timestamp,
+		Success:   success,
+		Duration:  duration,
+		ConditionResults: []*ConditionResult{
+			{Condition: "[STATUS] == 200", Success: success},
+		},
+	}
+}
+
 func TestNewHistory(t *testing.T) {
 	t.Parallel()
 	from := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
@@ -86,13 +97,13 @@ func TestHistory_Finalize(t *testing.T) {
 	from := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	newHistory := func() *History {
 		history := NewHistory(from, from.Add(6*time.Minute), 6)
-		history.AddCheck(from.Add(-30*time.Second), true, time.Millisecond) // before the window
-		history.AddCheck(from.Add(time.Minute), true, 100*time.Millisecond)
-		history.AddCheck(from.Add(time.Minute+30*time.Second), true, 300*time.Millisecond)
-		history.AddCheck(from.Add(2*time.Minute), false, 0)
-		history.AddCheck(from.Add(3*time.Minute), true, 0)
-		history.AddCheck(from.Add(3*time.Minute+30*time.Second), false, 0)
-		history.AddCheck(from.Add(time.Hour), false, 0) // after the window
+		history.AddCheck(newTestResult(from.Add(-30*time.Second), true, time.Millisecond)) // before the window
+		history.AddCheck(newTestResult(from.Add(time.Minute), true, 100*time.Millisecond))
+		history.AddCheck(newTestResult(from.Add(time.Minute+30*time.Second), true, 300*time.Millisecond))
+		history.AddCheck(newTestResult(from.Add(2*time.Minute), false, 0))
+		history.AddCheck(newTestResult(from.Add(3*time.Minute), true, 0))
+		history.AddCheck(newTestResult(from.Add(3*time.Minute+30*time.Second), false, 0))
+		history.AddCheck(newTestResult(from.Add(time.Hour), false, 0)) // after the window
 		return history
 	}
 	t.Run("no-carry-over-limit", func(t *testing.T) {
@@ -116,6 +127,14 @@ func TestHistory_Finalize(t *testing.T) {
 		if !history.Bins[5].LastCheck.Equal(from.Add(3*time.Minute + 30*time.Second)) {
 			t.Error("expected bin 5 to reference the last check of bin 3")
 		}
+		// Bin 3 has a successful check followed by a failed check, so the condition results must be the failed one's
+		if len(history.Bins[3].LastCheckConditionResults) != 1 || history.Bins[3].LastCheckConditionResults[0].Success {
+			t.Error("expected bin 3 to have the condition results of its last check, which failed")
+		}
+		// Bin 5 has no check, so it must have the condition results of the check it was carried over from
+		if len(history.Bins[5].LastCheckConditionResults) != 1 || history.Bins[5].LastCheckConditionResults[0].Success {
+			t.Error("expected bin 5 to have the condition results of the check it was carried over from")
+		}
 	})
 	t.Run("carry-over-limit", func(t *testing.T) {
 		history := newHistory()
@@ -126,7 +145,7 @@ func TestHistory_Finalize(t *testing.T) {
 				t.Errorf("bin %d: expected state %s, got %s", i, expected[i], bin.State)
 			}
 		}
-		if !history.Bins[5].LastCheck.IsZero() {
+		if !history.Bins[5].LastCheck.IsZero() || history.Bins[5].LastCheckConditionResults != nil {
 			t.Error("expected bin with unknown state to have no last check")
 		}
 	})
@@ -145,9 +164,9 @@ func TestHistory_SetPreviousCheck(t *testing.T) {
 	t.Parallel()
 	from := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
 	history := NewHistory(from, from.Add(time.Hour), 10)
-	history.SetPreviousCheck(from.Add(-time.Minute), false)
-	history.SetPreviousCheck(from.Add(-2*time.Minute), true) // older, must be ignored
-	history.SetPreviousCheck(from, true)                     // not before the window, must be ignored
+	history.SetPreviousCheck(newTestResult(from.Add(-time.Minute), false, 0))
+	history.SetPreviousCheck(newTestResult(from.Add(-2*time.Minute), true, 0)) // older, must be ignored
+	history.SetPreviousCheck(newTestResult(from, true, 0))                     // not before the window, must be ignored
 	history.Finalize(0)
 	if history.Bins[0].State != HistoryStateDown {
 		t.Errorf("expected first bin to be %s, got %s", HistoryStateDown, history.Bins[0].State)

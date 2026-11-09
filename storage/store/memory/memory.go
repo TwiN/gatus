@@ -202,7 +202,7 @@ func (s *Store) GetEndpointHistoryByKey(key string, from, to time.Time, numberOf
 	}
 	history := endpoint.NewHistory(from, to, numberOfBins)
 	for _, result := range endpointStatus.(*endpoint.Status).Results {
-		history.AddCheck(result.Timestamp, result.Success, result.Duration)
+		history.AddCheck(result)
 	}
 	history.Finalize(maximumCarryOver)
 	return history, nil
