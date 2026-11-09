@@ -142,6 +142,8 @@ func (s *Store) createSQLiteSchema() error {
 	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD suite_result_id INTEGER REFERENCES suite_results(suite_result_id) ON DELETE CASCADE`)
 	// Create index for suite_result_id
 	_, _ = s.db.Exec(`CREATE INDEX IF NOT EXISTS endpoint_results_suite_result_id_idx ON endpoint_results(suite_result_id)`)
+	// Create index used to efficiently retrieve the results of an endpoint within a time range
+	_, _ = s.db.Exec(`CREATE INDEX IF NOT EXISTS endpoint_results_endpoint_id_timestamp_idx ON endpoint_results (endpoint_id, timestamp)`)
 	// Note: SQLite doesn't support DROP COLUMN in older versions, so we skip this cleanup
 	// The suite_id column in endpoints table will remain but unused
 	return err

@@ -3,6 +3,7 @@ package ui
 import (
 	"errors"
 	"testing"
+	"time"
 )
 
 func TestValidateAndSetDefaults(t *testing.T) {
@@ -40,6 +41,21 @@ func TestValidateAndSetDefaults(t *testing.T) {
 			name:    "with-no-badge-configured", // should give default badge cfg
 			config:  &Config{},
 			wantErr: nil,
+		},
+		{
+			name:    "with-valid-dashboard-history",
+			config:  &Config{DashboardHistory: 24 * time.Hour},
+			wantErr: nil,
+		},
+		{
+			name:    "with-dashboard-history-too-low",
+			config:  &Config{DashboardHistory: 30 * time.Second},
+			wantErr: ErrInvalidDashboardHistory,
+		},
+		{
+			name:    "with-negative-dashboard-history",
+			config:  &Config{DashboardHistory: -time.Hour},
+			wantErr: ErrInvalidDashboardHistory,
 		},
 	}
 

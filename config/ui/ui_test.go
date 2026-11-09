@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strconv"
 	"testing"
+	"time"
 )
 
 func TestConfig_ValidateAndSetDefaults(t *testing.T) {
@@ -295,6 +296,28 @@ func TestConfig_ValidateAndSetDefaults_DefaultFilterBy(t *testing.T) {
 			}
 			if cfg.DefaultFilterBy != scenario.ExpectedValue {
 				t.Errorf("expected DefaultFilterBy to be %s, got %s", scenario.ExpectedValue, cfg.DefaultFilterBy)
+			}
+		})
+	}
+}
+
+func TestConfig_ValidateAndSetDefaults_DashboardHistory(t *testing.T) {
+	scenarios := []struct {
+		Name             string
+		DashboardHistory time.Duration
+		ExpectedError    error
+	}{
+		{Name: "not-set", DashboardHistory: 0, ExpectedError: nil},
+		{Name: "valid", DashboardHistory: 24 * time.Hour, ExpectedError: nil},
+		{Name: "minimum", DashboardHistory: MinimumDashboardHistory, ExpectedError: nil},
+		{Name: "too-low", DashboardHistory: 30 * time.Second, ExpectedError: ErrInvalidDashboardHistory},
+		{Name: "negative", DashboardHistory: -time.Hour, ExpectedError: ErrInvalidDashboardHistory},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			cfg := &Config{DashboardHistory: scenario.DashboardHistory}
+			if err := cfg.ValidateAndSetDefaults(); !errors.Is(err, scenario.ExpectedError) {
+				t.Errorf("expected error %v, got %v", scenario.ExpectedError, err)
 			}
 		})
 	}

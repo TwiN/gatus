@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/url"
+	"time"
 
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config"
@@ -30,6 +31,7 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 				logr.Errorf("[api.EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
 				return c.Status(500).SendString(err.Error())
 			}
+			endpointStatuses = withEndpointHistories(cfg, endpointStatuses, time.Now())
 			// ALPHA: Retrieve endpoint statuses from remote instances
 			if endpointStatusesFromRemote, err := getEndpointStatusesFromRemoteInstances(cfg.Remote); err != nil {
 				logr.Errorf("[handler.EndpointStatuses] Silently failed to retrieve endpoint statuses from remote: %s", err.Error())
@@ -49,6 +51,58 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 		c.Set("Content-Type", "application/json")
 		return c.Status(200).Send(data)
 	}
+}
+
+// endpointHistorySettings holds what is needed to compute the dashboard history of an endpoint
+type endpointHistorySettings struct {
+	window           time.Duration
+	maximumCarryOver time.Duration
+}
+
+// getEndpointHistorySettings returns the dashboard history settings of every endpoint that has a dashboard-history window
+func getEndpointHistorySettings(cfg *config.Config) map[string]endpointHistorySettings {
+	settings := make(map[string]endpointHistorySettings)
+	for _, ep := range cfg.Endpoints {
+		if ep.UIConfig == nil || ep.UIConfig.DashboardHistory <= 0 {
+			continue
+		}
+		// The state of a check is carried over into the following bins until the next check is expected.
+		// Twice the interval leaves room for checks that take a while or that were slightly delayed.
+		settings[ep.Key()] = endpointHistorySettings{window: ep.UIConfig.DashboardHistory, maximumCarryOver: 2 * ep.Interval}
+	}
+	if cfg.UI != nil && cfg.UI.DashboardHistory > 0 {
+		for _, ee := range cfg.ExternalEndpoints {
+			// External endpoints have no interval; results are carried over until the next heartbeat is expected, if any
+			settings[ee.Key()] = endpointHistorySettings{window: cfg.UI.DashboardHistory, maximumCarryOver: 2 * ee.Heartbeat.Interval}
+		}
+	}
+	return settings
+}
+
+// withEndpointHistories returns the endpoint statuses with their dashboard history populated for every endpoint
+// that has a dashboard-history window configured
+func withEndpointHistories(cfg *config.Config, endpointStatuses []*endpoint.Status, now time.Time) []*endpoint.Status {
+	settings := getEndpointHistorySettings(cfg)
+	if len(settings) == 0 {
+		return endpointStatuses
+	}
+	for i, endpointStatus := range endpointStatuses {
+		setting, exists := settings[endpointStatus.Key]
+		if !exists {
+			continue
+		}
+		from, to := endpoint.NewHistoryWindow(now, setting.window, endpoint.NumberOfHistoryBins)
+		history, err := store.Get().GetEndpointHistoryByKey(endpointStatus.Key, from, to, endpoint.NumberOfHistoryBins, setting.maximumCarryOver)
+		if err != nil {
+			logr.Errorf("[api.withEndpointHistories] Failed to retrieve history for endpoint with key=%s: %s", endpointStatus.Key, err.Error())
+			continue
+		}
+		// The store may return cached statuses, so we copy the status rather than modifying it
+		endpointStatusWithHistory := *endpointStatus
+		endpointStatusWithHistory.History = history
+		endpointStatuses[i] = &endpointStatusWithHistory
+	}
+	return endpointStatuses
 }
 
 func getEndpointStatusesFromRemoteInstances(remoteConfig *remote.Config) ([]*endpoint.Status, error) {

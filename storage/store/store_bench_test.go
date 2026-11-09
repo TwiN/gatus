@@ -212,3 +212,54 @@ func BenchmarkStore_GetEndpointStatusByKey(b *testing.B) {
 		scenario.Store.Clear()
 	}
 }
+
+// BenchmarkStore_GetEndpointHistoryByKey benchmarks the retrieval of the dashboard history of a single endpoint
+// checked every minute over a 24h window (1440 results), compared to the retrieval of its last 50 results, which is
+// what the dashboard retrieves when no dashboard-history is configured.
+func BenchmarkStore_GetEndpointHistoryByKey(b *testing.B) {
+	const numberOfResults = 1440
+	memoryStore, err := memory.NewStore(numberOfResults, storage.DefaultMaximumNumberOfEvents)
+	if err != nil {
+		b.Fatal("failed to create store:", err.Error())
+	}
+	sqliteStore, err := sql.NewStore("sqlite", b.TempDir()+"/BenchmarkStore_GetEndpointHistoryByKey.db", false, numberOfResults, storage.DefaultMaximumNumberOfEvents)
+	if err != nil {
+		b.Fatal("failed to create store:", err.Error())
+	}
+	defer sqliteStore.Close()
+	stores := []struct {
+		Name  string
+		Store Store
+	}{
+		{Name: "memory", Store: memoryStore},
+		{Name: "sqlite", Store: sqliteStore},
+	}
+	start := time.Now().Add(-24 * time.Hour)
+	for _, s := range stores {
+		for i := range numberOfResults {
+			result := testSuccessfulResult
+			if i%100 == 0 {
+				result = testUnsuccessfulResult
+			}
+			result.Timestamp = start.Add(time.Duration(i) * time.Minute)
+			if err := s.Store.InsertEndpointResult(&testEndpoint, &result); err != nil {
+				b.Fatal("failed to insert result:", err.Error())
+			}
+		}
+		b.Run(s.Name+"-history-24h", func(b *testing.B) {
+			for b.Loop() {
+				from, to := endpoint.NewHistoryWindow(time.Now(), 24*time.Hour, endpoint.NumberOfHistoryBins)
+				if _, err := s.Store.GetEndpointHistoryByKey(testEndpoint.Key(), from, to, endpoint.NumberOfHistoryBins, 2*time.Minute); err != nil {
+					b.Fatal("failed to get history:", err.Error())
+				}
+			}
+		})
+		b.Run(s.Name+"-last-50-results", func(b *testing.B) {
+			for b.Loop() {
+				if _, err := s.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(1, 50)); err != nil {
+					b.Fatal("failed to get status:", err.Error())
+				}
+			}
+		})
+	}
+}

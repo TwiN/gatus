@@ -1,6 +1,9 @@
 package ui
 
-import "errors"
+import (
+	"errors"
+	"time"
+)
 
 // Config is the UI configuration for endpoint.Endpoint
 type Config struct {
@@ -27,6 +30,10 @@ type Config struct {
 
 	// Badge is the configuration for the badges generated
 	Badge *Badge `yaml:"badge"`
+
+	// DashboardHistory is the time window displayed on the dashboard for the endpoint.
+	// If not set, the global ui.dashboard-history is used.
+	DashboardHistory time.Duration `yaml:"dashboard-history,omitempty"`
 }
 
 type Badge struct {
@@ -39,10 +46,14 @@ type ResponseTime struct {
 
 var (
 	ErrInvalidBadgeResponseTimeConfig = errors.New("invalid response time badge configuration: expected parameter 'response-time' to have 5 ascending numerical values")
+	ErrInvalidDashboardHistory        = errors.New("invalid dashboard-history value: must be at least 1m")
 )
 
 // ValidateAndSetDefaults validates the UI configuration and sets the default values
 func (config *Config) ValidateAndSetDefaults() error {
+	if config.DashboardHistory != 0 && config.DashboardHistory < time.Minute {
+		return ErrInvalidDashboardHistory
+	}
 	if config.Badge != nil {
 		if len(config.Badge.ResponseTime.Thresholds) != 5 {
 			return ErrInvalidBadgeResponseTimeConfig

@@ -345,8 +345,30 @@ func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
 		ValidateAndSetConcurrencyDefaults(config)
 		// Cross-config changes
 		config.UI.MaximumNumberOfResults = config.Storage.MaximumNumberOfResults
+		ApplyDashboardHistoryDefaults(config)
 	}
 	return
+}
+
+// ApplyDashboardHistoryDefaults sets the dashboard history window of every endpoint that doesn't have one to the
+// global ui.dashboard-history, and warns about endpoints whose window cannot be covered by the stored results.
+//
+// NOTE: This must be called after ValidateEndpointsConfig, ValidateUIConfig and ValidateStorageConfig
+func ApplyDashboardHistoryDefaults(config *Config) {
+	for _, ep := range config.Endpoints {
+		if ep.UIConfig == nil {
+			continue
+		}
+		if ep.UIConfig.DashboardHistory == 0 {
+			ep.UIConfig.DashboardHistory = config.UI.DashboardHistory
+		}
+		if ep.UIConfig.DashboardHistory == 0 || ep.Interval <= 0 || config.Storage == nil {
+			continue
+		}
+		if requiredNumberOfResults := int(ep.UIConfig.DashboardHistory / ep.Interval); requiredNumberOfResults > config.Storage.MaximumNumberOfResults {
+			logr.Warnf("[config.ApplyDashboardHistoryDefaults] Endpoint %s has a dashboard-history of %s with an interval of %s, which requires %d results to be stored, but storage.maximum-number-of-results is %d; the oldest part of the history will be displayed as having no data", ep.Key(), ep.UIConfig.DashboardHistory, ep.Interval, requiredNumberOfResults, config.Storage.MaximumNumberOfResults)
+		}
+	}
 }
 
 func ValidateConnectivityConfig(config *Config) error {

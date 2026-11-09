@@ -20,6 +20,10 @@ type Status struct {
 	// Events is a list of events
 	Events []*Event `json:"events,omitempty"`
 
+	// History is the aggregated history of the endpoint over the window configured through dashboard-history.
+	// It is only populated when a dashboard-history window is configured for the endpoint.
+	History *History `json:"history,omitempty"`
+
 	// Uptime information on the endpoint's uptime
 	//
 	// Used by the memory store.

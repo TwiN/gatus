@@ -189,6 +189,25 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 	return hourlyAverageResponseTimes, nil
 }
 
+// GetEndpointHistoryByKey returns the history of an endpoint over [from, to), aggregated into numberOfBins bins
+func (s *Store) GetEndpointHistoryByKey(key string, from, to time.Time, numberOfBins int, maximumCarryOver time.Duration) (*endpoint.History, error) {
+	if !from.Before(to) {
+		return nil, common.ErrInvalidTimeRange
+	}
+	s.RLock()
+	defer s.RUnlock()
+	endpointStatus := s.endpointCache.GetValue(key)
+	if endpointStatus == nil {
+		return nil, common.ErrEndpointNotFound
+	}
+	history := endpoint.NewHistory(from, to, numberOfBins)
+	for _, result := range endpointStatus.(*endpoint.Status).Results {
+		history.AddCheck(result.Timestamp, result.Success, result.Duration)
+	}
+	history.Finalize(maximumCarryOver)
+	return history, nil
+}
+
 // InsertEndpointResult adds the observed result for the specified endpoint into the store
 func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Result) error {
 	endpointKey := ep.Key()

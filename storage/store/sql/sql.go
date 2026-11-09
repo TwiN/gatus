@@ -235,6 +235,36 @@ func (s *Store) GetHourlyAverageResponseTimeByKey(key string, from, to time.Time
 	return hourlyAverageResponseTimes, nil
 }
 
+// GetEndpointHistoryByKey returns the history of an endpoint over [from, to), aggregated into numberOfBins bins.
+//
+// The aggregation is performed by the database, which means that only up to numberOfBins rows are returned
+// regardless of how many results fall within the time range.
+func (s *Store) GetEndpointHistoryByKey(key string, from, to time.Time, numberOfBins int, maximumCarryOver time.Duration) (*endpoint.History, error) {
+	if !from.Before(to) {
+		return nil, common.ErrInvalidTimeRange
+	}
+	history := endpoint.NewHistory(from, to, numberOfBins)
+	tx, err := s.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+	endpointID, _, _, err := s.getEndpointIDGroupAndNameByKey(tx, key)
+	if err != nil {
+		_ = tx.Rollback()
+		return nil, err
+	}
+	if err = s.populateEndpointHistory(tx, endpointID, history); err != nil {
+		_ = tx.Rollback()
+		return nil, err
+	}
+	if err = tx.Commit(); err != nil {
+		_ = tx.Rollback()
+		return nil, err
+	}
+	history.Finalize(maximumCarryOver)
+	return history, nil
+}
+
 // InsertEndpointResult adds the observed result for the specified endpoint into the store
 func (s *Store) InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Result) error {
 	tx, err := s.db.Begin()
@@ -737,6 +767,86 @@ func (s *Store) getEndpointStatusByKey(tx *sql.Tx, key string, parameters *pagin
 		s.writeThroughCache.SetWithTTL(cacheKey, endpointStatus, cacheTTL)
 	}
 	return endpointStatus, nil
+}
+
+// populateEndpointHistory aggregates the results of an endpoint into the bins of the given history
+func (s *Store) populateEndpointHistory(tx *sql.Tx, endpointID int64, history *endpoint.History) error {
+	// The bin index of a result is computed by the database from the number of seconds between the start of the
+	// history ($4, as a unix timestamp in seconds) and the result's timestamp, divided by the width of a bin ($5).
+	// Timestamps are always stored in UTC.
+	var unixTimestampExpression string
+	if s.driver == "sqlite" {
+		// The SQLite driver stores timestamps as text in the format "2006-01-02 15:04:05.999999999 +0000 UTC",
+		// so the timezone suffix must be removed for julianday to be able to parse it.
+		unixTimestampExpression = "(julianday(substr(timestamp, 1, instr(timestamp, ' +') - 1)) - 2440587.5) * 86400.0"
+	} else {
+		unixTimestampExpression = "EXTRACT(EPOCH FROM timestamp)"
+	}
+	rows, err := tx.Query(
+		`
+			SELECT bins.bin, bins.checks, bins.successful_checks, bins.total_duration, bins.minimum_duration, bins.maximum_duration, last_result.timestamp, last_result.success
+			FROM (
+				SELECT CAST(FLOOR((`+unixTimestampExpression+` - $4) / $5) AS BIGINT) AS bin,
+					COUNT(*) AS checks,
+					SUM(CASE WHEN success THEN 1 ELSE 0 END) AS successful_checks,
+					SUM(duration) AS total_duration,
+					MIN(duration) AS minimum_duration,
+					MAX(duration) AS maximum_duration,
+					MAX(endpoint_result_id) AS last_result_id
+				FROM endpoint_results
+				WHERE endpoint_id = $1 AND timestamp >= $2 AND timestamp < $3
+				GROUP BY bin
+			) bins
+			JOIN endpoint_results last_result ON last_result.endpoint_result_id = bins.last_result_id
+		`,
+		endpointID,
+		history.From().UTC(),
+		history.To().UTC(),
+		float64(history.From().UnixNano())/float64(time.Second),
+		history.BinWidth().Seconds(),
+	)
+	if err != nil {
+		return err
+	}
+	for rows.Next() {
+		var bin, checks, successfulChecks int
+		var totalDuration, minimumDuration, maximumDuration time.Duration
+		var lastCheck time.Time
+		var lastCheckSuccess bool
+		if err = rows.Scan(&bin, &checks, &successfulChecks, &totalDuration, &minimumDuration, &maximumDuration, &lastCheck, &lastCheckSuccess); err != nil {
+			_ = rows.Close()
+			return err
+		}
+		// Guard against rounding errors at the edges of the time range
+		bin = min(max(bin, 0), len(history.Bins)-1)
+		history.AddAggregatedChecks(bin, checks, successfulChecks, totalDuration, minimumDuration, maximumDuration, lastCheck, lastCheckSuccess)
+	}
+	_ = rows.Close()
+	if err = rows.Err(); err != nil {
+		return err
+	}
+	// Retrieve the last result that preceded the time range so that its state can be carried over into the first bins
+	var previousCheck time.Time
+	var previousCheckSuccess bool
+	err = tx.QueryRow(
+		`
+			SELECT timestamp, success
+			FROM endpoint_results
+			WHERE endpoint_id = $1 AND timestamp < $2
+			ORDER BY timestamp DESC
+			LIMIT 1
+		`,
+		endpointID,
+		history.From().UTC(),
+	).Scan(&previousCheck, &previousCheckSuccess)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil
+		}
+		return err
+	}
+	history.SetPreviousCheck(previousCheck, previousCheckSuccess)
+	return nil
 }
 
 func (s *Store) getEndpointIDGroupAndNameByKey(tx *sql.Tx, key string) (id int64, group, name string, err error) {

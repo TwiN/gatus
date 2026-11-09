@@ -9,7 +9,45 @@
     ]"
     :style="`top: ${top}px; left: ${left}px;`"
   >
-    <div v-if="result" class="space-y-2">
+    <!-- History bin (aggregation of all results within a period of time) -->
+    <div v-if="result && isHistoryBin" class="space-y-2">
+      <div class="flex items-center gap-2">
+        <span :class="['inline-block w-2 h-2 rounded-full', historyBinDotClass]"></span>
+        <span class="text-xs font-semibold">{{ historyBinTitle }}</span>
+      </div>
+
+      <div>
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Period</div>
+        <div class="font-mono text-xs">{{ prettifyTimestamp(result.start) }}</div>
+        <div class="font-mono text-xs">{{ prettifyTimestamp(result.end) }}</div>
+      </div>
+
+      <div v-if="result.checks > 0">
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Checks</div>
+        <div class="font-mono text-xs">
+          <span :class="result.successfulChecks === result.checks ? 'text-green-500' : (result.successfulChecks === 0 ? 'text-red-500' : 'text-orange-500')">
+            {{ result.successfulChecks }}/{{ result.checks }} successful
+          </span>
+        </div>
+      </div>
+
+      <div v-if="result.checks > 0">
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Response Time</div>
+        <div class="font-mono text-xs">
+          ~{{ Math.trunc((result.averageDuration || 0) / 1000000) }}ms
+          <span v-if="result.checks > 1" class="text-muted-foreground">
+            ({{ Math.trunc((result.minimumDuration || 0) / 1000000) }}-{{ Math.trunc((result.maximumDuration || 0) / 1000000) }}ms)
+          </span>
+        </div>
+      </div>
+
+      <div v-if="result.lastCheck">
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Last Check</div>
+        <div class="font-mono text-xs">{{ prettifyTimestamp(result.lastCheck) }}</div>
+      </div>
+    </div>
+
+    <div v-else-if="result" class="space-y-2">
       <!-- Status (for suite results) -->
       <div v-if="isSuiteResult" class="flex items-center gap-2">
         <span :class="[
@@ -124,6 +162,33 @@ const tooltip = ref(null)
 const targetElement = ref(null)
 
 // Computed properties
+const isHistoryBin = computed(() => {
+  return props.result && props.result.state !== undefined && props.result.start !== undefined
+})
+
+const historyBinTitle = computed(() => {
+  if (!isHistoryBin.value) return ''
+  const bin = props.result
+  if (bin.checks === 0) {
+    if (bin.state === 'up') return 'Up (no check during this period)'
+    if (bin.state === 'down') return 'Down (no check during this period)'
+    return 'No data'
+  }
+  if (bin.state === 'up') return 'All checks passed'
+  if (bin.state === 'down') return 'All checks failed'
+  return 'Some checks failed'
+})
+
+const historyBinDotClass = computed(() => {
+  if (!isHistoryBin.value) return ''
+  switch (props.result.state) {
+    case 'up': return 'bg-green-500'
+    case 'degraded': return 'bg-orange-500'
+    case 'down': return 'bg-red-500'
+    default: return 'bg-gray-400 dark:bg-gray-500'
+  }
+})
+
 const isSuiteResult = computed(() => {
   return props.result && props.result.endpointResults !== undefined
 })

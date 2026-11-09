@@ -41,6 +41,11 @@ type Store interface {
 	// GetHourlyAverageResponseTimeByKey returns a map of hourly (key) average response time in milliseconds (value) during a time range
 	GetHourlyAverageResponseTimeByKey(key string, from, to time.Time) (map[int64]int, error)
 
+	// GetEndpointHistoryByKey returns the history of an endpoint over [from, to), aggregated into numberOfBins bins
+	// of equal width. Bins without any result inherit the state of the most recent result that preceded them,
+	// as long as that result is not older than maximumCarryOver (0 means no limit).
+	GetEndpointHistoryByKey(key string, from, to time.Time, numberOfBins int, maximumCarryOver time.Duration) (*endpoint.History, error)
+
 	// InsertEndpointResult adds the observed result for the specified endpoint into the store
 	InsertEndpointResult(ep *endpoint.Endpoint, result *endpoint.Result) error
 

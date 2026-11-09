@@ -4,52 +4,58 @@ import (
 	"bytes"
 	"errors"
 	"html/template"
+	"time"
 
 	"github.com/TwiN/gatus/v5/storage"
 	static "github.com/TwiN/gatus/v5/web"
 )
 
 const (
-	defaultTitle                = "Health Dashboard | Gatus"
-	defaultDescription          = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
-	defaultHeader               = "Gatus"
-	defaultDashboardHeading     = "Health Dashboard"
-	defaultDashboardSubheading  = "Monitor the health of your endpoints in real-time"
-	defaultLogo                 = ""
-	defaultLink                 = ""
-	defaultFavicon              = "/favicon.ico"
-	defaultFavicon16            = "/favicon-16x16.png"
-	defaultFavicon32            = "/favicon-32x32.png"
-	defaultCustomCSS            = ""
-	defaultSortBy               = "name"
-	defaultFilterBy             = "none"
-	defaultLoginSubtitle        = "System Monitoring Dashboard"
+	defaultTitle               = "Health Dashboard | Gatus"
+	defaultDescription         = "Gatus is an advanced automated status page that lets you monitor your applications and configure alerts to notify you if there's an issue"
+	defaultHeader              = "Gatus"
+	defaultDashboardHeading    = "Health Dashboard"
+	defaultDashboardSubheading = "Monitor the health of your endpoints in real-time"
+	defaultLogo                = ""
+	defaultLink                = ""
+	defaultFavicon             = "/favicon.ico"
+	defaultFavicon16           = "/favicon-16x16.png"
+	defaultFavicon32           = "/favicon-32x32.png"
+	defaultCustomCSS           = ""
+	defaultSortBy              = "name"
+	defaultFilterBy            = "none"
+	defaultLoginSubtitle       = "System Monitoring Dashboard"
+
+	// MinimumDashboardHistory is the minimum value accepted for dashboard-history
+	MinimumDashboardHistory = time.Minute
 )
 
 var (
 	defaultDarkMode = true
 
-	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
-	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
-	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
+	ErrButtonValidationFailed  = errors.New("invalid button configuration: missing required name or link")
+	ErrInvalidDefaultSortBy    = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
+	ErrInvalidDefaultFilterBy  = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
+	ErrInvalidDashboardHistory = errors.New("invalid dashboard-history value: must be at least 1m")
 )
 
 // Config is the configuration for the UI of Gatus
 type Config struct {
-	Title                   string   `yaml:"title,omitempty"`                  // Title of the page
-	Description             string   `yaml:"description,omitempty"`            // Meta description of the page
-	DashboardHeading        string   `yaml:"dashboard-heading,omitempty"`      // Dashboard Title between header and endpoints
-	DashboardSubheading     string   `yaml:"dashboard-subheading,omitempty"`   // Dashboard Description between header and endpoints
-	Header                  string   `yaml:"header,omitempty"`                 // Header is the text at the top of the page
-	Logo                    string   `yaml:"logo,omitempty"`                   // Logo to display on the page
-	Link                    string   `yaml:"link,omitempty"`                   // Link to open when clicking on the logo
-	Favicon                 Favicon  `yaml:"favicon,omitempty"`                // Favourite icon to display in web browser tab or address bar
-	Buttons                 []Button `yaml:"buttons,omitempty"`                // Buttons to display below the header
-	CustomCSS               string   `yaml:"custom-css,omitempty"`             // Custom CSS to include in the page
-	DarkMode                *bool    `yaml:"dark-mode,omitempty"`              // DarkMode is a flag to enable dark mode by default
-	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
-	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
-	LoginSubtitle           string   `yaml:"login-subtitle,omitempty"`         // LoginSubtitle is the subtitle displayed on the OIDC login page
+	Title               string        `yaml:"title,omitempty"`                // Title of the page
+	Description         string        `yaml:"description,omitempty"`          // Meta description of the page
+	DashboardHeading    string        `yaml:"dashboard-heading,omitempty"`    // Dashboard Title between header and endpoints
+	DashboardSubheading string        `yaml:"dashboard-subheading,omitempty"` // Dashboard Description between header and endpoints
+	Header              string        `yaml:"header,omitempty"`               // Header is the text at the top of the page
+	Logo                string        `yaml:"logo,omitempty"`                 // Logo to display on the page
+	Link                string        `yaml:"link,omitempty"`                 // Link to open when clicking on the logo
+	Favicon             Favicon       `yaml:"favicon,omitempty"`              // Favourite icon to display in web browser tab or address bar
+	Buttons             []Button      `yaml:"buttons,omitempty"`              // Buttons to display below the header
+	CustomCSS           string        `yaml:"custom-css,omitempty"`           // Custom CSS to include in the page
+	DarkMode            *bool         `yaml:"dark-mode,omitempty"`            // DarkMode is a flag to enable dark mode by default
+	DefaultSortBy       string        `yaml:"default-sort-by,omitempty"`      // DefaultSortBy is the default sort option ('name', 'group', 'health')
+	DefaultFilterBy     string        `yaml:"default-filter-by,omitempty"`    // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	LoginSubtitle       string        `yaml:"login-subtitle,omitempty"`       // LoginSubtitle is the subtitle displayed on the OIDC login page
+	DashboardHistory    time.Duration `yaml:"dashboard-history,omitempty"`    // DashboardHistory is the default time window displayed by each endpoint on the dashboard. If not set, the last results are displayed instead.
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
@@ -148,6 +154,9 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 	if len(cfg.LoginSubtitle) == 0 {
 		cfg.LoginSubtitle = defaultLoginSubtitle
+	}
+	if cfg.DashboardHistory != 0 && cfg.DashboardHistory < MinimumDashboardHistory {
+		return ErrInvalidDashboardHistory
 	}
 	if len(cfg.Favicon.Default) == 0 {
 		cfg.Favicon.Default = defaultFavicon

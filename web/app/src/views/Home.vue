@@ -246,6 +246,10 @@ const filteredEndpoints = computed(() => {
   
   if (showRecentFailures.value) {
     filtered = filtered.filter(endpoint => {
+      // When a dashboard-history window is configured, the bins displayed are what "recent" refers to
+      if (endpoint.history?.bins?.length) {
+        return endpoint.history.bins.some(bin => bin.state === 'down' || bin.state === 'degraded')
+      }
       if (!endpoint.results || endpoint.results.length === 0) return false
       return endpoint.results.some(result => !result.success)
     })

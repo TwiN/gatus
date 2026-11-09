@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
@@ -9,6 +10,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/endpoint/ui"
 	"github.com/TwiN/gatus/v5/storage"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/gatus/v5/watchdog"
@@ -227,5 +229,79 @@ func TestEndpointStatuses(t *testing.T) {
 				t.Errorf("expected:\n %s\n\ngot:\n %s", scenario.ExpectedBody, string(body))
 			}
 		})
+	}
+}
+
+func TestEndpointStatusesWithDashboardHistory(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+	endpointWithHistory := testEndpoint
+	endpointWithHistory.Name = "with-history"
+	endpointWithHistory.UIConfig = &ui.Config{DashboardHistory: time.Hour}
+	endpointWithoutHistory := testEndpoint
+	endpointWithoutHistory.Name = "without-history"
+	endpointWithoutHistory.UIConfig = &ui.Config{}
+	now := time.Now()
+	for _, ep := range []*endpoint.Endpoint{&endpointWithHistory, &endpointWithoutHistory} {
+		olderResult := testUnsuccessfulResult
+		olderResult.Timestamp = now.Add(-30 * time.Minute)
+		newerResult := testSuccessfulResult
+		newerResult.Timestamp = now.Add(-time.Minute)
+		store.Get().InsertEndpointResult(ep, &olderResult)
+		store.Get().InsertEndpointResult(ep, &newerResult)
+	}
+	api := New(&config.Config{
+		Endpoints: []*endpoint.Endpoint{&endpointWithHistory, &endpointWithoutHistory},
+		Storage: &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		},
+	})
+	router := api.Router()
+	response, err := router.Test(httptest.NewRequest("GET", "/api/v1/endpoints/statuses", http.NoBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != http.StatusOK {
+		t.Fatalf("expected status code %d, got %d", http.StatusOK, response.StatusCode)
+	}
+	var endpointStatuses []*endpoint.Status
+	if err := json.NewDecoder(response.Body).Decode(&endpointStatuses); err != nil {
+		t.Fatal("failed to decode response:", err)
+	}
+	if len(endpointStatuses) != 2 {
+		t.Fatalf("expected 2 endpoint statuses, got %d", len(endpointStatuses))
+	}
+	for _, endpointStatus := range endpointStatuses {
+		switch endpointStatus.Key {
+		case endpointWithHistory.Key():
+			if endpointStatus.History == nil {
+				t.Fatal("expected endpoint with dashboard-history to have a history")
+			}
+			if endpointStatus.History.Window != time.Hour {
+				t.Errorf("expected history window of 1h, got %s", endpointStatus.History.Window)
+			}
+			if len(endpointStatus.History.Bins) != endpoint.NumberOfHistoryBins {
+				t.Fatalf("expected %d bins, got %d", endpoint.NumberOfHistoryBins, len(endpointStatus.History.Bins))
+			}
+			var checks, successfulChecks int
+			for _, bin := range endpointStatus.History.Bins {
+				checks += bin.Checks
+				successfulChecks += bin.SuccessfulChecks
+			}
+			if checks != 2 || successfulChecks != 1 {
+				t.Errorf("expected 2 checks with 1 successful check across all bins, got %d checks with %d successful", checks, successfulChecks)
+			}
+			if len(endpointStatus.Results) != 2 {
+				t.Errorf("expected results to still be returned alongside the history, got %d results", len(endpointStatus.Results))
+			}
+		case endpointWithoutHistory.Key():
+			if endpointStatus.History != nil {
+				t.Error("expected endpoint without dashboard-history to have no history")
+			}
+		default:
+			t.Errorf("unexpected endpoint status with key %s", endpointStatus.Key)
+		}
 	}
 }

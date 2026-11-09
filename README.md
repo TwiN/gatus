@@ -51,6 +51,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Functions](#functions)
   - [Web](#web)
   - [UI](#ui)
+    - [Dashboard history](#dashboard-history)
   - [Announcements](#announcements)
   - [Storage](#storage)
   - [Client configuration](#client-configuration)
@@ -306,6 +307,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ui.dont-resolve-failed-conditions` | Whether to resolve failed conditions for the UI.                                                                                            | `false`                    |
 | `endpoints[].ui.resolve-successful-conditions`  | Whether to resolve successful conditions for the UI (helpful to expose body assertions even when checks pass).                              | `false`                    |
 | `endpoints[].ui.badge.response-time`            | List of response time thresholds. Each time a threshold is reached, the badge has a different color.                                        | `[50, 200, 300, 500, 750]` |
+| `endpoints[].ui.dashboard-history`              | Time window displayed on the dashboard for this endpoint. Overrides `ui.dashboard-history`. See [Dashboard history](#dashboard-history).    | `ui.dashboard-history`     |
 | `endpoints[].extra-labels`                      | Extra labels to add to the metrics. Useful for grouping endpoints together.                                                                 | `{}`                       |
 | `endpoints[].always-run`                        | (SUITES ONLY) Whether to execute this endpoint even if previous endpoints in the suite failed.                                              | `false`                    |
 | `endpoints[].store`                             | (SUITES ONLY) Map of values to extract from the response and store in the suite context (stored even on failure).                           | `{}`                       |
@@ -557,6 +559,39 @@ Allows you to configure the application wide defaults for the dashboard's UI. So
 | `ui.default-sort-by`      | Default sorting option for endpoints in the dashboard. Can be `name`, `group`, or `health`. Note that user preferences override this.    | `name`                                              |
 | `ui.default-filter-by`    | Default filter option for endpoints in the dashboard. Can be `none`, `failing`, or `unstable`. Note that user preferences override this. | `none`                                              |
 | `ui.login-subtitle`       | Subtitle displayed on the OIDC login page.                                                                                               | `System Monitoring Dashboard`                       |
+| `ui.dashboard-history`    | Time window displayed by each endpoint on the dashboard (e.g. `24h`). If not set, the last 50 results are displayed instead. See [Dashboard history](#dashboard-history). | `""`                                                |
+
+#### Dashboard history
+By default, each endpoint on the dashboard displays its last 50 results, which means that the period of time covered
+depends on the endpoint's interval (e.g. 50 minutes for an interval of 1m).
+
+If you'd rather display a fixed period of time regardless of the interval, you can set `ui.dashboard-history`
+globally and/or `endpoints[].ui.dashboard-history` for specific endpoints:
+```yaml
+ui:
+  dashboard-history: 24h
+endpoints:
+  - name: api
+    url: "https://example.org/health"
+    interval: 1m
+    ui:
+      dashboard-history: 1h # overrides ui.dashboard-history
+    conditions:
+      - "[STATUS] == 200"
+```
+The window is split into 50 bars of equal width (e.g. ~29 minutes each for `24h`), and the results within each bar are
+aggregated by the server:
+- green if every check within the bar was successful
+- orange if some, but not all, checks within the bar failed
+- red if every check within the bar failed
+- gray if there is no data
+
+If no check happened within a bar (e.g. a 1h interval with a 24h window), the bar takes the state of the most recent
+check that preceded it, as long as said check is not older than twice the endpoint's interval.
+
+Note that only the results that are stored can be displayed, so `storage.maximum-number-of-results` must be at least
+the window divided by the interval (e.g. `1440` for a 24h window with an interval of 1m). A warning is logged on start
+if that's not the case.
 
 ### Announcements
 System-wide announcements allow you to display important messages at the top of the status page. These can be used to inform users about planned maintenance, ongoing issues, or general information. You can use markdown to format your announcements.

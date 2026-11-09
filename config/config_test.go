@@ -2740,3 +2740,64 @@ func TestResolveTunnelForClientConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestParseAndValidateConfigBytesWithDashboardHistory(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+ui:
+  dashboard-history: 24h
+endpoints:
+  - name: inherits-global
+    url: https://example.org/health
+    conditions:
+      - "[STATUS] == 200"
+  - name: overrides-global
+    url: https://example.org/health
+    ui:
+      dashboard-history: 1h
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if config.UI.DashboardHistory != 24*time.Hour {
+		t.Errorf("expected ui.dashboard-history to be 24h, got %s", config.UI.DashboardHistory)
+	}
+	if config.Endpoints[0].UIConfig.DashboardHistory != 24*time.Hour {
+		t.Errorf("expected endpoint without dashboard-history to inherit the global value of 24h, got %s", config.Endpoints[0].UIConfig.DashboardHistory)
+	}
+	if config.Endpoints[1].UIConfig.DashboardHistory != time.Hour {
+		t.Errorf("expected endpoint with dashboard-history to keep its own value of 1h, got %s", config.Endpoints[1].UIConfig.DashboardHistory)
+	}
+}
+
+func TestParseAndValidateConfigBytesWithoutDashboardHistory(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+endpoints:
+  - name: website
+    url: https://example.org/health
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Fatal("expected no error, got", err.Error())
+	}
+	if config.Endpoints[0].UIConfig.DashboardHistory != 0 {
+		t.Errorf("expected dashboard-history to be disabled by default, got %s", config.Endpoints[0].UIConfig.DashboardHistory)
+	}
+}
+
+func TestParseAndValidateConfigBytesWithInvalidDashboardHistory(t *testing.T) {
+	_, err := parseAndValidateConfigBytes([]byte(`
+endpoints:
+  - name: website
+    url: https://example.org/health
+    ui:
+      dashboard-history: 10s
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err == nil {
+		t.Error("expected an error because dashboard-history is below the minimum")
+	}
+}
