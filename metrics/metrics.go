@@ -28,6 +28,11 @@ var (
 	// Track if metrics have been initialized to prevent duplicate registration
 	metricsInitialized bool
 	currentRegisterer  prometheus.Registerer
+
+	// registry holds the metrics when InitializePrometheusMetrics is passed no registerer. Each call makes a new
+	// one: a registry keeps a metric's label names for its whole life, even after Unregister, so a reload whose
+	// extra-labels differ would panic on the previous registry.
+	registry *prometheus.Registry
 )
 
 // UnregisterPrometheusMetrics unregisters all previously registered metrics
@@ -74,6 +79,15 @@ func UnregisterPrometheusMetrics() {
 	currentRegisterer = nil
 }
 
+// Gatherer returns the registry the last InitializePrometheusMetrics call without a registerer created,
+// or nil before the first such call.
+func Gatherer() prometheus.Gatherer {
+	if registry == nil {
+		return nil
+	}
+	return registry
+}
+
 func InitializePrometheusMetrics(cfg *config.Config, reg prometheus.Registerer) {
 	// If metrics are already initialized, unregister them first
 	if metricsInitialized {
@@ -81,7 +95,8 @@ func InitializePrometheusMetrics(cfg *config.Config, reg prometheus.Registerer) 
 	}
 
 	if reg == nil {
-		reg = prometheus.DefaultRegisterer
+		registry = prometheus.NewRegistry()
+		reg = registry
 	}
 
 	// Store the registerer for later unregistration

@@ -14,8 +14,7 @@ import (
 )
 
 // TestInitializePrometheusMetrics tests metrics initialization with extraLabels.
-// Note: Because of the global Prometheus registry, this test can only safely verify one label set per process.
-// If the function is called with a different set of labels for the same metric, a panic will occur.
+// Note: calling InitializePrometheusMetrics again with the same registerer and a different set of labels panics.
 func TestInitializePrometheusMetrics(t *testing.T) {
 	cfgWithExtras := &config.Config{
 		Endpoints: []*endpoint.Endpoint{
@@ -61,6 +60,25 @@ func TestInitializePrometheusMetrics(t *testing.T) {
 		}
 	}()
 	_ = resultTotal.WithLabelValues("k", "g", "n", "ty", "true", "fval", "hval")
+}
+
+// TestInitializePrometheusMetrics_reloadChangesExtraLabels covers a configuration reload that adds an extra label,
+// which re-registers every metric with one more label name.
+func TestInitializePrometheusMetrics_reloadChangesExtraLabels(t *testing.T) {
+	defer UnregisterPrometheusMetrics()
+	InitializePrometheusMetrics(&config.Config{}, nil)
+	ep := &endpoint.Endpoint{Name: "ep", Group: "g", URL: "https://example.org", ExtraLabels: map[string]string{"app": "web"}}
+	cfg := &config.Config{Endpoints: []*endpoint.Endpoint{ep}}
+	InitializePrometheusMetrics(cfg, nil)
+	PublishMetricsForEndpoint(ep, &endpoint.Result{Success: true}, cfg.GetUniqueExtraMetricLabels())
+	expected := `
+# HELP gatus_results_total Number of results per endpoint
+# TYPE gatus_results_total counter
+gatus_results_total{app="web",group="g",key="g_ep",name="ep",success="true",type="HTTP"} 1
+`
+	if err := testutil.GatherAndCompare(Gatherer(), bytes.NewBufferString(expected), "gatus_results_total"); err != nil {
+		t.Error("metrics after the reload do not carry the new extra label:", err)
+	}
 }
 
 // TestPublishMetricsForEndpoint_withExtraLabels ensures extraLabels are included in the exported metrics.
