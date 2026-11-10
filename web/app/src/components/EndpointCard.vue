@@ -51,8 +51,10 @@
                 'flex-1 h-6 sm:h-8 rounded-sm transition-all',
                 result ? 'cursor-pointer' : '',
                 result ? (
-                  result.success 
-                    ? (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700')
+                  result.success
+                    ? (result.maintenance
+                      ? (selectedResultIndex === index ? 'bg-blue-700' : 'bg-blue-500 hover:bg-blue-700')
+                      : (selectedResultIndex === index ? 'bg-green-700' : 'bg-green-500 hover:bg-green-700'))
                     : (selectedResultIndex === index ? 'bg-red-700' : 'bg-red-500 hover:bg-red-700')
                 ) : 'bg-gray-200 dark:bg-gray-700'
               ]"
@@ -109,7 +111,8 @@ const latestResult = computed(() => {
 
 const currentStatus = computed(() => {
   if (!latestResult.value) return 'unknown'
-  return latestResult.value.success ? 'healthy' : 'unhealthy'
+  if (!latestResult.value.success) return 'unhealthy'
+  return latestResult.value.maintenance ? 'maintenance' : 'healthy'
 })
 
 const hostname = computed(() => {
@@ -127,6 +130,7 @@ const historyBinClasses = {
   up: { default: 'bg-green-500 hover:bg-green-700', selected: 'bg-green-700' },
   degraded: { default: 'bg-orange-400 hover:bg-orange-600 dark:bg-orange-500 dark:hover:bg-orange-700', selected: 'bg-orange-600 dark:bg-orange-700' },
   down: { default: 'bg-red-500 hover:bg-red-700', selected: 'bg-red-700' },
+  maintenance: { default: 'bg-blue-500 hover:bg-blue-700', selected: 'bg-blue-700' },
   unknown: { default: 'bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600', selected: 'bg-gray-300 dark:bg-gray-600' }
 }
 

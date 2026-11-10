@@ -13,7 +13,7 @@ const props = defineProps({
   status: {
     type: String,
     required: true,
-    validator: (value) => ['healthy', 'unhealthy', 'degraded', 'unknown'].includes(value)
+    validator: (value) => ['healthy', 'unhealthy', 'degraded', 'maintenance', 'unknown'].includes(value)
   }
 })
 
@@ -25,6 +25,8 @@ const variant = computed(() => {
       return 'destructive'
     case 'degraded':
       return 'warning'
+    case 'maintenance':
+      return 'maintenance'
     default:
       return 'secondary'
   }
@@ -38,6 +40,8 @@ const label = computed(() => {
       return 'Unhealthy'
     case 'degraded':
       return 'Degraded'
+    case 'maintenance':
+      return 'Maintenance'
     default:
       return 'Unknown'
   }
@@ -51,6 +55,8 @@ const dotClass = computed(() => {
       return 'bg-red-400'
     case 'degraded':
       return 'bg-yellow-400'
+    case 'maintenance':
+      return 'bg-blue-300'
     default:
       return 'bg-gray-400'
   }

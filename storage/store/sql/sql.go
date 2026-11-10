@@ -653,8 +653,8 @@ func (s *Store) insertEndpointResultWithSuiteID(tx *sql.Tx, endpointID int64, re
 	var endpointResultID int64
 	err := tx.QueryRow(
 		`
-			INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp, suite_result_id)
-			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13)
+			INSERT INTO endpoint_results (endpoint_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp, suite_result_id, maintenance, maintenance_message)
+			VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14, $15)
 			RETURNING endpoint_result_id
 		`,
 		endpointID,
@@ -670,6 +670,8 @@ func (s *Store) insertEndpointResultWithSuiteID(tx *sql.Tx, endpointID int64, re
 		result.Duration,
 		result.Timestamp.UTC(),
 		suiteResultID,
+		result.Maintenance,
+		result.MaintenanceMessage,
 	).Scan(&endpointResultID)
 	if err != nil {
 		return err
@@ -784,24 +786,28 @@ func (s *Store) populateEndpointHistory(tx *sql.Tx, endpointID int64, history *e
 	}
 	rows, err := tx.Query(
 		`
-			SELECT bins.bin, bins.checks, bins.successful_checks, bins.total_duration, bins.minimum_duration, bins.maximum_duration,
-				last_result.endpoint_result_id, last_result.timestamp, last_result.success, last_result.errors,
-				last_failed_result.endpoint_result_id, last_failed_result.timestamp, last_failed_result.errors
+			SELECT bins.bin, bins.checks, bins.successful_checks, bins.maintenance_checks, bins.total_duration, bins.minimum_duration, bins.maximum_duration,
+				last_result.endpoint_result_id, last_result.timestamp, last_result.success, last_result.errors, last_result.maintenance, last_result.maintenance_message,
+				last_failed_result.endpoint_result_id, last_failed_result.timestamp, last_failed_result.errors,
+				last_maintenance_result.endpoint_result_id, last_maintenance_result.timestamp, last_maintenance_result.maintenance_message
 			FROM (
 				SELECT CAST(FLOOR((`+unixTimestampExpression+` - $4) / $5) AS BIGINT) AS bin,
 					COUNT(*) AS checks,
 					SUM(CASE WHEN success THEN 1 ELSE 0 END) AS successful_checks,
+					SUM(CASE WHEN success AND maintenance THEN 1 ELSE 0 END) AS maintenance_checks,
 					SUM(duration) AS total_duration,
 					MIN(duration) AS minimum_duration,
 					MAX(duration) AS maximum_duration,
 					MAX(endpoint_result_id) AS last_result_id,
-					MAX(CASE WHEN success THEN NULL ELSE endpoint_result_id END) AS last_failed_result_id
+					MAX(CASE WHEN success THEN NULL ELSE endpoint_result_id END) AS last_failed_result_id,
+					MAX(CASE WHEN success AND maintenance THEN endpoint_result_id ELSE NULL END) AS last_maintenance_result_id
 				FROM endpoint_results
 				WHERE endpoint_id = $1 AND timestamp >= $2 AND timestamp < $3
 				GROUP BY bin
 			) bins
 			JOIN endpoint_results last_result ON last_result.endpoint_result_id = bins.last_result_id
 			LEFT JOIN endpoint_results last_failed_result ON last_failed_result.endpoint_result_id = bins.last_failed_result_id
+			LEFT JOIN endpoint_results last_maintenance_result ON last_maintenance_result.endpoint_result_id = bins.last_maintenance_result_id
 		`,
 		endpointID,
 		history.From().UTC(),
@@ -816,15 +822,18 @@ func (s *Store) populateEndpointHistory(tx *sql.Tx, endpointID int64, history *e
 	// retrieved afterward
 	lastResults := make(map[int64]*endpoint.Result)
 	for rows.Next() {
-		var bin, checks, successfulChecks int
+		var bin, checks, successfulChecks, maintenanceChecks int
 		var totalDuration, minimumDuration, maximumDuration time.Duration
 		var lastResultID int64
 		var joinedErrors string
 		var lastFailedResultID sql.NullInt64
 		var lastFailedResultTimestamp sql.NullTime
 		var lastFailedResultJoinedErrors sql.NullString
+		var lastMaintenanceResultID sql.NullInt64
+		var lastMaintenanceResultTimestamp sql.NullTime
+		var lastMaintenanceResultMessage sql.NullString
 		lastResult := &endpoint.Result{}
-		if err = rows.Scan(&bin, &checks, &successfulChecks, &totalDuration, &minimumDuration, &maximumDuration, &lastResultID, &lastResult.Timestamp, &lastResult.Success, &joinedErrors, &lastFailedResultID, &lastFailedResultTimestamp, &lastFailedResultJoinedErrors); err != nil {
+		if err = rows.Scan(&bin, &checks, &successfulChecks, &maintenanceChecks, &totalDuration, &minimumDuration, &maximumDuration, &lastResultID, &lastResult.Timestamp, &lastResult.Success, &joinedErrors, &lastResult.Maintenance, &lastResult.MaintenanceMessage, &lastFailedResultID, &lastFailedResultTimestamp, &lastFailedResultJoinedErrors, &lastMaintenanceResultID, &lastMaintenanceResultTimestamp, &lastMaintenanceResultMessage); err != nil {
 			_ = rows.Close()
 			return err
 		}
@@ -844,9 +853,24 @@ func (s *Store) populateEndpointHistory(tx *sql.Tx, endpointID int64, history *e
 				lastResults[lastFailedResultID.Int64] = lastFailedResult
 			}
 		}
+		// Only the timestamp and message of the last maintenance result are needed, so its condition results are not
+		// retrieved
+		var lastMaintenanceResult *endpoint.Result
+		if lastMaintenanceResultID.Valid {
+			if lastMaintenanceResultID.Int64 == lastResultID {
+				lastMaintenanceResult = lastResult
+			} else {
+				lastMaintenanceResult = &endpoint.Result{
+					Timestamp:          lastMaintenanceResultTimestamp.Time,
+					Success:            true,
+					Maintenance:        true,
+					MaintenanceMessage: lastMaintenanceResultMessage.String,
+				}
+			}
+		}
 		// Guard against rounding errors at the edges of the time range
 		bin = min(max(bin, 0), len(history.Bins)-1)
-		history.AddAggregatedChecks(bin, checks, successfulChecks, totalDuration, minimumDuration, maximumDuration, lastResult, lastFailedResult)
+		history.AddAggregatedChecks(bin, checks, successfulChecks, maintenanceChecks, totalDuration, minimumDuration, maximumDuration, lastResult, lastFailedResult, lastMaintenanceResult)
 	}
 	_ = rows.Close()
 	if err = rows.Err(); err != nil {
@@ -858,7 +882,7 @@ func (s *Store) populateEndpointHistory(tx *sql.Tx, endpointID int64, history *e
 	previousResult := &endpoint.Result{}
 	err = tx.QueryRow(
 		`
-			SELECT endpoint_result_id, timestamp, success, errors
+			SELECT endpoint_result_id, timestamp, success, errors, maintenance, maintenance_message
 			FROM endpoint_results
 			WHERE endpoint_id = $1 AND timestamp < $2
 			ORDER BY timestamp DESC
@@ -866,7 +890,7 @@ func (s *Store) populateEndpointHistory(tx *sql.Tx, endpointID int64, history *e
 		`,
 		endpointID,
 		history.From().UTC(),
-	).Scan(&previousResultID, &previousResult.Timestamp, &previousResult.Success, &joinedErrors)
+	).Scan(&previousResultID, &previousResult.Timestamp, &previousResult.Success, &joinedErrors, &previousResult.Maintenance, &previousResult.MaintenanceMessage)
 	if err == nil {
 		if len(joinedErrors) != 0 {
 			previousResult.Errors = strings.Split(joinedErrors, arraySeparator)
@@ -969,7 +993,7 @@ func (s *Store) getEndpointEventsByEndpointID(tx *sql.Tx, endpointID int64, page
 func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, page, pageSize int) (results []*endpoint.Result, err error) {
 	rows, err := tx.Query(
 		`
-			SELECT endpoint_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp
+			SELECT endpoint_result_id, success, errors, connected, status, dns_rcode, certificate_expiration, domain_expiration, hostname, ip, duration, timestamp, maintenance, maintenance_message
 			FROM endpoint_results
 			WHERE endpoint_id = $1
 			ORDER BY endpoint_result_id DESC -- Normally, we'd sort by timestamp, but sorting by endpoint_result_id is faster
@@ -987,7 +1011,7 @@ func (s *Store) getEndpointResultsByEndpointID(tx *sql.Tx, endpointID int64, pag
 		result := &endpoint.Result{}
 		var id int64
 		var joinedErrors string
-		err = rows.Scan(&id, &result.Success, &joinedErrors, &result.Connected, &result.HTTPStatus, &result.DNSRCode, &result.CertificateExpiration, &result.DomainExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp)
+		err = rows.Scan(&id, &result.Success, &joinedErrors, &result.Connected, &result.HTTPStatus, &result.DNSRCode, &result.CertificateExpiration, &result.DomainExpiration, &result.Hostname, &result.IP, &result.Duration, &result.Timestamp, &result.Maintenance, &result.MaintenanceMessage)
 		if err != nil {
 			logr.Errorf("[sql.getEndpointResultsByEndpointID] Silently failed to retrieve endpoint result for endpointID=%d: %s", endpointID, err.Error())
 			err = nil

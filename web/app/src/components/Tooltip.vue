@@ -16,6 +16,11 @@
         <span class="text-xs font-semibold">{{ historyBinTitle }}</span>
       </div>
 
+      <div v-if="result.state === 'maintenance' && result.maintenanceMessage">
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Maintenance</div>
+        <div class="text-xs text-blue-600 dark:text-blue-400 max-w-xs">{{ result.maintenanceMessage }}</div>
+      </div>
+
       <div>
         <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Period</div>
         <div class="font-mono text-xs">{{ prettifyTimestamp(result.start) }}</div>
@@ -27,6 +32,9 @@
         <div class="font-mono text-xs">
           <span :class="result.successfulChecks === result.checks ? 'text-green-500' : (result.successfulChecks === 0 ? 'text-red-500' : 'text-orange-500')">
             {{ result.successfulChecks }}/{{ result.checks }} successful
+          </span>
+          <span v-if="result.maintenanceChecks > 0" class="text-blue-500">
+            ({{ result.maintenanceChecks }} under maintenance)
           </span>
         </div>
       </div>
@@ -88,6 +96,12 @@
         <span class="text-xs font-semibold">
           {{ result.success ? 'Suite Passed' : 'Suite Failed' }}
         </span>
+      </div>
+
+      <!-- Maintenance (for endpoint results marked as such by the endpoint's maintenance-conditions) -->
+      <div v-if="!isSuiteResult && result.maintenance">
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Maintenance</div>
+        <div class="text-xs text-blue-600 dark:text-blue-400 max-w-xs">{{ result.maintenanceMessage || 'Under maintenance' }}</div>
       </div>
 
       <!-- Timestamp -->
@@ -203,9 +217,11 @@ const historyBinTitle = computed(() => {
   if (bin.checks === 0) {
     if (bin.state === 'up') return 'Up (no check during this period)'
     if (bin.state === 'down') return 'Down (no check during this period)'
+    if (bin.state === 'maintenance') return 'Under maintenance (no check during this period)'
     return 'No data'
   }
   if (bin.state === 'up') return 'All checks passed'
+  if (bin.state === 'maintenance') return 'All checks passed, under maintenance'
   if (bin.state === 'down') return 'All checks failed'
   return 'Some checks failed'
 })
@@ -221,6 +237,7 @@ const historyBinDotClass = computed(() => {
     case 'up': return 'bg-green-500'
     case 'degraded': return 'bg-orange-500'
     case 'down': return 'bg-red-500'
+    case 'maintenance': return 'bg-blue-500'
     default: return 'bg-gray-400 dark:bg-gray-500'
   }
 })

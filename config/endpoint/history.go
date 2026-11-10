@@ -15,6 +15,10 @@ const (
 	HistoryStateDegraded HistoryState = "degraded" // Some, but not all, checks within the bin were successful
 	HistoryStateDown     HistoryState = "down"     // All checks within the bin failed
 	HistoryStateUnknown  HistoryState = "unknown"  // No data is available for the bin
+
+	// HistoryStateMaintenance means that all checks within the bin were successful, and at least one of them was
+	// marked as maintenance by the endpoint's maintenance-conditions
+	HistoryStateMaintenance HistoryState = "maintenance"
 )
 
 // History is the aggregated history of an endpoint's results over a time window,
@@ -50,6 +54,13 @@ type HistoryBin struct {
 	// SuccessfulChecks is the number of successful checks that occurred within the bin
 	SuccessfulChecks int `json:"successfulChecks"`
 
+	// MaintenanceChecks is the number of successful checks within the bin that were marked as maintenance
+	MaintenanceChecks int `json:"maintenanceChecks,omitempty"`
+
+	// MaintenanceMessage is the message of the most recent check marked as maintenance within the bin or, if the bin
+	// has no check and its state was carried over from a check marked as maintenance, the message of said check
+	MaintenanceMessage string `json:"maintenanceMessage,omitempty"`
+
 	// AverageDuration is the average response time of the checks within the bin
 	AverageDuration time.Duration `json:"averageDuration,omitempty"`
 
@@ -75,9 +86,10 @@ type HistoryBin struct {
 	// by LastCheck
 	ConditionResults []*ConditionResult `json:"conditionResults,omitempty"`
 
-	totalDuration    time.Duration
-	lastResult       *Result
-	lastFailedResult *Result
+	totalDuration         time.Duration
+	lastResult            *Result
+	lastFailedResult      *Result
+	lastMaintenanceResult *Result
 }
 
 // NewHistory creates a History made of numberOfBins empty bins of equal width spanning [from, to)
@@ -157,19 +169,25 @@ func (h *History) AddCheck(result *Result) {
 	if index < 0 {
 		return
 	}
-	var lastFailedResult *Result
+	var lastFailedResult, lastMaintenanceResult *Result
 	if !result.Success {
 		lastFailedResult = result
 	}
-	h.AddAggregatedChecks(index, 1, boolToInt(result.Success), result.Duration, result.Duration, result.Duration, result, lastFailedResult)
+	isMaintenance := result.Success && result.Maintenance
+	if isMaintenance {
+		lastMaintenanceResult = result
+	}
+	h.AddAggregatedChecks(index, 1, boolToInt(result.Success), boolToInt(isMaintenance), result.Duration, result.Duration, result.Duration, result, lastFailedResult, lastMaintenanceResult)
 }
 
 // AddAggregatedChecks adds pre-aggregated checks to the bin at the given index.
 //
-// lastResult is the most recent of the aggregated checks, and lastFailedResult the most recent of the aggregated checks
-// that failed (nil if none failed). Only their Timestamp, Success, Errors and ConditionResults are used, and since they
-// are used by reference, their Errors and ConditionResults may be populated until Finalize is called.
-func (h *History) AddAggregatedChecks(index, checks, successfulChecks int, totalDuration, minimumDuration, maximumDuration time.Duration, lastResult, lastFailedResult *Result) {
+// lastResult is the most recent of the aggregated checks, lastFailedResult the most recent of the aggregated checks
+// that failed (nil if none failed) and lastMaintenanceResult the most recent of the successful aggregated checks that
+// were marked as maintenance (nil if none was). Only their Timestamp, Success, Maintenance, MaintenanceMessage, Errors
+// and ConditionResults are used, and since they are used by reference, their Errors and ConditionResults may be
+// populated until Finalize is called.
+func (h *History) AddAggregatedChecks(index, checks, successfulChecks, maintenanceChecks int, totalDuration, minimumDuration, maximumDuration time.Duration, lastResult, lastFailedResult, lastMaintenanceResult *Result) {
 	if index < 0 || index >= len(h.Bins) || checks <= 0 || lastResult == nil {
 		return
 	}
@@ -186,8 +204,12 @@ func (h *History) AddAggregatedChecks(index, checks, successfulChecks int, total
 	if lastFailedResult != nil && (bin.lastFailedResult == nil || !lastFailedResult.Timestamp.Before(bin.lastFailedResult.Timestamp)) {
 		bin.lastFailedResult = lastFailedResult
 	}
+	if lastMaintenanceResult != nil && (bin.lastMaintenanceResult == nil || !lastMaintenanceResult.Timestamp.Before(bin.lastMaintenanceResult.Timestamp)) {
+		bin.lastMaintenanceResult = lastMaintenanceResult
+	}
 	bin.Checks += checks
 	bin.SuccessfulChecks += successfulChecks
+	bin.MaintenanceChecks += maintenanceChecks
 	bin.totalDuration += totalDuration
 }
 
@@ -204,6 +226,8 @@ func (h *History) SetPreviousCheck(result *Result) {
 // Finalize computes the state of every bin.
 //
 // Bins with checks are "up" if all checks were successful, "down" if all checks failed and "degraded" otherwise.
+// A bin whose checks were all successful is "maintenance" instead of "up" if at least one of them was marked as
+// maintenance: a failure is more important to show than a maintenance, and a maintenance more than a success.
 // Bins without any check inherit the state of the most recent check that preceded them, as long as said check
 // is not older than maximumCarryOver (a maximumCarryOver of 0 or less means there is no limit). Otherwise, their
 // state is "unknown".
@@ -218,6 +242,10 @@ func (h *History) Finalize(maximumCarryOver time.Duration) {
 			switch bin.SuccessfulChecks {
 			case bin.Checks:
 				bin.State = HistoryStateUp
+				if bin.MaintenanceChecks > 0 && bin.lastMaintenanceResult != nil {
+					bin.State = HistoryStateMaintenance
+					bin.MaintenanceMessage = bin.lastMaintenanceResult.MaintenanceMessage
+				}
 			case 0:
 				bin.State = HistoryStateDown
 			default:
@@ -234,6 +262,10 @@ func (h *History) Finalize(maximumCarryOver time.Duration) {
 		}
 		if lastResult.Success {
 			bin.State = HistoryStateUp
+			if lastResult.Maintenance {
+				bin.State = HistoryStateMaintenance
+				bin.MaintenanceMessage = lastResult.MaintenanceMessage
+			}
 			bin.setLastChecks(lastResult, nil)
 		} else {
 			bin.State = HistoryStateDown

@@ -36,6 +36,13 @@ type Result struct {
 	// Success whether the result signifies a success or not
 	Success bool `json:"success"`
 
+	// Maintenance whether the result was successful while the endpoint reported being under maintenance,
+	// as determined by the Endpoint's MaintenanceConditions
+	Maintenance bool `json:"maintenance,omitempty"`
+
+	// MaintenanceMessage is the resolved Endpoint.MaintenanceMessage, if Maintenance is true
+	MaintenanceMessage string `json:"maintenanceMessage,omitempty"`
+
 	// Timestamp when the request was sent
 	Timestamp time.Time `json:"timestamp"`
 

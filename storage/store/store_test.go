@@ -801,3 +801,66 @@ func TestStore_GetEndpointHistoryByKey(t *testing.T) {
 		})
 	}
 }
+
+func TestStore_GetEndpointHistoryByKeyWithMaintenance(t *testing.T) {
+	scenarios := initStoresAndBaseScenarios(t, "TestStore_GetEndpointHistoryByKeyWithMaintenance")
+	defer cleanUp(scenarios)
+	// 5 bins of 1 minute each
+	from := now.Add(-5 * time.Minute)
+	to := now
+	newResult := func(base endpoint.Result, timestamp time.Time, maintenanceMessage string) *endpoint.Result {
+		base.Timestamp = timestamp
+		if len(maintenanceMessage) > 0 {
+			base.Maintenance = true
+			base.MaintenanceMessage = maintenanceMessage
+		}
+		return &base
+	}
+	// Results must be inserted in chronological order
+	results := []*endpoint.Result{
+		newResult(testSuccessfulResult, from.Add(-time.Minute), "before the window"),     // carried over into bin 0
+		newResult(testSuccessfulResult, from.Add(time.Minute+10*time.Second), "first"),   // bin 1
+		newResult(testSuccessfulResult, from.Add(time.Minute+20*time.Second), "second"),  // bin 1
+		newResult(testSuccessfulResult, from.Add(time.Minute+30*time.Second), ""),        // bin 1
+		newResult(testSuccessfulResult, from.Add(2*time.Minute+10*time.Second), "third"), // bin 2
+		newResult(testUnsuccessfulResult, from.Add(2*time.Minute+20*time.Second), ""),    // bin 2
+		newResult(testSuccessfulResult, from.Add(3*time.Minute+10*time.Second), ""),      // bin 3
+	}
+	expected := []struct {
+		state             endpoint.HistoryState
+		maintenanceChecks int
+		message           string
+	}{
+		{endpoint.HistoryStateMaintenance, 0, "before the window"},
+		{endpoint.HistoryStateMaintenance, 2, "second"},
+		{endpoint.HistoryStateDegraded, 1, ""},
+		{endpoint.HistoryStateUp, 0, ""},
+		{endpoint.HistoryStateUp, 0, ""},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			for _, result := range results {
+				if err := scenario.Store.InsertEndpointResult(&testEndpoint, result); err != nil {
+					t.Fatal("failed to insert result:", err)
+				}
+			}
+			history, err := scenario.Store.GetEndpointHistoryByKey(testEndpoint.Key(), from, to, 5, 0)
+			if err != nil {
+				t.Fatal("unexpected error:", err)
+			}
+			for i, bin := range history.Bins {
+				if bin.State != expected[i].state || bin.MaintenanceChecks != expected[i].maintenanceChecks || bin.MaintenanceMessage != expected[i].message {
+					t.Errorf("bin %d: expected state=%s maintenanceChecks=%d message=%q, got state=%s maintenanceChecks=%d message=%q", i, expected[i].state, expected[i].maintenanceChecks, expected[i].message, bin.State, bin.MaintenanceChecks, bin.MaintenanceMessage)
+				}
+			}
+			status, err := scenario.Store.GetEndpointStatusByKey(testEndpoint.Key(), paging.NewEndpointStatusParams().WithResults(1, 10))
+			if err != nil {
+				t.Fatal("unexpected error:", err)
+			}
+			if len(status.Results) != len(results) || !status.Results[2].Maintenance || status.Results[2].MaintenanceMessage != "second" || status.Results[3].Maintenance {
+				t.Error("expected the maintenance and maintenance message of each result to be persisted")
+			}
+		})
+		scenario.Store.Clear()
+	}
+}

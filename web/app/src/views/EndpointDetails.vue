@@ -238,7 +238,8 @@ const latestResult = computed(() => {
 
 const currentHealthStatus = computed(() => {
   if (!latestResult.value) return 'unknown'
-  return latestResult.value.success ? 'healthy' : 'unhealthy'
+  if (!latestResult.value.success) return 'unhealthy'
+  return latestResult.value.maintenance ? 'maintenance' : 'healthy'
 })
 
 const hostname = computed(() => {

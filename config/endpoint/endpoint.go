@@ -61,6 +61,10 @@ var (
 	// ErrEndpointWithNoCondition is the error with which Gatus will panic if an endpoint is configured with no conditions
 	ErrEndpointWithNoCondition = errors.New("you must specify at least one condition per endpoint")
 
+	// ErrMaintenanceMessageWithoutMaintenanceConditions is the error with which Gatus will panic if an endpoint has a
+	// maintenance-message but no maintenance-conditions
+	ErrMaintenanceMessageWithoutMaintenanceConditions = errors.New("maintenance-message requires at least one maintenance-condition")
+
 	// ErrEndpointWithNoURL is the error with which Gatus will panic if an endpoint is configured with no url
 	ErrEndpointWithNoURL = errors.New("you must specify an url for each endpoint")
 
@@ -117,6 +121,15 @@ type Endpoint struct {
 
 	// MaintenanceWindow is the configuration for per-endpoint maintenance windows
 	MaintenanceWindows []*maintenance.Config `yaml:"maintenance-windows,omitempty"`
+
+	// MaintenanceConditions are evaluated against a successful result: if all of them are met, the target is
+	// reporting maintenance on its own (e.g. a status page announcing a maintenance window) and the result is
+	// marked as such. They never affect Result.Success and are not part of Result.ConditionResults.
+	MaintenanceConditions []Condition `yaml:"maintenance-conditions,omitempty"`
+
+	// MaintenanceMessage is shown for results marked as maintenance. It is either a literal message or a single
+	// placeholder resolved against the result (e.g. "[BODY].maintenance.detail").
+	MaintenanceMessage string `yaml:"maintenance-message,omitempty"`
 
 	// DNSConfig is the configuration for DNS monitoring
 	DNSConfig *dns.Config `yaml:"dns,omitempty"`
@@ -241,6 +254,14 @@ func (e *Endpoint) ValidateAndSetDefaults() error {
 			return fmt.Errorf("%v: %w", ErrInvalidConditionFormat, err)
 		}
 	}
+	for _, c := range e.MaintenanceConditions {
+		if err := c.Validate(); err != nil {
+			return fmt.Errorf("%v: %w", ErrInvalidConditionFormat, err)
+		}
+	}
+	if len(e.MaintenanceMessage) > 0 && len(e.MaintenanceConditions) == 0 {
+		return ErrMaintenanceMessageWithoutMaintenanceConditions
+	}
 	for _, maintenanceWindow := range e.MaintenanceWindows {
 		if err := maintenanceWindow.ValidateAndSetDefaults(); err != nil {
 			return err
@@ -338,6 +359,9 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 			result.Success = false
 		}
 	}
+	if result.Success {
+		processedEndpoint.evaluateMaintenance(result, context)
+	}
 	result.Timestamp = time.Now()
 	// Clean up parameters that we don't need to keep in the results
 	if processedEndpoint.UIConfig.HideURL {
@@ -364,6 +388,40 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 		result.ConditionResults = nil
 	}
 	return result
+}
+
+// evaluateMaintenance marks the result as maintenance if all MaintenanceConditions are met.
+//
+// The conditions are evaluated against a copy of the result so that they are neither added to the result's
+// ConditionResults nor able to add errors to it.
+func (e *Endpoint) evaluateMaintenance(result *Result, context *gontext.Gontext) {
+	if len(e.MaintenanceConditions) == 0 {
+		return
+	}
+	scratch := *result
+	scratch.ConditionResults = nil
+	scratch.Errors = nil
+	for _, condition := range e.MaintenanceConditions {
+		if !condition.evaluate(&scratch, true, false, context) {
+			return
+		}
+	}
+	result.Maintenance = true
+	result.MaintenanceMessage = e.resolveMaintenanceMessage(result, context)
+}
+
+// resolveMaintenanceMessage returns the MaintenanceMessage, resolved against the result if it is a placeholder.
+// A placeholder that cannot be resolved yields an empty message.
+func (e *Endpoint) resolveMaintenanceMessage(result *Result, context *gontext.Gontext) string {
+	if len(e.MaintenanceMessage) == 0 {
+		return ""
+	}
+	// Anything that is not a placeholder is returned as is, which makes literal messages work as well
+	resolved, err := ResolvePlaceholder(e.MaintenanceMessage, result, context)
+	if err != nil || strings.HasSuffix(resolved, InvalidConditionElementSuffix) {
+		return ""
+	}
+	return resolved
 }
 
 // preprocessWithContext creates a copy of the endpoint with context placeholders replaced
@@ -594,6 +652,14 @@ func (e *Endpoint) needsToReadBody() bool {
 		if condition.hasBodyPlaceholder() {
 			return true
 		}
+	}
+	for _, condition := range e.MaintenanceConditions {
+		if condition.hasBodyPlaceholder() {
+			return true
+		}
+	}
+	if strings.Contains(e.MaintenanceMessage, BodyPlaceholder) {
+		return true
 	}
 	// Check store values for body placeholders
 	if e.Store != nil {

@@ -297,6 +297,8 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ssh.password`                      | SSH password (e.g. password).                                                                                                               | Required `""`              |
 | `endpoints[].alerts`                            | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                                                   | `[]`                       |
 | `endpoints[].maintenance-windows`               | List of all maintenance windows for a given endpoint. <br />See [Maintenance](#maintenance).                                                | `[]`                       |
+| `endpoints[].maintenance-conditions`            | Conditions under which a successful check is shown as maintenance. <br />See [Maintenance reported by the endpoint](#maintenance-reported-by-the-endpoint). | `[]`                       |
+| `endpoints[].maintenance-message`               | Message shown for checks under maintenance; a literal or a placeholder. <br />See [Maintenance reported by the endpoint](#maintenance-reported-by-the-endpoint). | `""`                       |
 | `endpoints[].client`                            | [Client configuration](#client-configuration).                                                                                              | `{}`                       |
 | `endpoints[].ui`                                | UI configuration at the endpoint level.                                                                                                     | `{}`                       |
 | `endpoints[].ui.hide-conditions`                | Whether to hide conditions from the results. Note that this only hides conditions from results evaluated from the moment this was enabled.  | `false`                    |
@@ -2912,6 +2914,35 @@ endpoints:
       - start: "14:30"
         duration: 1h
         timezone: "Europe/Berlin"
+```
+
+#### Maintenance reported by the endpoint
+Maintenance windows are known in advance. When the monitored target announces maintenance on its own instead
+(e.g. a status page reporting a scheduled maintenance as in progress), use `maintenance-conditions`: a successful
+check for which all of them are met is marked as maintenance. It is shown in blue on the dashboard, with the
+endpoint's status badge reading "Maintenance" and `maintenance-message` in the tooltip, instead of looking like
+an ordinary success.
+
+`maintenance-conditions` use the same syntax as `conditions`, but they never affect whether a check succeeds,
+and they are not listed among the check's condition results. A failed check is never marked as maintenance, so
+the regular `conditions` must accept the maintenance state for it to be shown (e.g. with `any()`). Since such a
+check is successful, it does not trigger alerts.
+
+`maintenance-message` is either a literal message or a single placeholder resolved against the check's result.
+
+On the dashboard history, a period is shown as maintenance when all of its checks succeeded and at least one of
+them was under maintenance; a failure within the same period takes precedence.
+
+```yaml
+endpoints:
+  - name: api
+    url: "https://example.org/status"
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].status == any(healthy, maintenance)"
+    maintenance-conditions:
+      - "[BODY].status == maintenance"
+    maintenance-message: "[BODY].detail"
 ```
 
 

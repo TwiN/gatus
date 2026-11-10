@@ -207,3 +207,51 @@ func TestHistory_LastFailedCheck(t *testing.T) {
 		t.Error("expected bin 2 to be carried over from the last check of bin 1, without last failed check")
 	}
 }
+
+func newTestMaintenanceResult(timestamp time.Time, message string) *Result {
+	result := newTestResult(timestamp, true, 0)
+	result.Maintenance = true
+	result.MaintenanceMessage = message
+	return result
+}
+
+func TestHistory_Maintenance(t *testing.T) {
+	t.Parallel()
+	from := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	history := NewHistory(from, from.Add(5*time.Minute), 5)
+	// Bin 0: a maintenance check between two successful checks
+	history.AddCheck(newTestResult(from.Add(5*time.Second), true, 0))
+	history.AddCheck(newTestMaintenanceResult(from.Add(10*time.Second), "first"))
+	history.AddCheck(newTestMaintenanceResult(from.Add(20*time.Second), "second"))
+	history.AddCheck(newTestResult(from.Add(30*time.Second), true, 0))
+	// Bin 1: a maintenance check and a failed check; the failure wins
+	history.AddCheck(newTestMaintenanceResult(from.Add(time.Minute+10*time.Second), "third"))
+	history.AddCheck(newTestResult(from.Add(time.Minute+20*time.Second), false, 0))
+	// Bin 2: only successful checks
+	history.AddCheck(newTestResult(from.Add(2*time.Minute+10*time.Second), true, 0))
+	// Bin 3: a maintenance check, whose state is carried over into bin 4
+	history.AddCheck(newTestMaintenanceResult(from.Add(3*time.Minute+10*time.Second), "fourth"))
+	history.Finalize(0)
+	expected := []struct {
+		state             HistoryState
+		maintenanceChecks int
+		message           string
+	}{
+		{HistoryStateMaintenance, 2, "second"},
+		{HistoryStateDegraded, 1, ""},
+		{HistoryStateUp, 0, ""},
+		{HistoryStateMaintenance, 1, "fourth"},
+		{HistoryStateMaintenance, 0, "fourth"},
+	}
+	for i, bin := range history.Bins {
+		if bin.State != expected[i].state {
+			t.Errorf("bin %d: expected state %s, got %s", i, expected[i].state, bin.State)
+		}
+		if bin.MaintenanceChecks != expected[i].maintenanceChecks {
+			t.Errorf("bin %d: expected %d maintenance checks, got %d", i, expected[i].maintenanceChecks, bin.MaintenanceChecks)
+		}
+		if bin.MaintenanceMessage != expected[i].message {
+			t.Errorf("bin %d: expected maintenance message %q, got %q", i, expected[i].message, bin.MaintenanceMessage)
+		}
+	}
+}

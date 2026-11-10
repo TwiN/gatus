@@ -118,6 +118,9 @@ func (s *Store) createPostgresSchema() error {
 	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD IF NOT EXISTS domain_expiration BIGINT NOT NULL DEFAULT 0`)
 	// Add suite_result_id to endpoint_results table for suite endpoint linkage
 	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD COLUMN IF NOT EXISTS suite_result_id BIGINT REFERENCES suite_results(suite_result_id) ON DELETE CASCADE`)
+	// Add maintenance and maintenance_message to endpoint_results table for endpoints with maintenance-conditions
+	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD COLUMN IF NOT EXISTS maintenance BOOLEAN NOT NULL DEFAULT FALSE`)
+	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD COLUMN IF NOT EXISTS maintenance_message TEXT NOT NULL DEFAULT ''`)
 	// Create index for suite_result_id
 	_, _ = s.db.Exec(`CREATE INDEX IF NOT EXISTS endpoint_results_suite_result_id_idx ON endpoint_results(suite_result_id)`)
 	// Create index for endpoint_result_conditions
