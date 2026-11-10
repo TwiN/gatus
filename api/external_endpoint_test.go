@@ -225,3 +225,46 @@ func TestCreateExternalEndpointResultUnderEndpointMaintenanceWindow(t *testing.T
 		t.Errorf("expected alerting to be skipped because the endpoint is under maintenance, but NumberOfFailuresInARow is %d", externalEndpoint.NumberOfFailuresInARow)
 	}
 }
+
+func TestCreateExternalEndpointResultWithMaintenance(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+	cfg := &config.Config{
+		ExternalEndpoints: []*endpoint.ExternalEndpoint{{Name: "n", Group: "g", Token: "token"}},
+		Maintenance:       &maintenance.Config{},
+	}
+	router := New(cfg).Router()
+	for _, path := range []string{
+		"/api/v1/endpoints/g_n/external?success=true&maintenance=true&message=Platform%20maintenance",
+		// A failed result is never marked as maintenance
+		"/api/v1/endpoints/g_n/external?success=false&maintenance=true&message=ignored",
+		"/api/v1/endpoints/g_n/external?success=true",
+	} {
+		request := httptest.NewRequest("POST", path, http.NoBody)
+		request.Header.Set("Authorization", "Bearer token")
+		response, err := router.Test(request)
+		if err != nil {
+			t.Fatal(err)
+		}
+		response.Body.Close()
+		if response.StatusCode != 200 {
+			t.Fatalf("expected 200 for %s, got %d", path, response.StatusCode)
+		}
+	}
+	endpointStatus, err := store.Get().GetEndpointStatus("g", "n", paging.NewEndpointStatusParams().WithResults(1, 10))
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(endpointStatus.Results) != 3 {
+		t.Fatalf("expected 3 results, got %d", len(endpointStatus.Results))
+	}
+	expected := []struct {
+		maintenance bool
+		message     string
+	}{{true, "Platform maintenance"}, {false, ""}, {false, ""}}
+	for i, result := range endpointStatus.Results {
+		if result.Maintenance != expected[i].maintenance || result.MaintenanceMessage != expected[i].message {
+			t.Errorf("result %d: expected maintenance=%v message=%q, got maintenance=%v message=%q", i, expected[i].maintenance, expected[i].message, result.Maintenance, result.MaintenanceMessage)
+		}
+	}
+}
