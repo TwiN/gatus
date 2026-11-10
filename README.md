@@ -134,6 +134,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
   - [Concurrency](#concurrency)
   - [Reloading configuration on the fly](#reloading-configuration-on-the-fly)
   - [Endpoint groups](#endpoint-groups)
+  - [Endpoint tags](#endpoint-tags)
   - [How do I sort by group by default?](#how-do-i-sort-by-group-by-default)
   - [Exposing Gatus on a custom path](#exposing-gatus-on-a-custom-path)
   - [Exposing Gatus on a custom port](#exposing-gatus-on-a-custom-port)
@@ -281,6 +282,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].enabled`                           | Whether to monitor the endpoint.                                                                                                            | `true`                     |
 | `endpoints[].name`                              | Name of the endpoint. Can be anything.                                                                                                      | Required `""`              |
 | `endpoints[].group`                             | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).                      | `""`                       |
+| `endpoints[].tags`                              | List of tags used to categorize and filter endpoints on the dashboard and through the API. <br />See [Endpoint tags](#endpoint-tags).       | `[]`                       |
 | `endpoints[].url`                               | URL to send the request to.                                                                                                                 | Required `""`              |
 | `endpoints[].method`                            | Request method.                                                                                                                             | `GET`                      |
 | `endpoints[].conditions`                        | Conditions used to determine the health of the endpoint. <br />See [Conditions](#conditions).                                               | `[]`                       |
@@ -332,6 +334,7 @@ For instance:
 | `external-endpoints[].enabled`            | Whether to monitor the endpoint.                                                                                                  | `true`         |
 | `external-endpoints[].name`               | Name of the endpoint. Can be anything.                                                                                            | Required `""`  |
 | `external-endpoints[].group`              | Group name. Used to group multiple endpoints together on the dashboard. <br />See [Endpoint groups](#endpoint-groups).            | `""`           |
+| `external-endpoints[].tags`               | List of tags used to categorize and filter endpoints. <br />See [Endpoint tags](#endpoint-tags).                                  | `[]`           |
 | `external-endpoints[].token`              | Bearer token required to push status to.                                                                                          | Required `""`  |
 | `external-endpoints[].alerts`             | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                                         | `[]`           |
 | `external-endpoints[].heartbeat`          | Heartbeat configuration for monitoring when the external endpoint stops sending updates.                                          | `{}`           |
@@ -3536,6 +3539,32 @@ endpoints:
 The configuration above will result in a dashboard that looks like this when sorting by group:
 
 ![Gatus Endpoint Groups](.github/assets/endpoint-groups.jpg)
+
+
+### Endpoint tags
+Tags are free-form labels that can be added to endpoints and external endpoints. Unlike a group, an endpoint
+can have several tags, and tags are not part of the endpoint's key, so adding or removing one has no effect
+on its history, badges or URLs.
+
+```yaml
+endpoints:
+  - name: frontend
+    group: core
+    url: "https://twin.sh/health"
+    tags:
+      - critical
+      - public
+    conditions:
+      - "[STATUS] == 200"
+```
+
+On the dashboard, tags are displayed on each endpoint and can be used to filter the endpoints: selecting several
+tags shows the endpoints that have at least one of them, and the search bar matches tags as well.
+
+Tags are also returned by the API (e.g. `/api/v1/endpoints/statuses`) in the `tags` field of each endpoint.
+
+Tags are not exported as metric labels and are not included in alerts. If that is what you're looking for,
+see [`extra-labels`](#custom-labels).
 
 
 ### How do I sort by group by default?

@@ -16,6 +16,13 @@
                 <span v-if="endpointStatus.group && hostname">•</span>
                 <span v-if="hostname">{{ hostname }}</span>
               </div>
+              <div v-if="endpointStatus.tags && endpointStatus.tags.length > 0" class="flex flex-wrap gap-1 mt-2">
+                <span
+                  v-for="tag in endpointStatus.tags"
+                  :key="tag"
+                  class="rounded-full border px-2 py-0.5 text-xs text-muted-foreground dark:border-gray-700"
+                >{{ tag }}</span>
+              </div>
             </div>
             <StatusBadge :status="currentHealthStatus" />
           </div>

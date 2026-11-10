@@ -14,6 +14,11 @@ type Status struct {
 	// Key of the Endpoint
 	Key string `json:"key"`
 
+	// Tags of the endpoint.
+	//
+	// Not persisted; populated from the configuration when the status is served by the API.
+	Tags []string `json:"tags,omitempty"`
+
 	// Results is the list of endpoint evaluation results
 	Results []*Result `json:"results"`
 
