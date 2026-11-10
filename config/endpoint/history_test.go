@@ -128,11 +128,11 @@ func TestHistory_Finalize(t *testing.T) {
 			t.Error("expected bin 5 to reference the last check of bin 3")
 		}
 		// Bin 3 has a successful check followed by a failed check, so the condition results must be the failed one's
-		if len(history.Bins[3].LastCheckConditionResults) != 1 || history.Bins[3].LastCheckConditionResults[0].Success {
+		if len(history.Bins[3].ConditionResults) != 1 || history.Bins[3].ConditionResults[0].Success {
 			t.Error("expected bin 3 to have the condition results of its last check, which failed")
 		}
 		// Bin 5 has no check, so it must have the condition results of the check it was carried over from
-		if len(history.Bins[5].LastCheckConditionResults) != 1 || history.Bins[5].LastCheckConditionResults[0].Success {
+		if len(history.Bins[5].ConditionResults) != 1 || history.Bins[5].ConditionResults[0].Success {
 			t.Error("expected bin 5 to have the condition results of the check it was carried over from")
 		}
 	})
@@ -145,7 +145,7 @@ func TestHistory_Finalize(t *testing.T) {
 				t.Errorf("bin %d: expected state %s, got %s", i, expected[i], bin.State)
 			}
 		}
-		if !history.Bins[5].LastCheck.IsZero() || history.Bins[5].LastCheckConditionResults != nil {
+		if !history.Bins[5].LastCheck.IsZero() || history.Bins[5].ConditionResults != nil {
 			t.Error("expected bin with unknown state to have no last check")
 		}
 	})
@@ -170,5 +170,40 @@ func TestHistory_SetPreviousCheck(t *testing.T) {
 	history.Finalize(0)
 	if history.Bins[0].State != HistoryStateDown {
 		t.Errorf("expected first bin to be %s, got %s", HistoryStateDown, history.Bins[0].State)
+	}
+}
+
+func TestHistory_LastFailedCheck(t *testing.T) {
+	t.Parallel()
+	from := time.Date(2026, 1, 1, 0, 0, 0, 0, time.UTC)
+	history := NewHistory(from, from.Add(3*time.Minute), 3)
+	failedCheck := newTestResult(from.Add(10*time.Second), false, 0)
+	failedCheck.Errors = []string{"error"}
+	successfulCheck := newTestResult(from.Add(20*time.Second), true, 0)
+	history.AddCheck(failedCheck)
+	history.AddCheck(successfulCheck)
+	lastCheckOfSecondBin := newTestResult(from.Add(time.Minute+10*time.Second), true, 0)
+	history.AddCheck(lastCheckOfSecondBin)
+	history.Finalize(0)
+	// Bin 0: a failed check followed by a successful check
+	bin := history.Bins[0]
+	if bin.State != HistoryStateDegraded {
+		t.Errorf("expected bin 0 to be %s, got %s", HistoryStateDegraded, bin.State)
+	}
+	if !bin.LastCheck.Equal(successfulCheck.Timestamp) || !bin.LastFailedCheck.Equal(failedCheck.Timestamp) {
+		t.Errorf("expected bin 0 to have last check %s and last failed check %s, got %s and %s", successfulCheck.Timestamp, failedCheck.Timestamp, bin.LastCheck, bin.LastFailedCheck)
+	}
+	if len(bin.Errors) != 1 || len(bin.ConditionResults) != 1 || bin.ConditionResults[0].Success {
+		t.Error("expected bin 0 to have the errors and condition results of the failed check")
+	}
+	// Bin 1: only a successful check
+	bin = history.Bins[1]
+	if !bin.LastFailedCheck.IsZero() || len(bin.Errors) != 0 || len(bin.ConditionResults) != 1 || !bin.ConditionResults[0].Success {
+		t.Error("expected bin 1 to have no last failed check and the condition results of its last check")
+	}
+	// Bin 2: no check, carried over from the successful check of bin 1
+	bin = history.Bins[2]
+	if bin.State != HistoryStateUp || !bin.LastCheck.Equal(lastCheckOfSecondBin.Timestamp) || !bin.LastFailedCheck.IsZero() {
+		t.Error("expected bin 2 to be carried over from the last check of bin 1, without last failed check")
 	}
 }

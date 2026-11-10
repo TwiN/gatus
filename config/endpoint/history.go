@@ -63,14 +63,21 @@ type HistoryBin struct {
 	// has no check and its state was carried over from a previous check, the timestamp of said check
 	LastCheck time.Time `json:"lastCheck,omitzero"`
 
-	// LastCheckErrors are the errors of the check referenced by LastCheck
-	LastCheckErrors []string `json:"lastCheckErrors,omitempty"`
+	// LastFailedCheck is the timestamp of the most recent failed check within the bin or, if the bin has no check and
+	// its state was carried over from a previous check that failed, the timestamp of said check.
+	// It is zero if no check failed.
+	LastFailedCheck time.Time `json:"lastFailedCheck,omitzero"`
 
-	// LastCheckConditionResults are the condition results of the check referenced by LastCheck
-	LastCheckConditionResults []*ConditionResult `json:"lastCheckConditionResults,omitempty"`
+	// Errors are the errors of the check referenced by LastFailedCheck or, if no check failed, by LastCheck
+	Errors []string `json:"errors,omitempty"`
 
-	totalDuration time.Duration
-	lastResult    *Result
+	// ConditionResults are the condition results of the check referenced by LastFailedCheck or, if no check failed,
+	// by LastCheck
+	ConditionResults []*ConditionResult `json:"conditionResults,omitempty"`
+
+	totalDuration    time.Duration
+	lastResult       *Result
+	lastFailedResult *Result
 }
 
 // NewHistory creates a History made of numberOfBins empty bins of equal width spanning [from, to)
@@ -150,14 +157,19 @@ func (h *History) AddCheck(result *Result) {
 	if index < 0 {
 		return
 	}
-	h.AddAggregatedChecks(index, 1, boolToInt(result.Success), result.Duration, result.Duration, result.Duration, result)
+	var lastFailedResult *Result
+	if !result.Success {
+		lastFailedResult = result
+	}
+	h.AddAggregatedChecks(index, 1, boolToInt(result.Success), result.Duration, result.Duration, result.Duration, result, lastFailedResult)
 }
 
 // AddAggregatedChecks adds pre-aggregated checks to the bin at the given index.
 //
-// lastResult is the most recent of the aggregated checks. Only its Timestamp, Success, Errors and ConditionResults
-// are used, and since it is used by reference, its Errors and ConditionResults may be populated until Finalize is called.
-func (h *History) AddAggregatedChecks(index, checks, successfulChecks int, totalDuration, minimumDuration, maximumDuration time.Duration, lastResult *Result) {
+// lastResult is the most recent of the aggregated checks, and lastFailedResult the most recent of the aggregated checks
+// that failed (nil if none failed). Only their Timestamp, Success, Errors and ConditionResults are used, and since they
+// are used by reference, their Errors and ConditionResults may be populated until Finalize is called.
+func (h *History) AddAggregatedChecks(index, checks, successfulChecks int, totalDuration, minimumDuration, maximumDuration time.Duration, lastResult, lastFailedResult *Result) {
 	if index < 0 || index >= len(h.Bins) || checks <= 0 || lastResult == nil {
 		return
 	}
@@ -170,6 +182,9 @@ func (h *History) AddAggregatedChecks(index, checks, successfulChecks int, total
 	}
 	if bin.lastResult == nil || !lastResult.Timestamp.Before(bin.lastResult.Timestamp) {
 		bin.lastResult = lastResult
+	}
+	if lastFailedResult != nil && (bin.lastFailedResult == nil || !lastFailedResult.Timestamp.Before(bin.lastFailedResult.Timestamp)) {
+		bin.lastFailedResult = lastFailedResult
 	}
 	bin.Checks += checks
 	bin.SuccessfulChecks += successfulChecks
@@ -194,7 +209,8 @@ func (h *History) SetPreviousCheck(result *Result) {
 // state is "unknown".
 //
 // Every bin with a state other than "unknown" also references its last check (or the check its state was carried
-// over from) through LastCheck, LastCheckErrors and LastCheckConditionResults.
+// over from) through LastCheck and, if a check failed, its last failed check through LastFailedCheck. Errors and
+// ConditionResults are those of the last failed check if there is one, and those of the last check otherwise.
 func (h *History) Finalize(maximumCarryOver time.Duration) {
 	lastResult := h.previousCheck
 	for _, bin := range h.Bins {
@@ -209,7 +225,7 @@ func (h *History) Finalize(maximumCarryOver time.Duration) {
 			}
 			bin.AverageDuration = bin.totalDuration / time.Duration(bin.Checks)
 			lastResult = bin.lastResult
-			bin.setLastCheck(lastResult)
+			bin.setLastChecks(lastResult, bin.lastFailedResult)
 			continue
 		}
 		bin.State = HistoryStateUnknown
@@ -218,17 +234,23 @@ func (h *History) Finalize(maximumCarryOver time.Duration) {
 		}
 		if lastResult.Success {
 			bin.State = HistoryStateUp
+			bin.setLastChecks(lastResult, nil)
 		} else {
 			bin.State = HistoryStateDown
+			bin.setLastChecks(lastResult, lastResult)
 		}
-		bin.setLastCheck(lastResult)
 	}
 }
 
-func (bin *HistoryBin) setLastCheck(result *Result) {
-	bin.LastCheck = result.Timestamp
-	bin.LastCheckErrors = result.Errors
-	bin.LastCheckConditionResults = result.ConditionResults
+func (bin *HistoryBin) setLastChecks(lastResult, lastFailedResult *Result) {
+	bin.LastCheck = lastResult.Timestamp
+	detailedResult := lastResult
+	if lastFailedResult != nil {
+		bin.LastFailedCheck = lastFailedResult.Timestamp
+		detailedResult = lastFailedResult
+	}
+	bin.Errors = detailedResult.Errors
+	bin.ConditionResults = detailedResult.ConditionResults
 }
 
 func boolToInt(b bool) int {

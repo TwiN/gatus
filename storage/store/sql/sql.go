@@ -784,7 +784,9 @@ func (s *Store) populateEndpointHistory(tx *sql.Tx, endpointID int64, history *e
 	}
 	rows, err := tx.Query(
 		`
-			SELECT bins.bin, bins.checks, bins.successful_checks, bins.total_duration, bins.minimum_duration, bins.maximum_duration, last_result.endpoint_result_id, last_result.timestamp, last_result.success, last_result.errors
+			SELECT bins.bin, bins.checks, bins.successful_checks, bins.total_duration, bins.minimum_duration, bins.maximum_duration,
+				last_result.endpoint_result_id, last_result.timestamp, last_result.success, last_result.errors,
+				last_failed_result.endpoint_result_id, last_failed_result.timestamp, last_failed_result.errors
 			FROM (
 				SELECT CAST(FLOOR((`+unixTimestampExpression+` - $4) / $5) AS BIGINT) AS bin,
 					COUNT(*) AS checks,
@@ -792,12 +794,14 @@ func (s *Store) populateEndpointHistory(tx *sql.Tx, endpointID int64, history *e
 					SUM(duration) AS total_duration,
 					MIN(duration) AS minimum_duration,
 					MAX(duration) AS maximum_duration,
-					MAX(endpoint_result_id) AS last_result_id
+					MAX(endpoint_result_id) AS last_result_id,
+					MAX(CASE WHEN success THEN NULL ELSE endpoint_result_id END) AS last_failed_result_id
 				FROM endpoint_results
 				WHERE endpoint_id = $1 AND timestamp >= $2 AND timestamp < $3
 				GROUP BY bin
 			) bins
 			JOIN endpoint_results last_result ON last_result.endpoint_result_id = bins.last_result_id
+			LEFT JOIN endpoint_results last_failed_result ON last_failed_result.endpoint_result_id = bins.last_failed_result_id
 		`,
 		endpointID,
 		history.From().UTC(),
@@ -808,15 +812,19 @@ func (s *Store) populateEndpointHistory(tx *sql.Tx, endpointID int64, history *e
 	if err != nil {
 		return err
 	}
-	// The last result of each bin, by endpoint_result_id, so that their condition results can be retrieved afterward
+	// The last result and last failed result of each bin, by endpoint_result_id, so that their condition results can be
+	// retrieved afterward
 	lastResults := make(map[int64]*endpoint.Result)
 	for rows.Next() {
 		var bin, checks, successfulChecks int
 		var totalDuration, minimumDuration, maximumDuration time.Duration
 		var lastResultID int64
 		var joinedErrors string
+		var lastFailedResultID sql.NullInt64
+		var lastFailedResultTimestamp sql.NullTime
+		var lastFailedResultJoinedErrors sql.NullString
 		lastResult := &endpoint.Result{}
-		if err = rows.Scan(&bin, &checks, &successfulChecks, &totalDuration, &minimumDuration, &maximumDuration, &lastResultID, &lastResult.Timestamp, &lastResult.Success, &joinedErrors); err != nil {
+		if err = rows.Scan(&bin, &checks, &successfulChecks, &totalDuration, &minimumDuration, &maximumDuration, &lastResultID, &lastResult.Timestamp, &lastResult.Success, &joinedErrors, &lastFailedResultID, &lastFailedResultTimestamp, &lastFailedResultJoinedErrors); err != nil {
 			_ = rows.Close()
 			return err
 		}
@@ -824,9 +832,21 @@ func (s *Store) populateEndpointHistory(tx *sql.Tx, endpointID int64, history *e
 			lastResult.Errors = strings.Split(joinedErrors, arraySeparator)
 		}
 		lastResults[lastResultID] = lastResult
+		var lastFailedResult *endpoint.Result
+		if lastFailedResultID.Valid {
+			if lastFailedResultID.Int64 == lastResultID {
+				lastFailedResult = lastResult
+			} else {
+				lastFailedResult = &endpoint.Result{Timestamp: lastFailedResultTimestamp.Time, Success: false}
+				if len(lastFailedResultJoinedErrors.String) != 0 {
+					lastFailedResult.Errors = strings.Split(lastFailedResultJoinedErrors.String, arraySeparator)
+				}
+				lastResults[lastFailedResultID.Int64] = lastFailedResult
+			}
+		}
 		// Guard against rounding errors at the edges of the time range
 		bin = min(max(bin, 0), len(history.Bins)-1)
-		history.AddAggregatedChecks(bin, checks, successfulChecks, totalDuration, minimumDuration, maximumDuration, lastResult)
+		history.AddAggregatedChecks(bin, checks, successfulChecks, totalDuration, minimumDuration, maximumDuration, lastResult, lastFailedResult)
 	}
 	_ = rows.Close()
 	if err = rows.Err(); err != nil {
@@ -856,7 +876,7 @@ func (s *Store) populateEndpointHistory(tx *sql.Tx, endpointID int64, history *e
 	} else if !errors.Is(err, sql.ErrNoRows) {
 		return err
 	}
-	// Retrieve the condition results of the last result of each bin (at most one per bin + the previous result)
+	// Retrieve the condition results of the last result and last failed result of each bin, as well as of the previous result
 	return s.populateConditionResultsOfResults(tx, lastResults)
 }
 

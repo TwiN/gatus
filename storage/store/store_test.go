@@ -668,8 +668,9 @@ func TestStore_GetEndpointHistoryByKey(t *testing.T) {
 		newResult(testUnsuccessfulResult, from.Add(-5*time.Minute), 100*time.Millisecond),             // before the window
 		newResult(testSuccessfulResult, from.Add(2*time.Minute+10*time.Second), 150*time.Millisecond), // bin 2
 		newResult(testUnsuccessfulResult, from.Add(2*time.Minute+40*time.Second), 750*time.Millisecond),
-		newResult(testSuccessfulResult, from.Add(5*time.Minute+time.Second), 100*time.Millisecond), // bin 5
-		newResult(testSuccessfulResult, to.Add(time.Minute), 100*time.Millisecond),                 // after the window
+		newResult(testUnsuccessfulResult, from.Add(5*time.Minute+500*time.Millisecond), 100*time.Millisecond), // bin 5
+		newResult(testSuccessfulResult, from.Add(5*time.Minute+time.Second), 100*time.Millisecond),
+		newResult(testSuccessfulResult, to.Add(time.Minute), 100*time.Millisecond), // after the window
 	}
 	type ExpectedBin struct {
 		State            endpoint.HistoryState
@@ -713,7 +714,7 @@ func TestStore_GetEndpointHistoryByKey(t *testing.T) {
 					{endpoint.HistoryStateDegraded, 2, 1},
 					{endpoint.HistoryStateDown, 0, 0}, // carried over from the last result of bin 2, which failed
 					{endpoint.HistoryStateDown, 0, 0},
-					{endpoint.HistoryStateUp, 1, 1},
+					{endpoint.HistoryStateDegraded, 2, 1}, // failed check followed by a successful check
 					{endpoint.HistoryStateUp, 0, 0},
 					{endpoint.HistoryStateUp, 0, 0},
 					{endpoint.HistoryStateUp, 0, 0},
@@ -732,32 +733,52 @@ func TestStore_GetEndpointHistoryByKey(t *testing.T) {
 				if !history.Bins[0].LastCheck.Equal(results[0].Timestamp) {
 					t.Errorf("expected carried over bin 0 to reference the result before the window (%s), got %s", results[0].Timestamp, history.Bins[0].LastCheck)
 				}
-				// The last result of bin 2 is unsuccessful, so its errors and condition results must be returned
-				checkLastCheckDetails := func(t *testing.T, bin *endpoint.HistoryBin, expected *endpoint.Result) {
-					if len(bin.LastCheckErrors) != len(expected.Errors) {
-						t.Fatalf("expected %d errors, got %d", len(expected.Errors), len(bin.LastCheckErrors))
+				// checkDetails checks that the bin references expectedLastCheck through LastCheck, expectedLastFailedCheck
+				// (nil if none) through LastFailedCheck, and that it has the errors and condition results of the last
+				// failed check if there is one, or of the last check otherwise
+				checkDetails := func(t *testing.T, binIndex int, expectedLastCheck, expectedLastFailedCheck *endpoint.Result) {
+					bin := history.Bins[binIndex]
+					if !bin.LastCheck.Equal(expectedLastCheck.Timestamp) {
+						t.Errorf("bin %d: expected last check to be %s, got %s", binIndex, expectedLastCheck.Timestamp, bin.LastCheck)
 					}
-					for i := range expected.Errors {
-						if bin.LastCheckErrors[i] != expected.Errors[i] {
-							t.Errorf("expected error %q, got %q", expected.Errors[i], bin.LastCheckErrors[i])
+					expected := expectedLastCheck
+					if expectedLastFailedCheck == nil {
+						if !bin.LastFailedCheck.IsZero() {
+							t.Errorf("bin %d: expected no last failed check, got %s", binIndex, bin.LastFailedCheck)
+						}
+					} else {
+						expected = expectedLastFailedCheck
+						if !bin.LastFailedCheck.Equal(expectedLastFailedCheck.Timestamp) {
+							t.Errorf("bin %d: expected last failed check to be %s, got %s", binIndex, expectedLastFailedCheck.Timestamp, bin.LastFailedCheck)
 						}
 					}
-					if len(bin.LastCheckConditionResults) != len(expected.ConditionResults) {
-						t.Fatalf("expected %d condition results, got %d", len(expected.ConditionResults), len(bin.LastCheckConditionResults))
+					if len(bin.Errors) != len(expected.Errors) {
+						t.Fatalf("bin %d: expected %d errors, got %d", binIndex, len(expected.Errors), len(bin.Errors))
+					}
+					for i := range expected.Errors {
+						if bin.Errors[i] != expected.Errors[i] {
+							t.Errorf("bin %d: expected error %q, got %q", binIndex, expected.Errors[i], bin.Errors[i])
+						}
+					}
+					if len(bin.ConditionResults) != len(expected.ConditionResults) {
+						t.Fatalf("bin %d: expected %d condition results, got %d", binIndex, len(expected.ConditionResults), len(bin.ConditionResults))
 					}
 					for i, conditionResult := range expected.ConditionResults {
-						if *bin.LastCheckConditionResults[i] != *conditionResult {
-							t.Errorf("expected condition result %v, got %v", *conditionResult, *bin.LastCheckConditionResults[i])
+						if *bin.ConditionResults[i] != *conditionResult {
+							t.Errorf("bin %d: expected condition result %v, got %v", binIndex, *conditionResult, *bin.ConditionResults[i])
 						}
 					}
 				}
-				checkLastCheckDetails(t, degradedBin, results[2])
-				// Bin 3 has no result, so it must have the details of the result it was carried over from (bin 2's last)
-				checkLastCheckDetails(t, history.Bins[3], results[2])
-				// Bin 0 is carried over from the result that preceded the window
-				checkLastCheckDetails(t, history.Bins[0], results[0])
-				// Bin 5's last result is successful
-				checkLastCheckDetails(t, history.Bins[5], results[3])
+				// Bin 0 is carried over from the failed result that preceded the window
+				checkDetails(t, 0, results[0], results[0])
+				// Bin 2's last result failed
+				checkDetails(t, 2, results[2], results[2])
+				// Bin 3 has no result, so it is carried over from bin 2's last result, which failed
+				checkDetails(t, 3, results[2], results[2])
+				// Bin 5 has a failed result followed by a successful one, so the details must be those of the failed one
+				checkDetails(t, 5, results[4], results[3])
+				// Bin 6 has no result, so it is carried over from bin 5's last result, which succeeded
+				checkDetails(t, 6, results[4], nil)
 			})
 			t.Run("limited-carry-over", func(t *testing.T) {
 				history, err := scenario.Store.GetEndpointHistoryByKey(testEndpoint.Key(), from, to, 10, 2*time.Minute)
@@ -770,7 +791,7 @@ func TestStore_GetEndpointHistoryByKey(t *testing.T) {
 					{endpoint.HistoryStateDegraded, 2, 1},
 					{endpoint.HistoryStateDown, 0, 0},
 					{endpoint.HistoryStateDown, 0, 0},
-					{endpoint.HistoryStateUp, 1, 1},
+					{endpoint.HistoryStateDegraded, 2, 1}, // failed check followed by a successful check
 					{endpoint.HistoryStateUp, 0, 0},
 					{endpoint.HistoryStateUp, 0, 0},
 					{endpoint.HistoryStateUnknown, 0, 0}, // the last result is more than 2m old

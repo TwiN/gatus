@@ -31,12 +31,12 @@
         </div>
       </div>
 
-      <!-- Conditions and errors of the last check of the bin (or of the check its state was carried over from) -->
-      <div v-if="result.lastCheckConditionResults && result.lastCheckConditionResults.length">
-        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conditions (last check)</div>
+      <!-- Conditions and errors of the last failed check of the bin or, if no check failed, of its last check -->
+      <div v-if="result.conditionResults && result.conditionResults.length">
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Conditions ({{ historyBinDetailsLabel }})</div>
         <div class="font-mono text-xs space-y-0.5">
           <div
-            v-for="(conditionResult, index) in result.lastCheckConditionResults"
+            v-for="(conditionResult, index) in result.conditionResults"
             :key="index"
             class="flex items-start gap-1"
           >
@@ -48,10 +48,10 @@
         </div>
       </div>
 
-      <div v-if="result.lastCheckErrors && result.lastCheckErrors.length">
-        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Errors (last check)</div>
+      <div v-if="result.errors && result.errors.length">
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Errors ({{ historyBinDetailsLabel }})</div>
         <div class="font-mono text-xs space-y-0.5">
-          <div v-for="(error, index) in result.lastCheckErrors" :key="index" class="text-red-500 dark:text-red-400">
+          <div v-for="(error, index) in result.errors" :key="index" class="text-red-500 dark:text-red-400">
             • {{ error }}
           </div>
         </div>
@@ -65,6 +65,11 @@
             ({{ Math.trunc((result.minimumDuration || 0) / 1000000) }}-{{ Math.trunc((result.maximumDuration || 0) / 1000000) }}ms)
           </span>
         </div>
+      </div>
+
+      <div v-if="result.lastFailedCheck">
+        <div class="text-xs font-semibold text-muted-foreground uppercase tracking-wider">Last Failed Check</div>
+        <div class="font-mono text-xs">{{ prettifyTimestamp(result.lastFailedCheck) }}</div>
       </div>
 
       <div v-if="result.lastCheck">
@@ -203,6 +208,11 @@ const historyBinTitle = computed(() => {
   if (bin.state === 'up') return 'All checks passed'
   if (bin.state === 'down') return 'All checks failed'
   return 'Some checks failed'
+})
+
+// The conditions and errors of a bin are those of its last failed check if one failed, and of its last check otherwise
+const historyBinDetailsLabel = computed(() => {
+  return isHistoryBin.value && props.result.lastFailedCheck ? 'last failed check' : 'last check'
 })
 
 const historyBinDotClass = computed(() => {
