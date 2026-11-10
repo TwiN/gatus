@@ -67,6 +67,10 @@
             <span>{{ oldestResultTime }}</span>
             <span>{{ newestResultTime }}</span>
           </div>
+          <!-- While the latest check is under maintenance, its message is shown without having to hover -->
+          <p v-if="currentMaintenanceMessage" class="mt-2 text-xs text-blue-600 dark:text-blue-400 break-words">
+            {{ currentMaintenanceMessage }}
+          </p>
         </div>
       </div>
     </CardContent>
@@ -113,6 +117,11 @@ const currentStatus = computed(() => {
   if (!latestResult.value) return 'unknown'
   if (!latestResult.value.success) return 'unhealthy'
   return latestResult.value.maintenance ? 'maintenance' : 'healthy'
+})
+
+const currentMaintenanceMessage = computed(() => {
+  if (currentStatus.value !== 'maintenance') return null
+  return latestResult.value.maintenanceMessage || 'Under maintenance'
 })
 
 const hostname = computed(() => {

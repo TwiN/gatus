@@ -26,7 +26,10 @@
                 <CardTitle class="text-sm font-medium text-muted-foreground">Current Status</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="text-2xl font-bold">{{ currentHealthStatus === 'healthy' ? 'Operational' : 'Issues Detected' }}</div>
+                <div class="text-2xl font-bold">{{ currentStatusLabel }}</div>
+                <p v-if="currentHealthStatus === 'maintenance'" class="mt-1 text-xs text-blue-600 dark:text-blue-400 break-words">
+                  {{ latestResult.maintenanceMessage || 'Under maintenance' }}
+                </p>
               </CardContent>
             </Card>
 
@@ -240,6 +243,14 @@ const currentHealthStatus = computed(() => {
   if (!latestResult.value) return 'unknown'
   if (!latestResult.value.success) return 'unhealthy'
   return latestResult.value.maintenance ? 'maintenance' : 'healthy'
+})
+
+const currentStatusLabel = computed(() => {
+  switch (currentHealthStatus.value) {
+    case 'healthy': return 'Operational'
+    case 'maintenance': return 'Under Maintenance'
+    default: return 'Issues Detected'
+  }
 })
 
 const hostname = computed(() => {
