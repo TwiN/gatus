@@ -88,6 +88,10 @@ type Endpoint struct {
 	// Group the endpoint is a part of. Used for grouping multiple endpoints together on the front end.
 	Group string `yaml:"group,omitempty"`
 
+	// Tags are free-form labels used for categorizing and filtering endpoints on the front end and through the API.
+	// Unlike ExtraLabels, they have no impact on metrics or alerts.
+	Tags []string `yaml:"tags,omitempty"`
+
 	// URL to send the request to
 	URL string `yaml:"url"`
 

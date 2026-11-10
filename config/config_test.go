@@ -2740,3 +2740,41 @@ func TestResolveTunnelForClientConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestConfig_GetEndpointTagsByKey(t *testing.T) {
+	config, err := parseAndValidateConfigBytes([]byte(`
+external-endpoints:
+  - name: cron
+    group: core
+    token: "potato"
+    tags: [internal]
+
+endpoints:
+  - name: frontend
+    group: core
+    url: https://example.org
+    tags:
+      - critical
+      - public
+    conditions:
+      - "[STATUS] == 200"
+  - name: backend
+    url: https://example.org
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Fatal("expected err to be nil, but was", err)
+	}
+	scenarios := map[string][]string{
+		"core_frontend": {"critical", "public"},
+		"core_cron":     {"internal"},
+		"_backend":      nil,
+		"_missing":      nil,
+	}
+	for key, expectedTags := range scenarios {
+		if tags := config.GetEndpointTagsByKey(key); !slices.Equal(tags, expectedTags) {
+			t.Errorf("expected tags of %s to be %v, got %v", key, expectedTags, tags)
+		}
+	}
+}
