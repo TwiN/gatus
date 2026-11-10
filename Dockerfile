@@ -19,4 +19,5 @@ ENV GATUS_CONFIG_PATH=""
 ENV GATUS_LOG_LEVEL="INFO"
 ENV PORT="8080"
 EXPOSE ${PORT}
+HEALTHCHECK --start-period=10s CMD ["/gatus", "healthcheck"]
 ENTRYPOINT ["/gatus"]
