@@ -5,6 +5,9 @@ package alert
 type Type string
 
 const (
+	// TypeAlertmanager is the Type for the alertmanager alerting provider
+	TypeAlertmanager Type = "alertmanager"
+
 	// TypeAWSSES is the Type for the awsses alerting provider
 	TypeAWSSES Type = "aws-ses"
 
