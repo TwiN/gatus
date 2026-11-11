@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/provider/placeholder"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"gopkg.in/yaml.v3"
@@ -143,7 +144,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		Type:       "MessageCard",
 		Context:    "http://schema.org/extensions",
 		ThemeColor: color,
-		Title:      cfg.Title,
+		Title:      placeholder.Replace(cfg.Title, ep, alert, resolved),
 		Text:       message + description,
 	}
 	if len(body.Title) == 0 {
