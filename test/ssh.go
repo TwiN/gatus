@@ -13,6 +13,12 @@ import (
 // serverConfig, and returns its address
 func StartSSHServer(t *testing.T, serverConfig *ssh.ServerConfig) string {
 	t.Helper()
+	return StartSSHServerWithHostKey(t, serverConfig, NewSSHHostKey(t))
+}
+
+// NewSSHHostKey generates a new ed25519 host key
+func NewSSHHostKey(t *testing.T) ssh.Signer {
+	t.Helper()
 	_, hostKey, err := ed25519.GenerateKey(rand.Reader)
 	if err != nil {
 		t.Fatal(err)
@@ -21,6 +27,12 @@ func StartSSHServer(t *testing.T, serverConfig *ssh.ServerConfig) string {
 	if err != nil {
 		t.Fatal(err)
 	}
+	return signer
+}
+
+// StartSSHServerWithHostKey is like StartSSHServer, but the server presents the given host key
+func StartSSHServerWithHostKey(t *testing.T, serverConfig *ssh.ServerConfig, signer ssh.Signer) string {
+	t.Helper()
 	serverConfig.AddHostKey(signer)
 	listener, err := net.Listen("tcp", "127.0.0.1:0")
 	if err != nil {

@@ -680,7 +680,7 @@ func TestCanCreateSSHConnection(t *testing.T) {
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
 			address := test.StartSSHServer(t, scenario.serverConfig)
-			connected, cli, err := CanCreateSSHConnection(address, username, scenario.password, "", &Config{Timeout: 5 * time.Second})
+			connected, cli, err := CanCreateSSHConnection(address, username, scenario.password, "", "", &Config{Timeout: 5 * time.Second})
 			if cli != nil {
 				defer cli.Close()
 			}
@@ -692,6 +692,55 @@ func TestCanCreateSSHConnection(t *testing.T) {
 			}
 			if !scenario.expectSuccess && err == nil {
 				t.Error("expected an error, got nil")
+			}
+		})
+	}
+}
+
+func TestCanCreateSSHConnection_hostKey(t *testing.T) {
+	t.Parallel()
+	const username, password = "user", "secret"
+	newServerConfig := func() *ssh.ServerConfig {
+		return &ssh.ServerConfig{
+			PasswordCallback: func(conn ssh.ConnMetadata, pw []byte) (*ssh.Permissions, error) {
+				if conn.User() == username && string(pw) == password {
+					return nil, nil
+				}
+				return nil, errors.New("invalid credentials")
+			},
+		}
+	}
+	serverHostKey := test.NewSSHHostKey(t)
+	otherHostKey := test.NewSSHHostKey(t)
+	authorizedKey := func(signer ssh.Signer) string {
+		return string(ssh.MarshalAuthorizedKey(signer.PublicKey()))
+	}
+	scenarios := []struct {
+		name          string
+		hostKey       string
+		expectSuccess bool
+		expectedError string
+	}{
+		{name: "no-host-key-configured", hostKey: "", expectSuccess: true},
+		{name: "matching-host-key", hostKey: authorizedKey(serverHostKey), expectSuccess: true},
+		{name: "mismatching-host-key", hostKey: authorizedKey(otherHostKey), expectSuccess: false, expectedError: "host key mismatch"},
+		{name: "malformed-host-key", hostKey: "not-a-key", expectSuccess: false, expectedError: "invalid host key"},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			address := test.StartSSHServerWithHostKey(t, newServerConfig(), serverHostKey)
+			connected, cli, err := CanCreateSSHConnection(address, username, password, "", scenario.hostKey, &Config{Timeout: 5 * time.Second})
+			if cli != nil {
+				defer cli.Close()
+			}
+			if connected != scenario.expectSuccess {
+				t.Errorf("expected connected=%v, got %v (err=%v)", scenario.expectSuccess, connected, err)
+			}
+			if scenario.expectSuccess && err != nil {
+				t.Errorf("expected no error, got %v", err)
+			}
+			if !scenario.expectSuccess && (err == nil || !strings.Contains(err.Error(), scenario.expectedError)) {
+				t.Errorf("expected error containing %q, got %v", scenario.expectedError, err)
 			}
 		})
 	}
