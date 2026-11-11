@@ -113,6 +113,12 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 			AuthorizationHeaderBearerToken: "Bearer token",
 			ExpectedCode:                   200,
 		},
+		{
+			Name:                           "good-token-success-false-with-several-errors",
+			Path:                           "/api/v1/endpoints/g_n/external?success=false&error=first&error=second",
+			AuthorizationHeaderBearerToken: "Bearer token",
+			ExpectedCode:                   200,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
@@ -139,8 +145,8 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 		if endpointStatus.Key != "g_n" {
 			t.Errorf("expected key to be g_n but got %s", endpointStatus.Key)
 		}
-		if len(endpointStatus.Results) != 6 {
-			t.Errorf("expected 6 results but got %d", len(endpointStatus.Results))
+		if len(endpointStatus.Results) != 7 {
+			t.Errorf("expected 7 results but got %d", len(endpointStatus.Results))
 		}
 		if !endpointStatus.Results[0].Success {
 			t.Errorf("expected first result to be successful")
@@ -166,9 +172,12 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 		if len(endpointStatus.Results[5].Errors) == 0 || endpointStatus.Results[5].Errors[0] != "failed" {
 			t.Errorf("expected sixth result to have errors: failed")
 		}
+		if errs := endpointStatus.Results[6].Errors; len(errs) != 2 || errs[0] != "first" || errs[1] != "second" {
+			t.Errorf("expected seventh result to have errors: first, second, but got %v", errs)
+		}
 		externalEndpointFromConfig := cfg.GetExternalEndpointByKey("g_n")
-		if externalEndpointFromConfig.NumberOfFailuresInARow != 3 {
-			t.Errorf("expected 3 failures in a row but got %d", externalEndpointFromConfig.NumberOfFailuresInARow)
+		if externalEndpointFromConfig.NumberOfFailuresInARow != 4 {
+			t.Errorf("expected 4 failures in a row but got %d", externalEndpointFromConfig.NumberOfFailuresInARow)
 		}
 		if externalEndpointFromConfig.NumberOfSuccessesInARow != 0 {
 			t.Errorf("expected 0 successes in a row but got %d", externalEndpointFromConfig.NumberOfSuccessesInARow)

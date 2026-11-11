@@ -56,8 +56,13 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 			}
 			result.Duration = parsedDuration
 		}
-		if errorFromQuery := c.Query("error"); !result.Success && len(errorFromQuery) > 0 {
-			result.AddError(errorFromQuery)
+		// Each error parameter is an error of its own, so a result can report several, as a polled endpoint's can
+		if !result.Success {
+			for _, errorFromQuery := range c.Context().QueryArgs().PeekMulti("error") {
+				if len(errorFromQuery) > 0 {
+					result.AddError(string(errorFromQuery))
+				}
+			}
 		}
 		// As with maintenance-conditions on polled endpoints, only a successful result can be marked as maintenance
 		if result.Success && c.QueryBool("maintenance") {

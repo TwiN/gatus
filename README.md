@@ -368,7 +368,8 @@ Where:
 - `{key}` has the pattern `<GROUP_NAME>_<ENDPOINT_NAME>` in which both variables have ` `, `/`, `_`, `,`, `.`, `#`, `+` and `&` replaced by `-`.
   - Using the example configuration above, the key would be `core_ext-ep-test`.
 - `{success}` is a boolean (`true` or `false`) value indicating whether the health check was successful or not.
-- `{error}` (optional): a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful, this will be ignored.
+- `{error}` (optional): a string describing the reason for a failed health check. If {success} is false, this should contain the error message; if the check is successful, this will be ignored. Repeat it
+  (`&error=...&error=...`) to report several errors; each is shown as an error of its own.
 - `{duration}` (optional): the time that the request took as a duration string (e.g. 10s).
 - `maintenance` (optional): `true` marks a successful result as maintenance, like
   [`maintenance-conditions`](#maintenance-reported-by-the-endpoint) do for a polled endpoint; ignored when `{success}` is false.
