@@ -492,3 +492,41 @@ func TestResult_CalculateSuccess(t *testing.T) {
 		})
 	}
 }
+
+
+func TestSuite_ExecuteWithTimeout(t *testing.T) {
+	suite := &Suite{
+		Name:    "timeout-suite",
+		Timeout: 5 * time.Millisecond,
+		Endpoints: []*endpoint.Endpoint{
+			{
+				Name: "endpoint-1",
+				URL:  "https://example.org",
+				Conditions: []endpoint.Condition{
+					endpoint.Condition("[STATUS] == 200"),
+				},
+			},
+			{
+				Name: "endpoint-2",
+				URL:  "https://example.org",
+				Conditions: []endpoint.Condition{
+					endpoint.Condition("[STATUS] == 200"),
+				},
+			},
+		},
+	}
+	if err := suite.ValidateAndSetDefaults(); err != nil {
+		t.Fatalf("suite validation failed: %v", err)
+	}
+	time.Sleep(10 * time.Millisecond)
+	result := suite.Execute()
+	if result.Success {
+		t.Error("expected suite to fail due to timeout")
+	}
+	if len(result.EndpointResults) != 0 {
+		t.Errorf("expected 0 endpoint results when suite times out before execution, got %d", len(result.EndpointResults))
+	}
+	if len(result.Errors) == 0 {
+		t.Error("expected timeout error in result errors")
+	}
+}
