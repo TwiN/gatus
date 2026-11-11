@@ -98,10 +98,14 @@ func (c *Config) ValidateAndSetDefaults() error {
 
 // IsUnderMaintenance checks whether the endpoints that Gatus monitors are within the configured maintenance window
 func (c *Config) IsUnderMaintenance() bool {
+	return c.IsUnderMaintenanceAt(time.Now())
+}
+
+// IsUnderMaintenanceAt checks the configured maintenance window at the given time.
+func (c *Config) IsUnderMaintenanceAt(now time.Time) bool {
 	if !c.IsEnabled() {
 		return false
 	}
-	now := time.Now()
 	if c.timezoneLocation != nil {
 		now = now.In(c.timezoneLocation)
 	}
