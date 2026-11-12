@@ -176,8 +176,9 @@
               <div class="space-y-4">
                 <div v-for="event in events" :key="event.timestamp" class="flex items-start gap-4 pb-4 border-b last:border-0">
                   <div class="mt-1">
-                    <ArrowUpCircle v-if="event.type === 'HEALTHY'" class="h-5 w-5 text-green-500" />
-                    <ArrowDownCircle v-else-if="event.type === 'UNHEALTHY'" class="h-5 w-5 text-red-500" />
+                    <ArrowUpCircle v-if="event.type === 'HEALTHY'" class="h-5 w-5" :style="{ color: getStateColor(event.state) }" />
+                    <ArrowRightCircle v-else-if="event.type === 'UNHEALTHY' && event.state != 'unhealthy'" class="h-5 w-5" :style="{ color: getStateColor(event.state) }" />
+                    <ArrowDownCircle v-else-if="event.type === 'UNHEALTHY'" class="h-5 w-5" :style="{ color: getStateColor(event.state) }" />
                     <PlayCircle v-else class="h-5 w-5 text-muted-foreground" />
                   </div>
                   <div class="flex-1">
@@ -203,7 +204,7 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
-import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowDownCircle, PlayCircle, Activity, Timer } from 'lucide-vue-next'
+import { ArrowLeft, RefreshCw, ArrowUpCircle, ArrowRightCircle, ArrowDownCircle, PlayCircle, Activity, Timer } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
 import StatusBadge from '@/components/StatusBadge.vue'
@@ -213,6 +214,7 @@ import Pagination from '@/components/Pagination.vue'
 import Loading from '@/components/Loading.vue'
 import ResponseTimeChart from '@/components/ResponseTimeChart.vue'
 import { generatePrettyTimeAgo, generatePrettyTimeDifference } from '@/utils/time'
+import { getStateColor } from '@/utils/color'
 
 const router = useRouter()
 const route = useRoute()
@@ -237,8 +239,8 @@ const latestResult = computed(() => {
 })
 
 const currentHealthStatus = computed(() => {
-  if (!latestResult.value) return 'unknown'
-  return latestResult.value.success ? 'healthy' : 'unhealthy'
+  if (!latestResult.value) return null
+  return latestResult.value.state
 })
 
 const hostname = computed(() => {
@@ -303,7 +305,6 @@ const lastCheckTime = computed(() => {
   return generatePrettyTimeAgo(currentStatus.value.results[currentStatus.value.results.length - 1].timestamp)
 })
 
-
 const fetchData = async () => {
   isRefreshing.value = true
   try {
@@ -324,26 +325,16 @@ const fetchData = async () => {
       if (data.events && data.events.length > 0) {
         for (let i = data.events.length - 1; i >= 0; i--) {
           let event = data.events[i]
-          if (i === data.events.length - 1) {
-            if (event.type === 'UNHEALTHY') {
-              event.fancyText = 'Endpoint is unhealthy'
-            } else if (event.type === 'HEALTHY') {
-              event.fancyText = 'Endpoint is healthy'
-            } else if (event.type === 'START') {
-              event.fancyText = 'Monitoring started'
-            }
+          if (event.type === 'START') {
+            event.fancyText = 'Monitoring started'
           } else {
-            let nextEvent = data.events[i + 1]
-            if (event.type === 'HEALTHY') {
-              event.fancyText = 'Endpoint became healthy'
-            } else if (event.type === 'UNHEALTHY') {
-              if (nextEvent) {
-                event.fancyText = 'Endpoint was unhealthy for ' + generatePrettyTimeDifference(nextEvent.timestamp, event.timestamp)
-              } else {
-                event.fancyText = 'Endpoint became unhealthy'
-              }
-            } else if (event.type === 'START') {
-              event.fancyText = 'Monitoring started'
+            event.fancyText = 'Endpoint '
+            let stateName = event.state ?? (event.type === 'HEALTHY' ? 'healthy' : 'unhealthy')
+            if (i === data.events.length - 1) {
+              event.fancyText += `state is ${stateName}`
+            } else {
+              var nextEvent = data.events[i + 1]
+              event.fancyText += `state was ${stateName} for ${generatePrettyTimeDifference(nextEvent.timestamp, event.timestamp)}`
             }
           }
           event.fancyTimeAgo = generatePrettyTimeAgo(event.timestamp)
