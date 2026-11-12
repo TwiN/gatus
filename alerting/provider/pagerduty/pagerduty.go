@@ -119,6 +119,12 @@ type Body struct {
 	DedupKey    string  `json:"dedup_key"`
 	EventAction string  `json:"event_action"`
 	Payload     Payload `json:"payload"`
+	Links       []Link  `json:"links,omitempty"`
+}
+
+type Link struct {
+	Href string `json:"href"`
+	Text string `json:"text"`
 }
 
 type Payload struct {
@@ -139,7 +145,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		eventAction = "trigger"
 		resolveKey = ""
 	}
-	body, _ := json.Marshal(Body{
+	body := Body{
 		RoutingKey:  cfg.IntegrationKey,
 		DedupKey:    resolveKey,
 		EventAction: eventAction,
@@ -148,8 +154,12 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 			Source:   "Gatus",
 			Severity: "critical",
 		},
-	})
-	return body
+	}
+	if endpointURL := ep.NotificationURL(); endpointURL != "" && !resolved {
+		body.Links = []Link{{Href: endpointURL, Text: "Open endpoint"}}
+	}
+	bodyAsJSON, _ := json.Marshal(body)
+	return bodyAsJSON
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
