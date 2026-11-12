@@ -463,3 +463,27 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestAlertProvider_buildHTTPRequestWithResultConditionsSeparator(t *testing.T) {
+	alertProvider := &AlertProvider{
+		DefaultConfig: Config{
+			URL:                       "https://example.com",
+			Body:                      "[RESULT_CONDITIONS]",
+			ResultConditionsSeparator: "\\n",
+		},
+	}
+	request := alertProvider.buildHTTPRequest(
+		&alertProvider.DefaultConfig,
+		&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
+		&alert.Alert{},
+		&endpoint.Result{ConditionResults: []*endpoint.ConditionResult{
+			{Condition: "[CONNECTED] == true", Success: true},
+			{Condition: "[STATUS] == 200", Success: false},
+		}},
+		false,
+	)
+	body, _ := io.ReadAll(request.Body)
+	if expected := "✅ - `[CONNECTED] == true`\\n❌ - `[STATUS] == 200`"; string(body) != expected {
+		t.Errorf("expected body to be %s, got %s", expected, body)
+	}
+}
