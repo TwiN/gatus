@@ -59,7 +59,7 @@
               class="endpoint-group-header flex items-center justify-between p-4 bg-card border-b cursor-pointer hover:bg-accent/50 transition-colors"
             >
               <div class="flex items-center gap-3">
-                <ChevronDown v-if="uncollapsedGroups.has(group)" class="h-5 w-5 text-muted-foreground" />
+                <ChevronDown v-if="isGroupExpanded(group)" class="h-5 w-5 text-muted-foreground" />
                 <ChevronUp v-else class="h-5 w-5 text-muted-foreground" />
                 <h2 class="text-xl font-semibold text-foreground">{{ group }}</h2>
               </div>
@@ -73,7 +73,7 @@
             </div>
             
             <!-- Group Content -->
-            <div v-if="uncollapsedGroups.has(group)" class="endpoint-group-content p-4">
+            <div v-if="isGroupExpanded(group)" class="endpoint-group-content p-4">
               <!-- Suites Section -->
               <div v-if="items.suites.length > 0" class="mb-4">
                 <h3 class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Suites</h3>
@@ -222,7 +222,12 @@ const showRecentFailures = ref(false)
 const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-response-time') !== 'false')
 const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
-const uncollapsedGroups = ref(new Set())
+// Whether groups start collapsed (ui.default-group-collapsed, true unless configured otherwise).
+// The user's own choices are kept in localStorage as the groups they toggled away from that default:
+// the groups they opened when groups start collapsed, or the groups they closed when they start expanded.
+const defaultGroupCollapsed = !(typeof window !== 'undefined' && window.config?.defaultGroupCollapsed === 'false')
+const toggledGroupsStorageKey = defaultGroupCollapsed ? 'gatus:uncollapsed-groups' : 'gatus:collapsed-groups'
+const toggledGroups = ref(new Set())
 const resultPageSize = 50
 
 const filteredEndpoints = computed(() => {
@@ -505,30 +510,34 @@ const calculateFailingSuitesCount = (suites) => {
   }).length
 }
 
+// A group is expanded when it starts expanded and wasn't closed, or starts collapsed and was opened
+const isGroupExpanded = (groupName) => toggledGroups.value.has(groupName) === defaultGroupCollapsed
+
 const toggleGroupCollapse = (groupName) => {
-  if (uncollapsedGroups.value.has(groupName)) {
-    uncollapsedGroups.value.delete(groupName)
+  if (toggledGroups.value.has(groupName)) {
+    toggledGroups.value.delete(groupName)
   } else {
-    uncollapsedGroups.value.add(groupName)
+    toggledGroups.value.add(groupName)
   }
   // Save to localStorage
-  const uncollapsed = Array.from(uncollapsedGroups.value)
-  localStorage.setItem('gatus:uncollapsed-groups', JSON.stringify(uncollapsed))
-  localStorage.removeItem('gatus:collapsed-groups') // Remove old key if it exists
+  localStorage.setItem(toggledGroupsStorageKey, JSON.stringify(Array.from(toggledGroups.value)))
+  if (defaultGroupCollapsed) {
+    localStorage.removeItem('gatus:collapsed-groups') // Remove old key if it exists
+  }
 }
 
 const initializeCollapsedGroups = () => {
-  // Get saved uncollapsed groups from localStorage
+  // Get the groups the user toggled away from the default from localStorage
   try {
-    const saved = localStorage.getItem('gatus:uncollapsed-groups')
+    const saved = localStorage.getItem(toggledGroupsStorageKey)
     if (saved) {
-      uncollapsedGroups.value = new Set(JSON.parse(saved))
+      toggledGroups.value = new Set(JSON.parse(saved))
     }
-    // If no saved state, uncollapsedGroups stays empty (all collapsed by default)
+    // If no saved state, toggledGroups stays empty (all groups follow the default)
   } catch (e) {
-    console.warn('Failed to parse saved uncollapsed groups:', e)
-    localStorage.removeItem('gatus:uncollapsed-groups')
-    // On error, uncollapsedGroups stays empty (all collapsed by default)
+    console.warn('Failed to parse saved toggled groups:', e)
+    localStorage.removeItem(toggledGroupsStorageKey)
+    // On error, toggledGroups stays empty (all groups follow the default)
   }
 }
 

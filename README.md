@@ -556,6 +556,7 @@ Allows you to configure the application wide defaults for the dashboard's UI. So
 | `ui.dark-mode`            | Whether to enable dark mode by default. Note that this is superseded by the user's operating system theme preferences.                   | `true`                                              |
 | `ui.default-sort-by`      | Default sorting option for endpoints in the dashboard. Can be `name`, `group`, or `health`. Note that user preferences override this.    | `name`                                              |
 | `ui.default-filter-by`    | Default filter option for endpoints in the dashboard. Can be `none`, `failing`, or `unstable`. Note that user preferences override this. | `none`                                              |
+| `ui.default-group-collapsed` | Whether groups start collapsed when endpoints are sorted by `group`. Groups a user opens or closes stay that way for them. | `true` |
 | `ui.login-subtitle`       | Subtitle displayed on the OIDC login page.                                                                                               | `System Monitoring Dashboard`                       |
 
 ### Announcements
