@@ -59,6 +59,9 @@ func CreateExternalEndpointResult(cfg *config.Config) fiber.Handler {
 		if errorFromQuery := c.Query("error"); !result.Success && len(errorFromQuery) > 0 {
 			result.AddError(errorFromQuery)
 		}
+		// Keep the state snapshot, alert delivery, and counter updates in one evaluation.
+		externalEndpoint.Lock()
+		defer externalEndpoint.Unlock()
 		convertedEndpoint := externalEndpoint.ToEndpoint()
 		if err := store.Get().InsertEndpointResult(convertedEndpoint, result); err != nil {
 			if errors.Is(err, common.ErrEndpointNotFound) {

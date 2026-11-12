@@ -552,8 +552,11 @@ func TestHandleAlertingWithProviderThatReturnsAnError(t *testing.T) {
 			verify(t, ep, 0, 1, true, "The alert should've still been triggered")
 			_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
 			HandleAlerting(ep, &endpoint.Result{Success: true}, scenario.AlertingConfig)
-			verify(t, ep, 0, 2, false, "The alert should've been resolved DESPITE THE ALERT PROVIDER RETURNING AN ERROR. See Alert.Triggered for further explanation.")
+			verify(t, ep, 0, 2, true, "Failed recovery must remain pending")
 			_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
+
+			HandleAlerting(ep, &endpoint.Result{Success: true}, scenario.AlertingConfig)
+			verify(t, ep, 0, 3, false, "Recovery succeeds on the next healthy evaluation")
 
 			// Make sure that everything's working as expected after a rough patch
 			HandleAlerting(ep, &endpoint.Result{Success: false}, scenario.AlertingConfig)
@@ -602,13 +605,13 @@ func TestHandleAlertingWithProviderThatOnlyReturnsErrorOnResolve(t *testing.T) {
 	verify(t, ep, 1, 0, true, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
 	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting)
-	verify(t, ep, 0, 1, false, "")
+	verify(t, ep, 0, 1, true, "Failed recovery must remain pending")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
 	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
 	verify(t, ep, 1, 0, true, "")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "true")
 	HandleAlerting(ep, &endpoint.Result{Success: true}, cfg.Alerting)
-	verify(t, ep, 0, 1, false, "")
+	verify(t, ep, 0, 1, true, "Failed recovery must remain pending")
 	_ = os.Setenv("MOCK_ALERT_PROVIDER_ERROR", "false")
 
 	// Make sure that everything's working as expected after a rough patch
