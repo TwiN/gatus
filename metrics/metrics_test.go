@@ -2,6 +2,7 @@ package metrics
 
 import (
 	"bytes"
+	"runtime"
 	"testing"
 	"time"
 
@@ -33,6 +34,9 @@ func TestInitializePrometheusMetrics(t *testing.T) {
 	reg := prometheus.NewRegistry()
 	InitializePrometheusMetrics(cfgWithExtras, reg)
 	// Metrics variables should be non-nil
+	if staticBuildInfo == nil {
+		t.Error("staticBuildInfo metric not initialized")
+	}
 	if resultTotal == nil {
 		t.Error("resultTotal metric not initialized")
 	}
@@ -61,6 +65,21 @@ func TestInitializePrometheusMetrics(t *testing.T) {
 		}
 	}()
 	_ = resultTotal.WithLabelValues("k", "g", "n", "ty", "true", "fval", "hval")
+}
+
+func TestStaticBuildInfoMetric(t *testing.T) {
+	reg := prometheus.NewRegistry()
+	InitializePrometheusMetrics(&config.Config{}, reg)
+	goVersion := runtime.Version()
+	expected := `
+# HELP gatus_build_info Build information about this instance
+# TYPE gatus_build_info gauge
+gatus_build_info{go_version="` + goVersion + `",revision="unknown",revision_date="unknown",version="development"} 1
+`
+	err := testutil.GatherAndCompare(reg, bytes.NewBufferString(expected), "gatus_build_info")
+	if err != nil {
+		t.Errorf("metrics export does not match expected:\n%v", err)
+	}
 }
 
 // TestPublishMetricsForEndpoint_withExtraLabels ensures extraLabels are included in the exported metrics.
