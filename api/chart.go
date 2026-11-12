@@ -36,6 +36,9 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 	chartTimestampFormatter := chart.TimeValueFormatterWithFormat(timeFormat)
 	var from time.Time
 	switch duration {
+	case "365d":
+		from = time.Now().Truncate(time.Hour).Add(-365 * 24 * time.Hour)
+		chartTimestampFormatter = chart.TimeDateValueFormatter
 	case "30d":
 		from = time.Now().Truncate(time.Hour).Add(-30 * 24 * time.Hour)
 		chartTimestampFormatter = chart.TimeDateValueFormatter
@@ -44,7 +47,7 @@ func ResponseTimeChart(c *fiber.Ctx) error {
 	case "24h":
 		from = time.Now().Truncate(time.Hour).Add(-24 * time.Hour)
 	default:
-		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h")
+		return c.Status(400).SendString("Durations supported: 365d, 30d, 7d, 24h")
 	}
 	key, err := url.QueryUnescape(c.Params("key"))
 	if err != nil {
@@ -131,6 +134,8 @@ func ResponseTimeHistory(c *fiber.Ctx) error {
 	duration := c.Params("duration")
 	var from time.Time
 	switch duration {
+	case "365d":
+		from = time.Now().Truncate(time.Hour).Add(-365 * 24 * time.Hour)
 	case "30d":
 		from = time.Now().Truncate(time.Hour).Add(-30 * 24 * time.Hour)
 	case "7d":
@@ -138,7 +143,7 @@ func ResponseTimeHistory(c *fiber.Ctx) error {
 	case "24h":
 		from = time.Now().Truncate(time.Hour).Add(-24 * time.Hour)
 	default:
-		return c.Status(400).SendString("Durations supported: 30d, 7d, 24h")
+		return c.Status(400).SendString("Durations supported: 365d, 30d, 7d, 24h")
 	}
 	endpointKey, err := url.QueryUnescape(c.Params("key"))
 	if err != nil {

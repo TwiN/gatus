@@ -2,11 +2,13 @@ package storage
 
 import (
 	"errors"
+	"time"
 )
 
 const (
 	DefaultMaximumNumberOfResults = 100
 	DefaultMaximumNumberOfEvents  = 50
+	DefaultUptimeRetention        = 30 * 24 * time.Hour
 )
 
 var (
@@ -36,6 +38,11 @@ type Config struct {
 
 	// MaximumNumberOfEvents is the number of events each endpoint should be able to provide
 	MaximumNumberOfEvents int `yaml:"maximum-number-of-events,omitempty"`
+
+	// UptimeRetention is the minimum duration for which uptime data is kept.
+	// Defaults to 30 days. Increase it (e.g. to 8760h for a full year) to support long-range
+	// uptime badges such as the 365d badge; note that a higher value increases storage usage.
+	UptimeRetention time.Duration `yaml:"uptime-retention,omitempty"`
 }
 
 // ValidateAndSetDefaults validates the configuration and sets the default values (if applicable)
@@ -54,6 +61,9 @@ func (c *Config) ValidateAndSetDefaults() error {
 	}
 	if c.MaximumNumberOfEvents <= 0 {
 		c.MaximumNumberOfEvents = DefaultMaximumNumberOfEvents
+	}
+	if c.UptimeRetention <= 0 {
+		c.UptimeRetention = DefaultUptimeRetention
 	}
 	return nil
 }
