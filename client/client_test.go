@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
@@ -246,6 +247,56 @@ func TestCanPerformStartTLS(t *testing.T) {
 			}
 			if connected != tt.wantConnected {
 				t.Errorf("CanPerformStartTLS() connected=%v, wantConnected=%v", connected, tt.wantConnected)
+			}
+		})
+	}
+}
+
+func TestCanPerformStartTLSWithSilentServer(t *testing.T) {
+	scenarios := []struct {
+		name   string
+		config *Config
+	}{
+		{name: "default-dialer", config: &Config{Timeout: 500 * time.Millisecond}},
+		// The resolver itself is never queried since the address is an IP, but this exercises the custom dialer
+		{name: "custom-dns-resolver", config: &Config{Timeout: 500 * time.Millisecond, DNSResolver: "tcp://127.0.0.1:53"}},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			// A server that accepts the TCP connection but never sends the SMTP greeting
+			listener, err := net.Listen("tcp", "127.0.0.1:0")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer listener.Close()
+			closed := make(chan struct{})
+			go func() {
+				conn, err := listener.Accept()
+				if err != nil {
+					return
+				}
+				defer conn.Close()
+				// Block until the client gives up and closes the connection
+				_, _ = io.Copy(io.Discard, conn)
+				close(closed)
+			}()
+			done := make(chan error, 1)
+			go func() {
+				_, _, err := CanPerformStartTLS(listener.Addr().String(), scenario.config)
+				done <- err
+			}()
+			select {
+			case err := <-done:
+				if err == nil {
+					t.Error("expected an error, got none")
+				}
+			case <-time.After(5 * time.Second):
+				t.Fatal("CanPerformStartTLS did not respect the client timeout")
+			}
+			select {
+			case <-closed:
+			case <-time.After(5 * time.Second):
+				t.Error("CanPerformStartTLS did not close the connection")
 			}
 		})
 	}
