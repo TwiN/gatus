@@ -1,3 +1,5 @@
+const colors = require('tailwindcss/colors')
+
 module.exports = {
   content: [
     './public/index.html',
@@ -11,6 +13,8 @@ module.exports = {
     },
     extend: {
       colors: {
+        // Neutral grays so hardcoded gray-* utilities match the zinc-based theme tokens
+        gray: colors.zinc,
         border: 'hsl(var(--border))',
         input: 'hsl(var(--input))',
         ring: 'hsl(var(--ring))',

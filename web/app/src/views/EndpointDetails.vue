@@ -10,7 +10,7 @@
         <div v-if="endpointStatus && endpointStatus.name" class="space-y-6">
           <div class="flex items-start justify-between">
             <div>
-              <h1 class="text-4xl font-bold tracking-tight">{{ endpointStatus.name }}</h1>
+              <h1 class="text-3xl font-semibold tracking-tight">{{ endpointStatus.name }}</h1>
               <div class="flex items-center gap-3 text-muted-foreground mt-2">
                 <span v-if="endpointStatus.group">Group: {{ endpointStatus.group }}</span>
                 <span v-if="endpointStatus.group && hostname">•</span>
@@ -26,7 +26,7 @@
                 <CardTitle class="text-sm font-medium text-muted-foreground">Current Status</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="text-2xl font-bold">{{ currentHealthStatus === 'healthy' ? 'Operational' : 'Issues Detected' }}</div>
+                <div class="text-2xl font-semibold tabular-nums">{{ currentHealthStatus === 'healthy' ? 'Operational' : 'Issues Detected' }}</div>
               </CardContent>
             </Card>
 
@@ -35,7 +35,7 @@
                 <CardTitle class="text-sm font-medium text-muted-foreground">Avg Response Time</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="text-2xl font-bold">{{ pageAverageResponseTime }}</div>
+                <div class="text-2xl font-semibold tabular-nums">{{ pageAverageResponseTime }}</div>
               </CardContent>
             </Card>
 
@@ -44,7 +44,7 @@
                 <CardTitle class="text-sm font-medium text-muted-foreground">Response Time Range</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="text-2xl font-bold">{{ pageResponseTimeRange }}</div>
+                <div class="text-2xl font-semibold tabular-nums">{{ pageResponseTimeRange }}</div>
               </CardContent>
             </Card>
 
@@ -53,7 +53,7 @@
                 <CardTitle class="text-sm font-medium text-muted-foreground">Last Check</CardTitle>
               </CardHeader>
               <CardContent>
-                <div class="text-2xl font-bold">{{ lastCheckTime }}</div>
+                <div class="text-2xl font-semibold tabular-nums">{{ lastCheckTime }}</div>
               </CardContent>
             </Card>
           </div>
