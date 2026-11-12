@@ -77,6 +77,39 @@ func TestSuite_ValidateAndSetDefaults(t *testing.T) {
 			},
 			wantErr: true,
 		},
+		{
+			name: "suite-with-context-in-endpoint-urls",
+			suite: &Suite{
+				Name: "matrix-suite",
+				Endpoints: []*endpoint.Endpoint{
+					{
+						Name: "server-well-known",
+						URL:  "https://example.com/.well-known/matrix/server",
+						Conditions: []endpoint.Condition{
+							endpoint.Condition("[STATUS] == 200"),
+						},
+						Store: map[string]string{
+							"serverUrl": "[BODY].m.server",
+						},
+					},
+					{
+						Name: "server-connectivity",
+						URL:  "https://[CONTEXT].serverUrl",
+						Conditions: []endpoint.Condition{
+							endpoint.Condition("[STATUS] == 200"),
+						},
+					},
+					{
+						Name: "client-connectivity",
+						URL:  "[CONTEXT].clientUrl",
+						Conditions: []endpoint.Condition{
+							endpoint.Condition("[STATUS] == 200"),
+						},
+					},
+				},
+			},
+			wantErr: false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
