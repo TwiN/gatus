@@ -1506,42 +1506,53 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 		opp := len(resultsData) - 1 - i
 		resultsData[i], resultsData[opp] = resultsData[opp], resultsData[i]
 	}
-	// Fetch endpoint results for each suite result
-	for _, data := range resultsData {
-		result := data.result
-		resultID := data.id
-		// Query endpoint results for this suite result
-		epRows, err := tx.Query(`
-			SELECT
-				er.endpoint_result_id,
-				e.endpoint_name,
-				er.success,
-				er.errors,
-				er.duration,
-				er.timestamp
-			FROM endpoint_results er
-			JOIN endpoints e ON er.endpoint_id = e.endpoint_id
-			WHERE er.suite_result_id = $1
-			ORDER BY er.endpoint_result_id
-		`, resultID)
-		if err != nil {
-			logr.Errorf("[sql.getSuiteResults] Failed to get endpoint results for suite_result_id=%d: %s", resultID, err.Error())
-			continue
-		}
+	// Fetch endpoint results for every suite result in a single query, then their
+	// conditions in a single query, instead of two queries per suite result.
+	if len(resultsData) == 0 {
+		return nil, nil
+	}
+	resultsByID := make(map[int64]*suite.Result, len(resultsData))
+	epArgs := make([]interface{}, 0, len(resultsData))
+	epPlaceholders := make([]string, 0, len(resultsData))
+	for i, data := range resultsData {
+		resultsByID[data.id] = data.result
+		epArgs = append(epArgs, data.id)
+		epPlaceholders = append(epPlaceholders, "$"+strconv.Itoa(i+1))
+	}
+	epRows, err := tx.Query(`
+		SELECT
+			er.suite_result_id,
+			er.endpoint_result_id,
+			e.endpoint_name,
+			er.success,
+			er.errors,
+			er.duration,
+			er.timestamp
+		FROM endpoint_results er
+		JOIN endpoints e ON er.endpoint_id = e.endpoint_id
+		WHERE er.suite_result_id IN (`+strings.Join(epPlaceholders, ",")+`)
+		ORDER BY er.suite_result_id, er.endpoint_result_id
+	`, epArgs...)
+	if err != nil {
+		logr.Errorf("[sql.getSuiteResults] Failed to get endpoint results for suite_id=%d: %s", suiteID, err.Error())
+	} else {
 		// Map to store endpoint results by their ID for condition lookup
 		epResultMap := make(map[int64]*endpoint.Result)
-		epCount := 0
+		var epResultIDs []int64
 		for epRows.Next() {
-			epCount++
-			var epResultID int64
+			var suiteResultID, epResultID int64
 			var name string
 			var success bool
 			var joinedErrors string
 			var duration int64
 			var timestamp time.Time
-			err = epRows.Scan(&epResultID, &name, &success, &joinedErrors, &duration, &timestamp)
+			err = epRows.Scan(&suiteResultID, &epResultID, &name, &success, &joinedErrors, &duration, &timestamp)
 			if err != nil {
 				logr.Errorf("[sql.getSuiteResults] Failed to scan endpoint result: %s", err.Error())
+				continue
+			}
+			result, exists := resultsByID[suiteResultID]
+			if !exists {
 				continue
 			}
 			epResult := &endpoint.Result{
@@ -1555,30 +1566,26 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 				epResult.Errors = strings.Split(joinedErrors, arraySeparator)
 			}
 			epResultMap[epResultID] = epResult
+			epResultIDs = append(epResultIDs, epResultID)
 			result.EndpointResults = append(result.EndpointResults, epResult)
 		}
 		epRows.Close()
-		// Fetch condition results for all endpoint results in this suite result
-		if len(epResultMap) > 0 {
-			args := make([]interface{}, 0, len(epResultMap))
-			condQuery := `SELECT endpoint_result_id, condition, success
-						  FROM endpoint_result_conditions
-						  WHERE endpoint_result_id IN (`
-			index := 1
-			for epResultID := range epResultMap {
-				condQuery += "$" + strconv.Itoa(index) + ","
+		// Fetch condition results for all endpoint results of all suite results
+		if len(epResultIDs) > 0 {
+			args := make([]interface{}, 0, len(epResultIDs))
+			placeholders := make([]string, 0, len(epResultIDs))
+			for i, epResultID := range epResultIDs {
 				args = append(args, epResultID)
-				index++
+				placeholders = append(placeholders, "$"+strconv.Itoa(i+1))
 			}
-			condQuery = condQuery[:len(condQuery)-1] + ")"
-
-			condRows, err := tx.Query(condQuery, args...)
+			condRows, err := tx.Query(`SELECT endpoint_result_id, condition, success
+				FROM endpoint_result_conditions
+				WHERE endpoint_result_id IN (`+strings.Join(placeholders, ",")+`)
+				ORDER BY endpoint_result_id, endpoint_result_condition_id`, args...)
 			if err != nil {
-				logr.Errorf("[sql.getSuiteResults] Failed to get condition results for suite_result_id=%d: %s", resultID, err.Error())
+				logr.Errorf("[sql.getSuiteResults] Failed to get condition results for suite_id=%d: %s", suiteID, err.Error())
 			} else {
-				condCount := 0
 				for condRows.Next() {
-					condCount++
 					conditionResult := &endpoint.ConditionResult{}
 					var epResultID int64
 					if err = condRows.Scan(&epResultID, &conditionResult.Condition, &conditionResult.Success); err != nil {
@@ -1590,13 +1597,7 @@ func (s *Store) getSuiteResults(tx *sql.Tx, suiteID int64, page, pageSize int) (
 					}
 				}
 				condRows.Close()
-				if condCount > 0 {
-					logr.Debugf("[sql.getSuiteResults] Found %d condition results for suite_result_id=%d", condCount, resultID)
-				}
 			}
-		}
-		if epCount > 0 {
-			logr.Debugf("[sql.getSuiteResults] Found %d endpoint results for suite_result_id=%d", epCount, resultID)
 		}
 	}
 	// Extract just the results for return
