@@ -248,7 +248,9 @@ func CanPerformTLS(address string, body string, config *Config) (connected bool,
 
 // CanCreateSSHConnection checks whether a connection can be established and a command can be executed to an address
 // using the SSH protocol.
-func CanCreateSSHConnection(address, username, password, privateKey string, config *Config) (bool, *ssh.Client, error) {
+//
+// If hostKey (authorized_keys format) is not empty, the connection fails unless the server presents that exact key.
+func CanCreateSSHConnection(address, username, password, privateKey, hostKey string, config *Config) (bool, *ssh.Client, error) {
 	var port string
 	if strings.Contains(address, ":") {
 		addressAndPort := strings.Split(address, ":")
@@ -274,8 +276,17 @@ func CanCreateSSHConnection(address, username, password, privateKey string, conf
 		authMethods = append(authMethods, sshPasswordAuthMethods(password)...)
 	}
 
+	hostKeyCallback := ssh.InsecureIgnoreHostKey()
+	if len(hostKey) > 0 {
+		expectedHostKey, _, _, _, err := ssh.ParseAuthorizedKey([]byte(hostKey))
+		if err != nil {
+			return false, nil, fmt.Errorf("invalid host key: %w", err)
+		}
+		hostKeyCallback = ssh.FixedHostKey(expectedHostKey)
+	}
+
 	cli, err := ssh.Dial("tcp", net.JoinHostPort(address, port), &ssh.ClientConfig{
-		HostKeyCallback: ssh.InsecureIgnoreHostKey(),
+		HostKeyCallback: hostKeyCallback,
 		User:            username,
 		Auth:            authMethods,
 		Timeout:         config.Timeout,

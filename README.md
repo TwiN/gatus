@@ -294,6 +294,7 @@ You can then configure alerts to be triggered when an endpoint is unhealthy once
 | `endpoints[].ssh`                               | Configuration for an endpoint of type SSH. <br />See [Monitoring an endpoint using SSH](#monitoring-an-endpoint-using-ssh).                 | `""`                       |
 | `endpoints[].ssh.username`                      | SSH username (e.g. example).                                                                                                                | Required `""`              |
 | `endpoints[].ssh.password`                      | SSH password (e.g. password).                                                                                                               | Required `""`              |
+| `endpoints[].ssh.host-key`                      | Expected public key of the server, in `authorized_keys` format. See [Monitoring an endpoint using SSH](#monitoring-an-endpoint-using-ssh).  | `""`                       |
 | `endpoints[].alerts`                            | List of all alerts for a given endpoint. <br />See [Alerting](#alerting).                                                                   | `[]`                       |
 | `endpoints[].maintenance-windows`               | List of all maintenance windows for a given endpoint. <br />See [Maintenance](#maintenance).                                                | `[]`                       |
 | `endpoints[].client`                            | [Client configuration](#client-configuration).                                                                                              | `{}`                       |
@@ -3356,6 +3357,27 @@ endpoints:
 > SSH authentication methods, using whichever the server offers. This means servers with `PasswordAuthentication no`
 > but `KbdInteractiveAuthentication yes` (e.g. PAM-based password prompts) are supported, just like with the OpenSSH CLI.
 > Every keyboard-interactive prompt is answered with the configured password, so multi-factor prompts (e.g. OTP) are not supported.
+
+By default, the server's host key is not verified. To make sure Gatus is talking to the expected server, set
+`ssh.host-key` to the server's public key, in the `authorized_keys` format (e.g. the content of
+`/etc/ssh/ssh_host_ed25519_key.pub`, or the output of `ssh-keyscan -t ed25519 example.com`, without the hostname).
+The check fails if the server presents any other key:
+```yaml
+endpoints:
+  - name: ssh-example-host-key
+    url: "ssh://example.com:22"
+    ssh:
+      username: "username"
+      password: "password"
+      host-key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAI..."
+    interval: 1m
+    conditions:
+      - "[CONNECTED] == true"
+```
+
+> [!NOTE]
+> `ssh.host-key` can only be used alongside credentials (`username` and `password` or `private-key`), because the host key
+> is only verified when authenticating, not when only the SSH banner is checked.
 
 you can also use no authentication to monitor the endpoint by not specifying the username,
 password and private key fields.
