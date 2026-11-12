@@ -38,6 +38,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
 	"github.com/TwiN/gatus/v5/alerting/provider/plivo"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
+	"github.com/TwiN/gatus/v5/alerting/provider/pushward"
 	"github.com/TwiN/gatus/v5/alerting/provider/resend"
 	"github.com/TwiN/gatus/v5/alerting/provider/rocketchat"
 	"github.com/TwiN/gatus/v5/alerting/provider/sendgrid"
@@ -1924,6 +1925,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		PagerDuty:             &pagerduty.AlertProvider{},
 		Plivo:                 &plivo.AlertProvider{},
 		Pushover:              &pushover.AlertProvider{},
+		PushWard:              &pushward.AlertProvider{},
 		Resend:                &resend.AlertProvider{},
 		RocketChat:            &rocketchat.AlertProvider{},
 		SendGrid:              &sendgrid.AlertProvider{},
@@ -1971,6 +1973,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypePagerDuty, expected: alertingConfig.PagerDuty},
 		{alertType: alert.TypePlivo, expected: alertingConfig.Plivo},
 		{alertType: alert.TypePushover, expected: alertingConfig.Pushover},
+		{alertType: alert.TypePushWard, expected: alertingConfig.PushWard},
 		{alertType: alert.TypeResend, expected: alertingConfig.Resend},
 		{alertType: alert.TypeRocketChat, expected: alertingConfig.RocketChat},
 		{alertType: alert.TypeSendGrid, expected: alertingConfig.SendGrid},
@@ -2058,6 +2061,91 @@ endpoints:
 	}
 	if merged.Level != "passive" || merged.Sound != "alarm" || merged.Group != "incident" {
 		t.Errorf("expected group and alert overrides, got %#v", merged)
+	}
+}
+
+func TestParseAndValidateConfigBytesWithPushWardAlerting(t *testing.T) {
+	t.Parallel()
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  pushward:
+    integration-key: test-integration-key
+    default-alert:
+      failure-threshold: 7
+      success-threshold: 4
+      send-on-resolved: true
+    overrides:
+      - group: production
+        level: critical
+
+endpoints:
+  - name: api
+    group: production
+    url: https://example.com/health
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: pushward
+        provider-override:
+          resolved-level: passive
+`))
+	if err != nil {
+		t.Fatal("expected PushWard configuration to parse, got", err)
+	}
+	if config.Alerting == nil || config.Alerting.PushWard == nil {
+		t.Fatal("expected PushWard alerting provider")
+	}
+	if config.Alerting.PushWard.DefaultConfig.IntegrationKey != "test-integration-key" {
+		t.Error("expected PushWard integration key to be parsed")
+	}
+	if config.Alerting.PushWard.DefaultConfig.Level != "time-sensitive" || config.Alerting.PushWard.DefaultConfig.ResolvedLevel != "active" {
+		t.Errorf("expected PushWard default levels, got %#v", config.Alerting.PushWard.DefaultConfig)
+	}
+	if config.Alerting.GetAlertingProviderByAlertType(alert.TypePushWard) != config.Alerting.PushWard {
+		t.Error("expected PushWard provider to be discoverable by alert type")
+	}
+	endpointAlert := config.Endpoints[0].Alerts[0]
+	if endpointAlert.Type != alert.TypePushWard {
+		t.Errorf("expected alert type %q, got %q", alert.TypePushWard, endpointAlert.Type)
+	}
+	if endpointAlert.FailureThreshold != 7 || endpointAlert.SuccessThreshold != 4 || !endpointAlert.IsSendingOnResolved() {
+		t.Errorf("expected PushWard default alert to be merged, got %#v", endpointAlert)
+	}
+	merged, err := config.Alerting.PushWard.GetConfig(config.Endpoints[0].Group, endpointAlert)
+	if err != nil {
+		t.Fatal("expected merged PushWard configuration to be valid, got", err)
+	}
+	if merged.Level != "critical" || merged.ResolvedLevel != "passive" {
+		t.Errorf("expected group and alert overrides, got %#v", merged)
+	}
+}
+
+func TestParseAndValidateConfigBytesWithInvalidPushWardAlertingConfig(t *testing.T) {
+	t.Parallel()
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  pushward:
+    integration-key: test-integration-key
+    level: urgent
+endpoints:
+  - name: website
+    url: https://twin.sh/health
+    alerts:
+      - type: pushward
+    conditions:
+      - "[STATUS] == 200"
+`))
+	if err != nil {
+		t.Error("expected no error, got", err.Error())
+	}
+	if config == nil {
+		t.Fatal("Config shouldn't have been nil")
+	}
+	if config.Alerting == nil {
+		t.Fatal("config.Alerting shouldn't have been nil")
+	}
+	if config.Alerting.PushWard != nil {
+		t.Fatal("PushWard alerting config should've been set to nil, because its Validate() method returned an error and therefore alerting.Config.SetAlertingProviderToNil() should've been called")
 	}
 }
 

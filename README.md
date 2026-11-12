@@ -82,6 +82,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring PagerDuty alerts](#configuring-pagerduty-alerts)
     - [Configuring Plivo alerts](#configuring-plivo-alerts)
     - [Configuring Pushover alerts](#configuring-pushover-alerts)
+    - [Configuring PushWard alerts](#configuring-pushward-alerts)
     - [Configuring Resend alerts](#configuring-resend-alerts)
     - [Configuring Rocket.Chat alerts](#configuring-rocketchat-alerts)
     - [Configuring SendGrid alerts](#configuring-sendgrid-alerts)
@@ -876,6 +877,7 @@ endpoints:
 | `alerting.pagerduty`       | Configuration for alerts of type `pagerduty`. <br />See [Configuring PagerDuty alerts](#configuring-pagerduty-alerts).                  | `{}`    |
 | `alerting.plivo`           | Configuration for alerts of type `plivo`. <br />See [Configuring Plivo alerts](#configuring-plivo-alerts).                              | `{}`    |
 | `alerting.pushover`        | Configuration for alerts of type `pushover`. <br />See [Configuring Pushover alerts](#configuring-pushover-alerts).                     | `{}`    |
+| `alerting.pushward`        | Configuration for alerts of type `pushward`. <br />See [Configuring PushWard alerts](#configuring-pushward-alerts).                     | `{}`    |
 | `alerting.resend`          | Configuration for alerts of type `resend`. <br />See [Configuring Resend alerts](#configuring-resend-alerts).                           | `{}`    |
 | `alerting.rocketchat`      | Configuration for alerts of type `rocketchat`. <br />See [Configuring Rocket.Chat alerts](#configuring-rocketchat-alerts).              | `{}`    |
 | `alerting.sendgrid`        | Configuration for alerts of type `sendgrid`. <br />See [Configuring SendGrid alerts](#configuring-sendgrid-alerts).                     | `{}`    |
@@ -2057,6 +2059,37 @@ endpoints:
       - type: pushover
         failure-threshold: 3
         success-threshold: 5
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
+
+
+#### Configuring PushWard alerts
+| Parameter                             | Description                                                                                | Default               |
+|:--------------------------------------|:-------------------------------------------------------------------------------------------|:----------------------|
+| `alerting.pushward`                   | Configuration for alerts of type `pushward`                                                | `{}`                  |
+| `alerting.pushward.integration-key`   | PushWard integration key                                                                   | Required `""`         |
+| `alerting.pushward.title`             | Fixed title for all messages sent via PushWard                                             | `"Gatus: <endpoint>"` |
+| `alerting.pushward.level`             | Level of triggered messages: `passive`, `active`, `time-sensitive` or `critical`           | `"time-sensitive"`    |
+| `alerting.pushward.resolved-level`    | Level of resolved messages: `passive`, `active`, `time-sensitive` or `critical`            | `"active"`            |
+| `alerting.pushward.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A                   |
+| `alerting.pushward.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`                  |
+| `alerting.pushward.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`                  |
+| `alerting.pushward.overrides[].*`     | See `alerting.pushward.*` parameters                                                       | `{}`                  |
+
+```yaml
+alerting:
+  pushward:
+    integration-key: "hlk_xxxxxxxxxxxxxxxxxxxxxxxx"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: pushward
         send-on-resolved: true
         description: "healthcheck failed"
 ```
