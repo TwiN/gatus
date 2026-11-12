@@ -2,19 +2,24 @@ package client
 
 import (
 	"bytes"
+	"crypto/ed25519"
+	"crypto/rand"
 	"crypto/tls"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/netip"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/endpoint/dns"
+	"github.com/TwiN/gatus/v5/config/tunneling/sshtunnel"
 	"github.com/TwiN/gatus/v5/pattern"
 	"github.com/TwiN/gatus/v5/test"
 	"github.com/gorilla/websocket"
@@ -333,6 +338,125 @@ func TestCanCreateConnection(t *testing.T) {
 	if !connected {
 		t.Error("should've succeeded, because that IP should always™ be up")
 	}
+}
+
+// TestCanCreateNetworkConnectionUsesSSHTunnel ensures that TCP healthchecks honor client.tunnel
+// instead of dialing the target directly, which left tunneled TCP endpoints permanently unhealthy.
+func TestCanCreateNetworkConnectionUsesSSHTunnel(t *testing.T) {
+	t.Parallel()
+	const username, password = "user", "secret"
+	// 192.0.2.1 belongs to TEST-NET-1 (RFC 5737) and is not routable, so a direct dial is expected
+	// to fail while a connection requested through the SSH tunnel can still be established.
+	const target = "192.0.2.1:1"
+
+	tunneledDial := make(chan string, 1)
+	addr := startSSHServerAcceptingTCPPortForwarding(t, username, password, tunneledDial)
+	host, portStr, err := net.SplitHostPort(addr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	port, err := strconv.Atoi(portStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	tunnel := sshtunnel.New(&sshtunnel.Config{Type: "SSH", Host: host, Port: port, Username: username, Password: password})
+	if err := tunnel.Connect(); err != nil {
+		t.Fatalf("failed to connect SSH tunnel: %v", err)
+	}
+	defer tunnel.Close()
+
+	if connected, _ := CanCreateNetworkConnection("tcp", target, "", &Config{Timeout: 2 * time.Second}); connected {
+		t.Error("expected direct TCP dial of an unreachable address to fail")
+	}
+
+	connected, _ := CanCreateNetworkConnection("tcp", target, "", &Config{Timeout: 5 * time.Second, ResolvedTunnel: tunnel})
+	if !connected {
+		t.Error("expected TCP check to succeed by routing through the SSH tunnel")
+	}
+	select {
+	case got := <-tunneledDial:
+		if got != target {
+			t.Errorf("tunnel was asked to forward %q, want %q", got, target)
+		}
+	case <-time.After(5 * time.Second):
+		t.Error("healthcheck never sent a direct-tcpip request, so it did not use the SSH tunnel")
+	}
+}
+
+// startSSHServerAcceptingTCPPortForwarding starts a local SSH server that authenticates the given
+// credentials and accepts direct-tcpip channel requests without reaching the requested destination,
+// forwarding the requested host:port to the dialed channel so tests can observe tunnel usage.
+func startSSHServerAcceptingTCPPortForwarding(t *testing.T, username, password string, dialed chan<- string) string {
+	t.Helper()
+	_, hostKey, err := ed25519.GenerateKey(rand.Reader)
+	if err != nil {
+		t.Fatal(err)
+	}
+	signer, err := ssh.NewSignerFromKey(hostKey)
+	if err != nil {
+		t.Fatal(err)
+	}
+	serverConfig := &ssh.ServerConfig{
+		PasswordCallback: func(conn ssh.ConnMetadata, pw []byte) (*ssh.Permissions, error) {
+			if conn.User() == username && string(pw) == password {
+				return nil, nil
+			}
+			return nil, errors.New("invalid credentials")
+		},
+	}
+	serverConfig.AddHostKey(signer)
+	listener, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = listener.Close() })
+	go func() {
+		for {
+			conn, err := listener.Accept()
+			if err != nil {
+				return
+			}
+			go func() {
+				defer conn.Close()
+				sshConn, channels, globalRequests, err := ssh.NewServerConn(conn, serverConfig)
+				if err != nil {
+					return
+				}
+				defer sshConn.Close()
+				go ssh.DiscardRequests(globalRequests)
+				for newChannel := range channels {
+					if newChannel.ChannelType() != "direct-tcpip" {
+						_ = newChannel.Reject(ssh.UnknownChannelType, "unsupported channel type")
+						continue
+					}
+					var request struct {
+						Host           string
+						Port           uint32
+						Originator     string
+						OriginatorPort uint32
+					}
+					if err := ssh.Unmarshal(newChannel.ExtraData(), &request); err != nil {
+						_ = newChannel.Reject(ssh.Prohibited, "malformed direct-tcpip request")
+						continue
+					}
+					channel, channelRequests, err := newChannel.Accept()
+					if err != nil {
+						return
+					}
+					go ssh.DiscardRequests(channelRequests)
+					select {
+					case dialed <- net.JoinHostPort(request.Host, strconv.FormatUint(uint64(request.Port), 10)):
+					default:
+					}
+					go func() {
+						defer channel.Close()
+						_, _ = io.Copy(channel, channel)
+					}()
+				}
+			}()
+		}
+	}()
+	return listener.Addr().String()
 }
 
 // This test checks if a HTTP client configured with `configureOAuth2()` automatically
