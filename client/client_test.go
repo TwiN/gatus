@@ -115,19 +115,19 @@ func TestGetDomainExpiration(t *testing.T) {
 
 func TestPing(t *testing.T) {
 	t.Parallel()
-	if success, rtt := Ping("127.0.0.1", &Config{Timeout: 500 * time.Millisecond}); !success {
+	if success, rtt := Ping("127.0.0.1", &Config{Timeout: 500 * time.Millisecond, PingCount: 1}); !success {
 		t.Error("expected true")
 		if rtt == 0 {
 			t.Error("Round-trip time returned on success should've higher than 0")
 		}
 	}
-	if success, rtt := Ping("256.256.256.256", &Config{Timeout: 500 * time.Millisecond}); success {
+	if success, rtt := Ping("256.256.256.256", &Config{Timeout: 500 * time.Millisecond, PingCount: 1}); success {
 		t.Error("expected false, because the IP is invalid")
 		if rtt != 0 {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
 	}
-	if success, rtt := Ping("192.168.152.153", &Config{Timeout: 500 * time.Millisecond}); success {
+	if success, rtt := Ping("192.168.152.153", &Config{Timeout: 500 * time.Millisecond, PingCount: 1}); success {
 		t.Error("expected false, because the IP is valid but the host should be unreachable")
 		if rtt != 0 {
 			t.Error("Round-trip time returned on failure should've been 0")
@@ -135,29 +135,44 @@ func TestPing(t *testing.T) {
 	}
 	// Can't perform integration tests (e.g. pinging public targets by single-stacked hostname) here,
 	// because ICMP is blocked in the network of GitHub-hosted runners.
-	if success, rtt := Ping("127.0.0.1", &Config{Timeout: 500 * time.Millisecond, Network: "ip"}); !success {
+	if success, rtt := Ping("127.0.0.1", &Config{Timeout: 500 * time.Millisecond, PingCount: 1, Network: "ip"}); !success {
 		t.Error("expected true")
 		if rtt == 0 {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
 	}
-	if success, rtt := Ping("::1", &Config{Timeout: 500 * time.Millisecond, Network: "ip"}); !success {
+	if success, rtt := Ping("::1", &Config{Timeout: 500 * time.Millisecond, PingCount: 1, Network: "ip"}); !success {
 		t.Error("expected true")
 		if rtt == 0 {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
 	}
-	if success, rtt := Ping("::1", &Config{Timeout: 500 * time.Millisecond, Network: "ip4"}); success {
+	if success, rtt := Ping("::1", &Config{Timeout: 500 * time.Millisecond, PingCount: 1, Network: "ip4"}); success {
 		t.Error("expected false, because the IP isn't an IPv4 address")
 		if rtt != 0 {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
 	}
-	if success, rtt := Ping("127.0.0.1", &Config{Timeout: 500 * time.Millisecond, Network: "ip6"}); success {
+	if success, rtt := Ping("127.0.0.1", &Config{Timeout: 500 * time.Millisecond, PingCount: 1, Network: "ip6"}); success {
 		t.Error("expected false, because the IP isn't an IPv6 address")
 		if rtt != 0 {
 			t.Error("Round-trip time returned on failure should've been 0")
 		}
+	}
+}
+
+func TestPing_withPingCount(t *testing.T) {
+	t.Parallel()
+	start := time.Now()
+	success, rtt := Ping("127.0.0.1", &Config{Timeout: 1500 * time.Millisecond, PingCount: 2})
+	if !success {
+		t.Error("expected true")
+	}
+	if rtt == 0 {
+		t.Error("Round-trip time returned on success should've been higher than 0")
+	}
+	if elapsed := time.Since(start); elapsed < pingInterval {
+		t.Errorf("expected the second packet to be sent after %s, but Ping returned after %s", pingInterval, elapsed)
 	}
 }
 
