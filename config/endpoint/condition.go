@@ -1,6 +1,7 @@
 package endpoint
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"strconv"
@@ -8,6 +9,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/gontext"
+	"github.com/TwiN/gatus/v5/jsonpath"
 	"github.com/TwiN/gatus/v5/pattern"
 )
 
@@ -18,6 +20,9 @@ const (
 	// This is only used for aesthetic purposes; it does not influence whether the condition evaluation results in a
 	// success or a failure
 	maximumLengthBeforeTruncatingWhenComparedWithPattern = 25
+
+	// wildcardIndex stands for every element of an array when used in a [BODY] path
+	wildcardIndex = "[*]"
 )
 
 // Condition is a condition that needs to be met in order for an Endpoint to be considered healthy.
@@ -36,6 +41,9 @@ func (c Condition) Validate() error {
 // evaluate the Condition with the Result and an optional context
 func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, resolveSuccessfulConditions bool, context *gontext.Gontext) bool {
 	condition := string(c)
+	if start, index, found := findBodyWildcard(condition); found {
+		return c.evaluateWildcard(start, index, result, dontResolveFailedConditions, resolveSuccessfulConditions, context)
+	}
 	success := false
 	conditionToDisplay := condition
 	shouldResolveCondition := func(success bool) bool {
@@ -88,6 +96,85 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, re
 		//logr.Debugf("[Condition.evaluate] Condition '%s' did not succeed because '%s' is false", condition, condition)
 	}
 	result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: conditionToDisplay, Success: success})
+	return success
+}
+
+// findBodyWildcard looks for the first wildcardIndex preceded by a BodyPlaceholder.
+//
+// It returns the position of the BodyPlaceholder the wildcard belongs to (start) and the position of the wildcard
+// itself (index), so that condition[start:index] is the expression leading to the array.
+func findBodyWildcard(condition string) (start int, index int, found bool) {
+	index = strings.Index(condition, wildcardIndex)
+	if index == -1 {
+		return 0, 0, false
+	}
+	before := strings.ToUpper(condition[:index])
+	if len(before) != index {
+		return 0, 0, false
+	}
+	start = strings.LastIndex(before, BodyPlaceholder)
+	if start == -1 {
+		return 0, 0, false
+	}
+	if strings.Contains(condition[start:index], " ") {
+		// The placeholder belongs to another operand, so the wildcard isn't part of a body path
+		return 0, 0, false
+	}
+	return start, index, true
+}
+
+// evaluateWildcard evaluates the Condition once for every element of the array targeted by the wildcard, and
+// succeeds only if all of them succeed.
+//
+// An empty or missing array fails the condition, because a response without elements shouldn't be considered healthy.
+// To keep the results readable, only the failing elements are reported, or a single entry if they all succeeded.
+func (c Condition) evaluateWildcard(start, index int, result *Result, dontResolveFailedConditions bool, resolveSuccessfulConditions bool, context *gontext.Gontext) bool {
+	condition := string(c)
+	arrayExpression := condition[start:index]
+	arrayPath := strings.TrimPrefix(arrayExpression[len(BodyPlaceholder):], ".")
+	// Decode the body once, instead of once per element (and per nesting level). Only the evaluation that decoded
+	// the body clears it, so that nested wildcards reuse the one of the outermost wildcard.
+	if result.bodyObject == nil {
+		var object interface{}
+		if err := json.Unmarshal(result.Body, &object); err == nil {
+			result.bodyObject = object
+			defer func() { result.bodyObject = nil }()
+		}
+	}
+	length, err := jsonpath.ArrayLenFromObject(arrayPath, result.bodyObject)
+	if err != nil {
+		result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: fmt.Sprintf("%s (no array found at %s)", condition, arrayExpression), Success: false})
+		return false
+	}
+	if length == 0 {
+		result.ConditionResults = append(result.ConditionResults, &ConditionResult{Condition: fmt.Sprintf("%s (array at %s is empty)", condition, arrayExpression), Success: false})
+		return false
+	}
+	// Nested evaluations append their own results, so everything from this index on belongs to this wildcard
+	startOfElementResults := len(result.ConditionResults)
+	success := true
+	for i := 0; i < length; i++ {
+		expanded := Condition(condition[:index] + "[" + strconv.Itoa(i) + "]" + condition[index+len(wildcardIndex):])
+		if !expanded.evaluate(result, dontResolveFailedConditions, resolveSuccessfulConditions, context) {
+			success = false
+		}
+	}
+	elementResults := result.ConditionResults[startOfElementResults:]
+	var reported []*ConditionResult
+	if success {
+		conditionToDisplay := condition
+		if resolveSuccessfulConditions {
+			conditionToDisplay = fmt.Sprintf("%s (%d elements)", condition, len(elementResults))
+		}
+		reported = []*ConditionResult{{Condition: conditionToDisplay, Success: true}}
+	} else {
+		for _, elementResult := range elementResults {
+			if !elementResult.Success {
+				reported = append(reported, elementResult)
+			}
+		}
+	}
+	result.ConditionResults = append(result.ConditionResults[:startOfElementResults], reported...)
 	return success
 }
 
