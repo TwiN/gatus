@@ -1,6 +1,7 @@
 package client
 
 import (
+	"errors"
 	"net/http"
 	"net/url"
 	"testing"
@@ -91,6 +92,58 @@ func TestConfig_ValidateAndSetDefaults_withCustomDNSResolver(t *testing.T) {
 			err := cfg.ValidateAndSetDefaults()
 			if (err != nil) != tt.wantErr {
 				t.Errorf("ValidateAndSetDefaults() error=%v, wantErr=%v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestConfig_ValidateAndSetDefaults_withPingCount(t *testing.T) {
+	tests := []struct {
+		name              string
+		pingCount         int
+		timeout           time.Duration
+		expectedPingCount int
+		expectedErr       error
+	}{
+		{
+			name:              "unset-defaults-to-one",
+			pingCount:         0,
+			timeout:           time.Second,
+			expectedPingCount: 1,
+		},
+		{
+			name:              "multiple-packets-within-timeout",
+			pingCount:         3,
+			timeout:           2*pingInterval + time.Millisecond,
+			expectedPingCount: 3,
+		},
+		{
+			name:        "negative",
+			pingCount:   -1,
+			timeout:     time.Second,
+			expectedErr: ErrInvalidClientPingCount,
+		},
+		{
+			name:        "timeout-equal-to-last-packet-send-time",
+			pingCount:   3,
+			timeout:     2 * pingInterval,
+			expectedErr: ErrInvalidClientPingTimeout,
+		},
+		{
+			name:        "default-timeout-too-short",
+			pingCount:   20,
+			expectedErr: ErrInvalidClientPingTimeout,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{PingCount: tt.pingCount, Timeout: tt.timeout}
+			err := cfg.ValidateAndSetDefaults()
+			if !errors.Is(err, tt.expectedErr) {
+				t.Fatalf("expected error %v, got %v", tt.expectedErr, err)
+			}
+			if err == nil && cfg.PingCount != tt.expectedPingCount {
+				t.Errorf("expected PingCount %d, got %d", tt.expectedPingCount, cfg.PingCount)
 			}
 		})
 	}
