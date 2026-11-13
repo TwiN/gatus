@@ -1,6 +1,10 @@
 storage:
   type: postgres
-  path: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
+  # Key-value (DSN) format is recommended because it supports passwords containing URL-reserved characters
+  # (e.g. '#', '@', '?', '&', '=') without requiring URL-encoding. Note: literal single quotes or backslashes must be escaped with \' or \\.
+  path: "user=${POSTGRES_USER} password='${POSTGRES_PASSWORD}' host=postgres port=5432 dbname=${POSTGRES_DB} sslmode=disable"
+  # Alternatively, if using the URI format, any special characters in the user or password must be URL-encoded (e.g. '#' as '%23'):
+  # path: "postgres://${POSTGRES_USER}:${POSTGRES_PASSWORD}@postgres:5432/${POSTGRES_DB}?sslmode=disable"
 
 endpoints:
   - name: back-end
