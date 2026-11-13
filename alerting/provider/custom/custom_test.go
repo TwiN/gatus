@@ -133,13 +133,16 @@ func TestAlertProvider_buildHTTPRequest(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("resolved-%v-with-default-placeholders", scenario.Resolved), func(t *testing.T) {
-			request := alertProvider.buildHTTPRequest(
+			request, err := alertProvider.buildHTTPRequest(
 				&alertProvider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group", URL: "https://example.com"},
 				&alert.Alert{Description: &alertDescription},
 				&endpoint.Result{Errors: []string{}},
 				scenario.Resolved,
 			)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if request.URL.String() != scenario.ExpectedURL {
 				t.Error("expected URL to be", scenario.ExpectedURL, "got", request.URL.String())
 			}
@@ -189,13 +192,16 @@ func TestAlertProviderWithResultErrors_buildHTTPRequest(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("resolved-%v-with-default-placeholders-and-result-errors", scenario.Resolved), func(t *testing.T) {
-			request := alertProvider.buildHTTPRequest(
+			request, err := alertProvider.buildHTTPRequest(
 				&alertProvider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group", URL: "https://example.com"},
 				&alert.Alert{Description: &alertDescription},
 				&endpoint.Result{Errors: scenario.Errors},
 				scenario.Resolved,
 			)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if request.URL.String() != scenario.ExpectedURL {
 				t.Error("expected URL to be", scenario.ExpectedURL, "got", request.URL.String())
 			}
@@ -243,13 +249,16 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholder(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(fmt.Sprintf("resolved-%v-with-custom-placeholders", scenario.Resolved), func(t *testing.T) {
-			request := alertProvider.buildHTTPRequest(
+			request, err := alertProvider.buildHTTPRequest(
 				&alertProvider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&alert.Alert{Description: &alertDescription},
 				&endpoint.Result{},
 				scenario.Resolved,
 			)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if request.URL.String() != scenario.ExpectedURL {
 				t.Error("expected URL to be", scenario.ExpectedURL, "got", request.URL.String())
 			}
@@ -306,13 +315,16 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholderAndResultConditions(
 				}
 			}
 
-			request := alertProvider.buildHTTPRequest(
+			request, err := alertProvider.buildHTTPRequest(
 				&alertProvider.DefaultConfig,
 				&endpoint.Endpoint{Name: "endpoint-name", Group: "endpoint-group"},
 				&alert.Alert{Description: &alertDescription},
 				&endpoint.Result{ConditionResults: conditionResults},
 				scenario.Resolved,
 			)
+			if err != nil {
+				t.Fatalf("unexpected error: %v", err)
+			}
 			if request.URL.String() != scenario.ExpectedURL {
 				t.Error("expected URL to be", scenario.ExpectedURL, "got", request.URL.String())
 			}
@@ -459,6 +471,29 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			// Test ValidateOverrides as well, since it really just calls GetConfig
 			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
 				t.Errorf("unexpected error: %s", err)
+			}
+		})
+	}
+}
+
+func TestAlertProvider_SendReturnsAnErrorWhenTheRequestCannotBeBuilt(t *testing.T) {
+	defer client.InjectHTTPClient(nil)
+	client.InjectHTTPClient(&http.Client{Transport: test.MockRoundTripper(func(r *http.Request) *http.Response {
+		t.Error("no request should have been sent")
+		return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+	})})
+	scenarios := []struct {
+		Name   string
+		Config Config
+	}{
+		{Name: "invalid-method", Config: Config{URL: "https://example.com", Method: "NOT A METHOD"}},
+		{Name: "unparseable-url", Config: Config{URL: "http://[::1"}},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			provider := AlertProvider{DefaultConfig: scenario.Config}
+			if err := provider.Send(&endpoint.Endpoint{Name: "endpoint-name"}, &alert.Alert{}, &endpoint.Result{}, false); err == nil {
+				t.Error("expected an error, got none")
 			}
 		})
 	}
