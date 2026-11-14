@@ -17,6 +17,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/clickup"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/datadog"
+	"github.com/TwiN/gatus/v5/alerting/provider/dingtalk"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitea"
@@ -1903,6 +1904,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		ClickUp:               &clickup.AlertProvider{},
 		Custom:                &custom.AlertProvider{},
 		Datadog:               &datadog.AlertProvider{},
+		DingTalk:              &dingtalk.AlertProvider{},
 		Discord:               &discord.AlertProvider{},
 		Email:                 &email.AlertProvider{},
 		Gitea:                 &gitea.AlertProvider{},
@@ -1950,6 +1952,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypeClickUp, expected: alertingConfig.ClickUp},
 		{alertType: alert.TypeCustom, expected: alertingConfig.Custom},
 		{alertType: alert.TypeDatadog, expected: alertingConfig.Datadog},
+		{alertType: alert.TypeDingTalk, expected: alertingConfig.DingTalk},
 		{alertType: alert.TypeDiscord, expected: alertingConfig.Discord},
 		{alertType: alert.TypeEmail, expected: alertingConfig.Email},
 		{alertType: alert.TypeGitea, expected: alertingConfig.Gitea},
