@@ -1,5 +1,9 @@
 <template>
-  <div id="global" class="bg-background text-foreground">
+  <div
+    id="global"
+    class="bg-background text-foreground"
+    :data-route-home="route.name === 'Home' ? 'true' : 'false'"
+  >
     <!-- Loading State -->
     <div v-if="!retrievedConfig" class="flex items-center justify-center min-h-screen">
       <Loading size="lg" />
@@ -8,7 +12,11 @@
     <!-- Main App Container -->
     <div v-else-if="!config || !config.oidc || config.authenticated" class="relative">
       <!-- Header -->
-      <header class="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+      <header
+        id="app-header"
+        v-show="!hideAppChrome"
+        class="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/60"
+      >
         <div class="container mx-auto px-4 py-4 max-w-7xl">
           <div class="flex items-center justify-between">
             <!-- Logo and Title -->
@@ -96,7 +104,7 @@
       </main>
 
       <!-- Footer -->
-      <footer class="border-t mt-auto">
+      <footer id="app-footer" v-show="!hideAppChrome" class="border-t mt-auto">
         <div class="container mx-auto px-4 py-6 max-w-7xl">
           <div class="flex flex-col items-center gap-4">
             <div class="text-sm text-muted-foreground text-center">
@@ -156,6 +164,7 @@
 <script setup>
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
+import { useWallDisplay } from '@/composables/useWallDisplay'
 import { Menu, X, LogIn } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import { Card, CardHeader, CardTitle, CardContent } from '@/components/ui/card'
@@ -164,6 +173,15 @@ import Tooltip from './components/Tooltip.vue'
 import Loading from './components/Loading.vue'
 
 const route = useRoute()
+const { wallDisplay, syncDocumentClasses } = useWallDisplay()
+
+const hideAppChrome = computed(() => {
+  if (!wallDisplay.value) {
+    return false
+  }
+  // Wall display is meant for the home dashboard (TV / NOC); keep chrome on detail pages.
+  return route.name === 'Home' || route.path === '/' || route.path === ''
+})
 
 // State
 const retrievedConfig = ref(false)
@@ -236,7 +254,7 @@ const handleDocumentClick = (event) => {
   if (tooltipIsPersistent.value) {
     const tooltipElement = document.getElementById('tooltip')
     // Check if click is on a data point bar or inside tooltip
-    const clickedDataPoint = event.target.closest('.flex-1.h-6, .flex-1.h-8')
+    const clickedDataPoint = event.target.closest('.endpoint-result-bar')
 
     if (tooltipElement && !tooltipElement.contains(event.target) && !clickedDataPoint) {
       tooltip.value = {}
@@ -248,7 +266,13 @@ const handleDocumentClick = (event) => {
 }
 
 // Fetch config on mount and set up interval
+const handleWallDisplayChanged = () => {
+  syncDocumentClasses()
+}
+
 onMounted(() => {
+  syncDocumentClasses()
+  window.addEventListener('gatus:wall-display-changed', handleWallDisplayChanged)
   fetchConfig()
   // Refresh config every 10 minutes for announcements
   configInterval = setInterval(fetchConfig, 600000)
@@ -262,7 +286,7 @@ onUnmounted(() => {
     clearInterval(configInterval)
     configInterval = null
   }
-  // Remove click listener
+  window.removeEventListener('gatus:wall-display-changed', handleWallDisplayChanged)
   document.removeEventListener('click', handleDocumentClick)
 })
 </script>
