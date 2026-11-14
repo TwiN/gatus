@@ -55,9 +55,12 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { Sun, Moon, RefreshCw } from 'lucide-vue-next'
 
 const emit = defineEmits(['refreshData'])
+const router = useRouter()
+const route = useRoute()
 
 // Constants
 const REFRESH_INTERVALS = [
@@ -76,7 +79,17 @@ const STORAGE_KEYS = {
 }
 
 // Helper functions
+// Precedence: valid ?theme= query > cookie > prefers-color-scheme / current class
+function getThemeFromUrl() {
+  const theme = new URLSearchParams(window.location.search).get('theme')
+  return theme === 'dark' || theme === 'light' ? theme : null
+}
+
 function wantsDarkMode() {
+  const themeFromUrl = getThemeFromUrl()
+  if (themeFromUrl) {
+    return themeFromUrl === 'dark'
+  }
   const themeFromCookie = document.cookie.match(new RegExp(`${THEME_COOKIE_NAME}=(dark|light);?`))?.[1]
   return themeFromCookie === 'dark' || (!themeFromCookie && (window.matchMedia('(prefers-color-scheme: dark)').matches || document.documentElement.classList.contains("dark")))
 }
@@ -136,11 +149,15 @@ const setThemeCookie = (theme) => {
 const toggleDarkMode = () => {
   const newTheme = wantsDarkMode() ? 'light' : 'dark'
   setThemeCookie(newTheme)
-  applyTheme()
+  // Keep URL query in sync when theme is (or was) controlled via ?theme=
+  if (getThemeFromUrl() || route.query.theme) {
+    router.replace({ query: { ...route.query, theme: newTheme } })
+  }
+  applyTheme(newTheme === 'dark')
 }
 
-const applyTheme = () => {
-  const isDark = wantsDarkMode()
+const applyTheme = (forcedDark) => {
+  const isDark = typeof forcedDark === 'boolean' ? forcedDark : wantsDarkMode()
   darkMode.value = isDark
   document.documentElement.classList.toggle('dark', isDark)
 }
