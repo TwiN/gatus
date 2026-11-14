@@ -14,6 +14,7 @@ import (
 	"github.com/TwiN/deepmerge"
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/health"
 	"github.com/TwiN/gatus/v5/alerting/provider"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/announcement"
@@ -600,6 +601,8 @@ func ValidateSecurityConfig(config *Config) error {
 func ValidateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoint.Endpoint, externalEndpoints []*endpoint.ExternalEndpoint) {
 	if alertingConfig == nil {
 		logr.Info("[config.ValidateAlertingConfig] Alerting is not configured")
+		health.ResetAndSetProviders(nil)
+		health.SetEndpointWarnings(nil)
 		return
 	}
 	alertTypes := []alert.Type{
@@ -648,6 +651,7 @@ func ValidateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		alert.TypeZulip,
 	}
 	var validProviders, invalidProviders []alert.Type
+	var providerHealth []health.ProviderStatus
 	for _, alertType := range alertTypes {
 		alertProvider := alertingConfig.GetAlertingProviderByAlertType(alertType)
 		if alertProvider != nil {
@@ -684,9 +688,18 @@ func ValidateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 					}
 				}
 				validProviders = append(validProviders, alertType)
+				providerHealth = append(providerHealth, health.ProviderStatus{
+					Type:   alertType,
+					Status: health.ProviderStatusOK,
+				})
 			} else {
 				logr.Warnf("[config.ValidateAlertingConfig] Ignoring provider=%s due to error=%s", alertType, err.Error())
 				invalidProviders = append(invalidProviders, alertType)
+				providerHealth = append(providerHealth, health.ProviderStatus{
+					Type:   alertType,
+					Status: health.ProviderStatusIgnored,
+					Reason: err.Error(),
+				})
 				alertingConfig.SetAlertingProviderToNil(alertProvider)
 			}
 		} else {
@@ -694,6 +707,35 @@ func ValidateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 		}
 	}
 	logr.Infof("[config.ValidateAlertingConfig] configuredProviders=%s; ignoredProviders=%s", validProviders, invalidProviders)
+
+	referencedWithoutProvider := make(map[alert.Type]int)
+	for _, ep := range endpoints {
+		for _, endpointAlert := range ep.Alerts {
+			if !endpointAlert.IsEnabled() {
+				continue
+			}
+			if alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type) == nil {
+				referencedWithoutProvider[endpointAlert.Type]++
+			}
+		}
+	}
+	for _, ee := range externalEndpoints {
+		for _, endpointAlert := range ee.Alerts {
+			if !endpointAlert.IsEnabled() {
+				continue
+			}
+			if alertingConfig.GetAlertingProviderByAlertType(endpointAlert.Type) == nil {
+				referencedWithoutProvider[endpointAlert.Type]++
+			}
+		}
+	}
+	var endpointWarnings []string
+	for alertType, count := range referencedWithoutProvider {
+		endpointWarnings = append(endpointWarnings, health.FormatEndpointWarning(alertType, count))
+	}
+	sort.Strings(endpointWarnings)
+	health.ResetAndSetProviders(providerHealth)
+	health.SetEndpointWarnings(endpointWarnings)
 }
 
 func ValidateAndSetConcurrencyDefaults(config *Config) {

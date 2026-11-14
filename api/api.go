@@ -87,6 +87,12 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	unprotectedAPIRouter.Get("/v1/endpoints/:key/response-times/:duration/history", ResponseTimeHistory)
 	// This endpoint requires authz with bearer token, so technically it is protected
 	unprotectedAPIRouter.Post("/v1/endpoints/:key/external", CreateExternalEndpointResult(cfg))
+	if cfg.Security != nil && !cfg.Security.ProtectStatusesEnabled() {
+		unprotectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
+		unprotectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus(cfg))
+		unprotectedAPIRouter.Get("/v1/suites/statuses", SuiteStatuses(cfg))
+		unprotectedAPIRouter.Get("/v1/suites/:key/statuses", SuiteStatus(cfg))
+	}
 	// SPA
 	app.Get("/", SinglePageApplication(cfg.UI))
 	app.Get("/endpoints/:key", SinglePageApplication(cfg.UI))
@@ -99,6 +105,27 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	})
 	// Custom CSS
 	app.Get("/css/custom.css", CustomCSSHandler{customCSS: cfg.UI.CustomCSS}.GetCustomCSS)
+	//////////////////////
+	// PROTECTED ROUTES //
+	//////////////////////
+	// ORDER IS IMPORTANT: all routes applied AFTER the security middleware will require authn.
+	// Protected API routes must also be registered before the static content middleware.
+	protectedAPIRouter := apiRouter.Group("/")
+	if cfg.Security != nil {
+		if err := cfg.Security.RegisterHandlers(app); err != nil {
+			panic(err)
+		}
+		if err := cfg.Security.ApplySecurityMiddleware(protectedAPIRouter); err != nil {
+			panic(err)
+		}
+	}
+	protectedAPIRouter.Get("/v1/alerting/health", AlertingHealth)
+	if cfg.Security == nil || cfg.Security.ProtectStatusesEnabled() {
+		protectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
+		protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus(cfg))
+		protectedAPIRouter.Get("/v1/suites/statuses", SuiteStatuses(cfg))
+		protectedAPIRouter.Get("/v1/suites/:key/statuses", SuiteStatus(cfg))
+	}
 	// Everything else falls back on static content
 	app.Use(redirect.New(redirect.Config{
 		Rules: map[string]string{
@@ -115,22 +142,5 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 		Index:  "index.html",
 		Browse: true,
 	}))
-	//////////////////////
-	// PROTECTED ROUTES //
-	//////////////////////
-	// ORDER IS IMPORTANT: all routes applied AFTER the security middleware will require authn
-	protectedAPIRouter := apiRouter.Group("/")
-	if cfg.Security != nil {
-		if err := cfg.Security.RegisterHandlers(app); err != nil {
-			panic(err)
-		}
-		if err := cfg.Security.ApplySecurityMiddleware(protectedAPIRouter); err != nil {
-			panic(err)
-		}
-	}
-	protectedAPIRouter.Get("/v1/endpoints/statuses", EndpointStatuses(cfg))
-	protectedAPIRouter.Get("/v1/endpoints/:key/statuses", EndpointStatus(cfg))
-	protectedAPIRouter.Get("/v1/suites/statuses", SuiteStatuses(cfg))
-	protectedAPIRouter.Get("/v1/suites/:key/statuses", SuiteStatus(cfg))
 	return app
 }
