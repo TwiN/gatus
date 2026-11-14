@@ -22,12 +22,17 @@ func (handler ConfigHandler) GetConfig(c *fiber.Ctx) error {
 		hasOIDC = handler.securityConfig.OIDC != nil
 		isAuthenticated = handler.securityConfig.IsAuthenticated(c)
 	}
-	logr.Debugf("[api.GetConfig] /api/v1/config: oidc=%v, authenticated=%v", hasOIDC, isAuthenticated)
+	protectStatuses := true
+	if handler.securityConfig != nil {
+		protectStatuses = handler.securityConfig.ProtectStatusesEnabled()
+	}
+	logr.Debugf("[api.GetConfig] /api/v1/config: oidc=%v, authenticated=%v, protectStatuses=%v", hasOIDC, isAuthenticated, protectStatuses)
 
 	// Prepare response with announcements
 	response := map[string]interface{}{
-		"oidc":          hasOIDC,
-		"authenticated": isAuthenticated,
+		"oidc":             hasOIDC,
+		"authenticated":    isAuthenticated,
+		"protectStatuses":  protectStatuses,
 	}
 	// Add announcements if available, otherwise use empty slice
 	if handler.config != nil && handler.config.Announcements != nil && len(handler.config.Announcements) > 0 {

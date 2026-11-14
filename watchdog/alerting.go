@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting"
+	"github.com/TwiN/gatus/v5/alerting/health"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/storage/store"
 	"github.com/TwiN/logr"
@@ -64,7 +65,9 @@ func handleAlertsToTrigger(ep *endpoint.Endpoint, result *endpoint.Result, alert
 			}
 			if err != nil {
 				logr.Errorf("[watchdog.handleAlertsToTrigger] Failed to send an alert for endpoint with key=%s: %s", ep.Key(), err.Error())
+				health.RecordFailure(endpointAlert.Type, err)
 			} else {
+				health.RecordSuccess(endpointAlert.Type)
 				// Mark initial alert as triggered and update last reminder time
 				if sendInitialAlert {
 					endpointAlert.Triggered = true
@@ -109,6 +112,9 @@ func handleAlertsToResolve(ep *endpoint.Endpoint, result *endpoint.Result, alert
 			err := alertProvider.Send(ep, endpointAlert, result, true)
 			if err != nil {
 				logr.Errorf("[watchdog.handleAlertsToResolve] Failed to send an alert for endpoint with key=%s: %s", ep.Key(), err.Error())
+				health.RecordFailure(endpointAlert.Type, err)
+			} else {
+				health.RecordSuccess(endpointAlert.Type)
 			}
 		} else {
 			logr.Warnf("[watchdog.handleAlertsToResolve] Not sending alert of type=%s for endpoint with key=%s despite being RESOLVED, because the provider wasn't configured properly", endpointAlert.Type, ep.Key())

@@ -22,6 +22,8 @@
             </Button>
           </div>
         </div>
+        <!-- Alerting health (authenticated operators only) -->
+        <AlertingHealthBanner v-if="alertingHealth" :snapshot="alertingHealth" />
         <!-- Announcement Banner (Active Announcements) -->
         <AnnouncementBanner :announcements="activeAnnouncements" />
         <!-- Search bar -->
@@ -182,7 +184,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { Activity, Timer, RefreshCw, AlertCircle, ChevronLeft, ChevronRight, ChevronDown, ChevronUp, CheckCircle } from 'lucide-vue-next'
 import { Button } from '@/components/ui/button'
 import EndpointCard from '@/components/EndpointCard.vue'
@@ -191,6 +193,7 @@ import SearchBar from '@/components/SearchBar.vue'
 import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
 import AnnouncementBanner from '@/components/AnnouncementBanner.vue'
+import AlertingHealthBanner from '@/components/AlertingHealthBanner.vue'
 import PastAnnouncements from '@/components/PastAnnouncements.vue'
 
 const props = defineProps({
@@ -224,6 +227,8 @@ const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
 const resultPageSize = 50
+const alertingHealth = ref(null)
+let alertingHealthInterval = null
 
 const filteredEndpoints = computed(() => {
   let filtered = [...endpointStatuses.value]
@@ -532,6 +537,20 @@ const initializeCollapsedGroups = () => {
   }
 }
 
+const fetchAlertingHealth = async () => {
+  try {
+    const response = await fetch('/api/v1/alerting/health', { credentials: 'include' })
+    if (response.status === 200) {
+      const data = await response.json()
+      alertingHealth.value = data.healthy ? null : data
+    } else {
+      alertingHealth.value = null
+    }
+  } catch {
+    alertingHealth.value = null
+  }
+}
+
 const dashboardHeading = computed(() => {
   return window.config && window.config.dashboardHeading && window.config.dashboardHeading !== '{{ .UI.DashboardHeading }}' ? window.config.dashboardHeading : "Health Dashboard"
 })
@@ -542,5 +561,14 @@ const dashboardSubheading = computed(() => {
 
 onMounted(() => {
   fetchData()
+  fetchAlertingHealth()
+  alertingHealthInterval = setInterval(fetchAlertingHealth, 300000)
+})
+
+onUnmounted(() => {
+  if (alertingHealthInterval) {
+    clearInterval(alertingHealthInterval)
+    alertingHealthInterval = null
+  }
 })
 </script>
