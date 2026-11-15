@@ -36,6 +36,7 @@ type Config struct {
 	Token           string `yaml:"token,omitempty"`            // Defaults to ""
 	Email           string `yaml:"email,omitempty"`            // Defaults to ""
 	Click           string `yaml:"click,omitempty"`            // Defaults to ""
+	PublicURL       string `yaml:"public-url,omitempty"`       // Defaults to ""; used as click fallback when Click is empty
 	DisableFirebase bool   `yaml:"disable-firebase,omitempty"` // Defaults to false
 	DisableCache    bool   `yaml:"disable-cache,omitempty"`    // Defaults to false
 }
@@ -77,6 +78,9 @@ func (cfg *Config) Merge(override *Config) {
 	}
 	if len(override.Click) > 0 {
 		cfg.Click = override.Click
+	}
+	if len(override.PublicURL) > 0 {
+		cfg.PublicURL = override.PublicURL
 	}
 	if override.DisableFirebase {
 		cfg.DisableFirebase = true
@@ -171,6 +175,21 @@ type Body struct {
 	Click    string   `json:"click,omitempty"`
 }
 
+// resolveClickURL resolves the click URL from an explicit click value (with placeholders)
+// or falls back to the endpoint details page when public-url is set.
+func resolveClickURL(cfg *Config, ep *endpoint.Endpoint) string {
+	if len(cfg.Click) > 0 {
+		click := cfg.Click
+		click = strings.ReplaceAll(click, "[ENDPOINT_KEY]", ep.Key())
+		click = strings.ReplaceAll(click, "[ENDPOINT_URL]", ep.URL)
+		return click
+	}
+	if len(cfg.PublicURL) > 0 {
+		return strings.TrimRight(cfg.PublicURL, "/") + "/endpoints/" + ep.Key()
+	}
+	return ""
+}
+
 // buildRequestBody builds the request body for the provider
 func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) []byte {
 	var message, formattedConditionResults, tag string
@@ -201,7 +220,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 		Tags:     []string{tag},
 		Priority: cfg.Priority,
 		Email:    cfg.Email,
-		Click:    cfg.Click,
+		Click:    resolveClickURL(cfg, ep),
 	})
 	return body
 }

@@ -105,6 +105,8 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 		Alert        alert.Alert
 		Resolved     bool
 		ExpectedBody string
+		Endpoint     *endpoint.Endpoint
+		Group        string
 	}{
 		{
 			Name:         "triggered",
@@ -148,16 +150,89 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			Resolved:     false,
 			ExpectedBody: `{"topic":"alert-topic","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":4,"email":"override@test.com","click":"test.com"}`,
 		},
+		{
+			Name:         "no-click-no-public-url-omits-click",
+			Provider:     AlertProvider{DefaultConfig: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1}},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1}`,
+		},
+		{
+			Name:         "public-url-fallback",
+			Provider:     AlertProvider{DefaultConfig: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, PublicURL: "https://status.example"}},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: `{"topic":"example","title":"Gatus: SSH/Fooby","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"click":"https://status.example/endpoints/ssh_fooby"}`,
+			Endpoint:     &endpoint.Endpoint{Name: "Fooby", Group: "SSH", URL: "ssh://fooby"},
+			Group:        "SSH",
+		},
+		{
+			Name:         "public-url-fallback-trailing-slash",
+			Provider:     AlertProvider{DefaultConfig: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, PublicURL: "https://status.example/"}},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: `{"topic":"example","title":"Gatus: SSH/Fooby","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"click":"https://status.example/endpoints/ssh_fooby"}`,
+			Endpoint:     &endpoint.Endpoint{Name: "Fooby", Group: "SSH", URL: "ssh://fooby"},
+			Group:        "SSH",
+		},
+		{
+			Name:         "click-endpoint-key-placeholder",
+			Provider:     AlertProvider{DefaultConfig: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Click: "https://x/endpoints/[ENDPOINT_KEY]"}},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: `{"topic":"example","title":"Gatus: SSH/Fooby","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"click":"https://x/endpoints/ssh_fooby"}`,
+			Endpoint:     &endpoint.Endpoint{Name: "Fooby", Group: "SSH", URL: "ssh://fooby"},
+			Group:        "SSH",
+		},
+		{
+			Name:         "click-endpoint-url-placeholder",
+			Provider:     AlertProvider{DefaultConfig: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Click: "[ENDPOINT_URL]"}},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"click":"https://monitored.example/health"}`,
+			Endpoint:     &endpoint.Endpoint{Name: "endpoint-name", URL: "https://monitored.example/health"},
+		},
+		{
+			Name:         "explicit-click-wins-over-public-url",
+			Provider:     AlertProvider{DefaultConfig: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, Click: "https://custom.example", PublicURL: "https://status.example"}},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"click":"https://custom.example"}`,
+		},
+		{
+			Name:         "provider-override-click-wins-over-public-url",
+			Provider:     AlertProvider{DefaultConfig: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, PublicURL: "https://status.example"}},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3, ProviderOverride: map[string]any{"click": "https://override.example"}},
+			Resolved:     false,
+			ExpectedBody: `{"topic":"example","title":"Gatus: endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"click":"https://override.example"}`,
+		},
+		{
+			Name:         "group-override-public-url",
+			Provider:     AlertProvider{DefaultConfig: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, PublicURL: "https://default.example"}, Overrides: []Override{{Group: "g", Config: Config{PublicURL: "https://group.example"}}}},
+			Alert:        alert.Alert{Description: &firstDescription, SuccessThreshold: 5, FailureThreshold: 3},
+			Resolved:     false,
+			ExpectedBody: `{"topic":"example","title":"Gatus: g/endpoint-name","message":"An alert has been triggered due to having failed 3 time(s) in a row with the following description: description-1\n🔴 [CONNECTED] == true\n🔴 [STATUS] == 200","tags":["rotating_light"],"priority":1,"click":"https://group.example/endpoints/g_endpoint-name"}`,
+			Endpoint:     &endpoint.Endpoint{Name: "endpoint-name", Group: "g"},
+			Group:        "g",
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
-			cfg, err := scenario.Provider.GetConfig("g", &scenario.Alert)
+			group := scenario.Group
+			if group == "" {
+				group = "g"
+			}
+			cfg, err := scenario.Provider.GetConfig(group, &scenario.Alert)
 			if err != nil {
 				t.Error("expected no error, got", err.Error())
 			}
+			ep := scenario.Endpoint
+			if ep == nil {
+				ep = &endpoint.Endpoint{Name: "endpoint-name"}
+			}
 			body := scenario.Provider.buildRequestBody(
 				cfg,
-				&endpoint.Endpoint{Name: "endpoint-name"},
+				ep,
 				&scenario.Alert,
 				&endpoint.Result{
 					ConditionResults: []*endpoint.ConditionResult{
@@ -173,6 +248,54 @@ func TestAlertProvider_buildRequestBody(t *testing.T) {
 			out := make(map[string]interface{})
 			if err := json.Unmarshal(body, &out); err != nil {
 				t.Error("expected body to be valid JSON, got error:", err.Error())
+			}
+		})
+	}
+}
+
+func TestResolveClickURL(t *testing.T) {
+	ep := &endpoint.Endpoint{Name: "Fooby", Group: "SSH", URL: "ssh://fooby"}
+	scenarios := []struct {
+		name     string
+		cfg      Config
+		expected string
+	}{
+		{
+			name:     "empty",
+			cfg:      Config{},
+			expected: "",
+		},
+		{
+			name:     "public-url-fallback",
+			cfg:      Config{PublicURL: "https://status.example"},
+			expected: "https://status.example/endpoints/ssh_fooby",
+		},
+		{
+			name:     "public-url-trailing-slash",
+			cfg:      Config{PublicURL: "https://status.example/"},
+			expected: "https://status.example/endpoints/ssh_fooby",
+		},
+		{
+			name:     "click-with-key-placeholder",
+			cfg:      Config{Click: "https://x/endpoints/[ENDPOINT_KEY]"},
+			expected: "https://x/endpoints/ssh_fooby",
+		},
+		{
+			name:     "click-with-url-placeholder",
+			cfg:      Config{Click: "[ENDPOINT_URL]"},
+			expected: "ssh://fooby",
+		},
+		{
+			name:     "click-wins-over-public-url",
+			cfg:      Config{Click: "https://custom.example", PublicURL: "https://status.example"},
+			expected: "https://custom.example",
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			got := resolveClickURL(&scenario.cfg, ep)
+			if got != scenario.expected {
+				t.Errorf("expected %q, got %q", scenario.expected, got)
 			}
 		})
 	}
@@ -389,6 +512,30 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"priority": 3}},
 			ExpectedOutput: Config{URL: "https://ntfy.sh", Topic: "group-topic", Priority: 3},
 		},
+		{
+			Name: "provider-with-public-url-group-override",
+			Provider: AlertProvider{
+				DefaultConfig: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, PublicURL: "https://default.example"},
+				Overrides: []Override{
+					{
+						Group:  "group",
+						Config: Config{PublicURL: "https://group.example"},
+					},
+				},
+			},
+			InputGroup:     "group",
+			InputAlert:     alert.Alert{},
+			ExpectedOutput: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, PublicURL: "https://group.example"},
+		},
+		{
+			Name: "provider-with-public-url-alert-override-click",
+			Provider: AlertProvider{
+				DefaultConfig: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, PublicURL: "https://default.example"},
+			},
+			InputGroup:     "",
+			InputAlert:     alert.Alert{ProviderOverride: map[string]any{"click": "https://override.example"}},
+			ExpectedOutput: Config{URL: "https://ntfy.sh", Topic: "example", Priority: 1, PublicURL: "https://default.example", Click: "https://override.example"},
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
@@ -404,6 +551,12 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 			}
 			if got.Priority != scenario.ExpectedOutput.Priority {
 				t.Errorf("expected priority %d, got %d", scenario.ExpectedOutput.Priority, got.Priority)
+			}
+			if got.PublicURL != scenario.ExpectedOutput.PublicURL {
+				t.Errorf("expected public-url %s, got %s", scenario.ExpectedOutput.PublicURL, got.PublicURL)
+			}
+			if got.Click != scenario.ExpectedOutput.Click {
+				t.Errorf("expected click %s, got %s", scenario.ExpectedOutput.Click, got.Click)
 			}
 			// Test ValidateOverrides as well, since it really just calls GetConfig
 			if err = scenario.Provider.ValidateOverrides(scenario.InputGroup, &scenario.InputAlert); err != nil {
