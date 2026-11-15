@@ -3312,6 +3312,10 @@ endpoints:
 
 There are two placeholders that can be used in the conditions for endpoints of type DNS:
 - The placeholder `[BODY]` resolves to the output of the query. For instance, a query of type `A` would return an IPv4.
+  A query of type `SOA` returns the record in zone file order: `<mname> <rname> <serial> <refresh> <retry> <expire> <minimum>`.
+  Prefer querying the zone apex (e.g. `query-name: example.com` for the `example.com` zone): that puts the SOA in the answer section.
+  Non-apex names typically return no answer and place the SOA in the authority section instead; Gatus also reads that section so `[BODY]` is still populated.
+  To assert on the serial specifically, use a pattern such as `[BODY] == pat(*. 2026103101 *)`.
 - The placeholder `[DNS_RCODE]` resolves to the name associated to the response code returned by the query, such as
 `NOERROR`, `FORMERR`, `SERVFAIL`, `NXDOMAIN`, etc.
 
