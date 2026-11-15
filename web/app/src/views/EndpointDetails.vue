@@ -122,6 +122,7 @@
                   :endpointKey="endpointStatus.key"
                   :duration="selectedChartDuration"
                   :serverUrl="serverUrl"
+                  :refreshKey="chartRefreshKey"
                   :events="endpointStatus.events || []"
                 />
               </CardContent>
@@ -227,6 +228,7 @@ const showResponseTimeChartAndBadges = ref(false)
 const showAverageResponseTime = ref(localStorage.getItem('gatus:show-average-response-time') !== 'false')
 const selectedChartDuration = ref('24h')
 const isRefreshing = ref(false)
+const chartRefreshKey = ref(0)
 
 const latestResult = computed(() => {
   // Use currentStatus for the actual latest result
@@ -306,6 +308,7 @@ const lastCheckTime = computed(() => {
 
 const fetchData = async () => {
   isRefreshing.value = true
+  chartRefreshKey.value++
   try {
     const response = await fetch(`/api/v1/endpoints/${route.params.key}/statuses?page=${currentPage.value}&pageSize=${resultPageSize}`, {
       credentials: 'include'
