@@ -75,6 +75,10 @@ func walk(path string, object interface{}) (string, int, error) {
 		return value, len(value), nil
 	case []interface{}:
 		return fmt.Sprintf("%v", value), len(value), nil
+	case float64:
+		// %v would print 1e+06 and up in exponent form
+		newValue := strconv.FormatFloat(value, 'f', -1, 64)
+		return newValue, len(newValue), nil
 	case interface{}:
 		newValue := fmt.Sprintf("%v", value)
 		return newValue, len(newValue), nil

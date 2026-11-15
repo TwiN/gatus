@@ -39,6 +39,14 @@ func TestEval(t *testing.T) {
 			ExpectedError:        true,
 		},
 		{
+			Name:                 "large-number",
+			Path:                 "count",
+			Data:                 `{"count": 1234567}`,
+			ExpectedOutput:       "1234567",
+			ExpectedOutputLength: 7,
+			ExpectedError:        false,
+		},
+		{
 			Name:                 "long-simple-walk",
 			Path:                 "long.simple.walk",
 			Data:                 `{"long": {"simple": {"walk": "value"}}}`,
