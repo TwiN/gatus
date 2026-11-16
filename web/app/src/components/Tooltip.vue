@@ -46,7 +46,7 @@
               {{ endpoint.success ? '✓' : '✗' }}
             </span>
             <span class="truncate">{{ endpoint.name }}</span>
-            <span class="text-muted-foreground">({{ Math.trunc(endpoint.duration / 1000000) }}ms)</span>
+            <span class="text-muted-foreground">({{ formatDuration(endpoint.duration) }})</span>
           </div>
           <div v-if="result.endpointResults.length > 5" class="text-xs text-muted-foreground">
             ... and {{ result.endpointResults.length - 5 }} more
@@ -60,7 +60,7 @@
           {{ isSuiteResult ? 'Total Duration' : 'Response Time' }}
         </div>
         <div class="font-mono text-xs">
-          {{ Math.trunc(result.duration / 1000000) }}ms
+          {{ formatDuration(result.duration) }}
         </div>
       </div>
       
@@ -98,6 +98,7 @@
 import { ref, watch, nextTick, computed, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import { prettifyTimestamp } from '@/utils/time'
+import { formatDuration } from '@/utils/format'
 
 const route = useRoute()
 
