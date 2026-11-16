@@ -1,7 +1,9 @@
 package endpoint
 
 import (
+	"encoding/json"
 	"fmt"
+	"net/http"
 	"strconv"
 	"strings"
 
@@ -52,6 +54,13 @@ const (
 	// ContextPlaceholder is a placeholder for suite context values
 	// Usage: [CONTEXT].path.to.value
 	ContextPlaceholder = "[CONTEXT]"
+
+	// HeadersPlaceholder is a placeholder for HTTP response headers.
+	//
+	// Usage: [HEADERS].Header-Name
+	// Values that could replace the placeholder: the header value as a string (single occurrence)
+	// or a JSON array of strings (multiple occurrences).
+	HeadersPlaceholder = "[HEADERS]"
 )
 
 // Functions
@@ -176,6 +185,11 @@ func ResolvePlaceholder(placeholder string, result *Result, ctx *gontext.Gontext
 		return resolveJSONPathPlaceholder(placeholder, fn, originalPlaceholder, result)
 	}
 
+	// Handle HEADERS placeholders
+	if uppercasePlaceholder == HeadersPlaceholder || strings.HasPrefix(uppercasePlaceholder, HeadersPlaceholder+".") {
+		return resolveHeadersPlaceholder(placeholder, fn, originalPlaceholder, result)
+	}
+
 	// Not a recognized placeholder
 	if fn != noFunction {
 		if fn == functionHas {
@@ -258,6 +272,76 @@ func resolveContextPlaceholder(placeholder string, fn functionType, originalPlac
 		}
 	}
 	return fmt.Sprintf("%v", value), nil
+}
+
+// resolveHeadersPlaceholder handles [HEADERS] and [HEADERS].HeaderName placeholders.
+// A header that appears only once resolves to a plain string; multiple occurrences resolve to a JSON array.
+func resolveHeadersPlaceholder(placeholder string, fn functionType, originalPlaceholder string, result *Result) (string, error) {
+	uppercasePlaceholder := strings.ToUpper(placeholder)
+
+	// [HEADERS] without a specific header name
+	if uppercasePlaceholder == HeadersPlaceholder {
+		if len(result.HTTPResponseHeaders) == 0 {
+			if fn == functionHas {
+				return "false", nil
+			}
+			return originalPlaceholder + " " + InvalidConditionElementSuffix, nil
+		}
+		if fn == functionHas {
+			return "true", nil
+		}
+		if fn == functionLen {
+			return strconv.Itoa(len(result.HTTPResponseHeaders)), nil
+		}
+		// Build a collapsed map: single-value headers become strings, multi-value become arrays.
+		collapsed := make(map[string]interface{}, len(result.HTTPResponseHeaders))
+		for key, values := range result.HTTPResponseHeaders {
+			if len(values) == 1 {
+				collapsed[key] = values[0]
+			} else {
+				collapsed[key] = values
+			}
+		}
+		jsonBytes, err := json.Marshal(collapsed)
+		if err != nil {
+			return originalPlaceholder + " " + InvalidConditionElementSuffix, nil
+		}
+		return string(jsonBytes), nil
+	}
+
+	// [HEADERS].HeaderName — extract the name after the dot
+	headerName := placeholder[len(HeadersPlaceholder)+1:]
+	if headerName == "" {
+		if fn == functionHas {
+			return "false", nil
+		}
+		return originalPlaceholder + " " + InvalidConditionElementSuffix, nil
+	}
+	// Normalise to canonical form so lookup is case-insensitive.
+	values := result.HTTPResponseHeaders[http.CanonicalHeaderKey(headerName)]
+	if len(values) == 0 {
+		if fn == functionHas {
+			return "false", nil
+		}
+		return originalPlaceholder + " " + InvalidConditionElementSuffix, nil
+	}
+	if fn == functionHas {
+		return "true", nil
+	}
+	if fn == functionLen {
+		if len(values) == 1 {
+			return strconv.Itoa(len(values[0])), nil
+		}
+		return strconv.Itoa(len(values)), nil
+	}
+	if len(values) == 1 {
+		return values[0], nil
+	}
+	jsonBytes, err := json.Marshal(values)
+	if err != nil {
+		return originalPlaceholder + " " + InvalidConditionElementSuffix, nil
+	}
+	return string(jsonBytes), nil
 }
 
 // formatWithFunction applies len/has functions to any value
