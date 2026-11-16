@@ -9,6 +9,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/datadog"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
+	"github.com/TwiN/gatus/v5/alerting/provider/flowtriq"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitea"
 	"github.com/TwiN/gatus/v5/alerting/provider/github"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitlab"
@@ -101,6 +102,7 @@ var (
 	_ AlertProvider = (*datadog.AlertProvider)(nil)
 	_ AlertProvider = (*discord.AlertProvider)(nil)
 	_ AlertProvider = (*email.AlertProvider)(nil)
+	_ AlertProvider = (*flowtriq.AlertProvider)(nil)
 	_ AlertProvider = (*gitea.AlertProvider)(nil)
 	_ AlertProvider = (*github.AlertProvider)(nil)
 	_ AlertProvider = (*gitlab.AlertProvider)(nil)
@@ -145,6 +147,7 @@ var (
 	_ Config[datadog.Config]        = (*datadog.Config)(nil)
 	_ Config[discord.Config]        = (*discord.Config)(nil)
 	_ Config[email.Config]          = (*email.Config)(nil)
+	_ Config[flowtriq.Config]       = (*flowtriq.Config)(nil)
 	_ Config[gitea.Config]          = (*gitea.Config)(nil)
 	_ Config[github.Config]         = (*github.Config)(nil)
 	_ Config[gitlab.Config]         = (*gitlab.Config)(nil)
