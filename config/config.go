@@ -72,6 +72,9 @@ type Config struct {
 	// if the configuration file is updated while the application is running
 	SkipInvalidConfigUpdate bool `yaml:"skip-invalid-config-update,omitempty"`
 
+	// DisableZeroconf Whether to disable Zeroconf (mDNS) discovery
+	DisableZeroconf bool `yaml:"disable-zeroconf,omitempty"`
+
 	// DisableMonitoringLock Whether to disable the monitoring lock
 	// The monitoring lock is what prevents multiple endpoints from being processed at the same time.
 	// Disabling this may lead to inaccurate response times
