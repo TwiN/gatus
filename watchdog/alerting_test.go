@@ -30,6 +30,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/zapier"
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/endpoint"
+	"github.com/TwiN/gatus/v5/config/suite"
 )
 
 func TestHandleAlerting(t *testing.T) {
@@ -709,9 +710,9 @@ func TestHandleAlertingOnExternalEndpointConversionPreservesReminderInterval(t *
 		Group: "g",
 		Alerts: []*alert.Alert{
 			{
-				Type:                   alert.TypeCustom,
-				Enabled:                &enabled,
-				FailureThreshold:       1,
+				Type:                    alert.TypeCustom,
+				Enabled:                 &enabled,
+				FailureThreshold:        1,
 				MinimumReminderInterval: time.Hour,
 			},
 		},
@@ -747,5 +748,149 @@ func TestHandleAlertingOnExternalEndpointConversionPreservesReminderInterval(t *
 	ee.LastReminderSent = converted.LastReminderSent
 	if time.Since(ee.LastReminderSent) > time.Minute {
 		t.Fatal("the overdue reminder should have refreshed LastReminderSent")
+	}
+}
+
+// TestHandleAlertingRestoredTriggeredAlertDoesNotSendImmediateReminder covers the
+// !lastReminderSent.IsZero() safety net in handleAlertsToTrigger (#1854).
+//
+// This is deliberately not routed through initializeStorage. After startup,
+// initializeStorage seeds LastReminderSent to time.Now() for every restored
+// alert, so that path never hits IsZero. The guard is for any code that sets
+// Triggered=true without also setting LastReminderSent — this test, other unit
+// tests that construct a triggered alert, and any future restore helper that
+// skips initializeStorage.
+func TestHandleAlertingRestoredTriggeredAlertDoesNotSendImmediateReminder(t *testing.T) {
+	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
+	defer os.Unsetenv("MOCK_ALERT_PROVIDER")
+
+	// time.Since on a zero time.Time is well-defined: it returns a huge
+	// positive duration (elapsed since year 1) and never panics. Without the
+	// IsZero guard, that duration is always >= MinimumReminderInterval.
+	var zero time.Time
+	if time.Since(zero) < time.Hour {
+		t.Fatal("expected time.Since(zero) to exceed any realistic MinimumReminderInterval; the IsZero guard exists because this duration is huge, not because time.Since panics")
+	}
+
+	cfg := mockCustomAlertingConfig()
+	enabled := true
+	ep := &endpoint.Endpoint{
+		URL: "https://example.com",
+		Alerts: []*alert.Alert{
+			{
+				Type:                    alert.TypeCustom,
+				Enabled:                 &enabled,
+				FailureThreshold:        2,
+				SuccessThreshold:        3,
+				Triggered:               true, // set without initializeStorage
+				MinimumReminderInterval: time.Hour,
+			},
+		},
+	}
+	ep.NumberOfFailuresInARow = 2
+	// ep.LastReminderSent is the zero value.
+
+	HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
+
+	if !ep.LastReminderSent.IsZero() {
+		t.Fatal("spurious reminder sent: Triggered=true with a zero LastReminderSent must not send a reminder")
+	}
+}
+
+// TestHandleAlertingRestoredTriggeredAlertDoesNotSendImmediateReminderByKind
+// covers the same IsZero safety net when LastReminderSent lives on an
+// ExternalEndpoint (ee) or a suite endpoint (sep) rather than a top-level
+// Endpoint. initializeStorage seeds those fields in separate restore
+// branches; HandleAlerting still sees them as ep.LastReminderSent after
+// ToEndpoint() / using the suite endpoint pointer.
+func TestHandleAlertingRestoredTriggeredAlertDoesNotSendImmediateReminderByKind(t *testing.T) {
+	_ = os.Setenv("MOCK_ALERT_PROVIDER", "true")
+	defer os.Unsetenv("MOCK_ALERT_PROVIDER")
+
+	enabled := true
+	triggeredAlert := func() *alert.Alert {
+		return &alert.Alert{
+			Type:                    alert.TypeCustom,
+			Enabled:                 &enabled,
+			FailureThreshold:        2,
+			SuccessThreshold:        3,
+			Triggered:               true,
+			MinimumReminderInterval: time.Hour,
+		}
+	}
+	cfg := mockCustomAlertingConfig()
+
+	tests := []struct {
+		name    string
+		prepare func() (ep *endpoint.Endpoint, lastReminderSent *time.Time)
+	}{
+		{
+			name: "regular-endpoint",
+			prepare: func() (*endpoint.Endpoint, *time.Time) {
+				ep := &endpoint.Endpoint{
+					Name:                   "regular",
+					URL:                    "https://example.com",
+					Alerts:                 []*alert.Alert{triggeredAlert()},
+					NumberOfFailuresInARow: 2,
+				}
+				return ep, &ep.LastReminderSent
+			},
+		},
+		{
+			name: "external-endpoint",
+			prepare: func() (*endpoint.Endpoint, *time.Time) {
+				ee := &endpoint.ExternalEndpoint{
+					Name:                   "external",
+					Group:                  "g",
+					Token:                  "token",
+					Alerts:                 []*alert.Alert{triggeredAlert()},
+					NumberOfFailuresInARow: 2,
+				}
+				converted := ee.ToEndpoint()
+				return converted, &ee.LastReminderSent
+			},
+		},
+		{
+			name: "suite-endpoint",
+			prepare: func() (*endpoint.Endpoint, *time.Time) {
+				sep := &endpoint.Endpoint{
+					Name:                   "suite-ep",
+					URL:                    "https://suite.example",
+					Alerts:                 []*alert.Alert{triggeredAlert()},
+					NumberOfFailuresInARow: 2,
+				}
+				s := &suite.Suite{Name: "suite", Endpoints: []*endpoint.Endpoint{sep}}
+				return s.Endpoints[0], &s.Endpoints[0].LastReminderSent
+			},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ep, lastReminderSent := tt.prepare()
+			if !ep.LastReminderSent.IsZero() || !lastReminderSent.IsZero() {
+				t.Fatal("precondition: LastReminderSent must be zero to exercise the IsZero path")
+			}
+			HandleAlerting(ep, &endpoint.Result{Success: false}, cfg.Alerting)
+			if tt.name == "external-endpoint" {
+				*lastReminderSent = ep.LastReminderSent
+			}
+			if !ep.LastReminderSent.IsZero() || !lastReminderSent.IsZero() {
+				t.Fatalf("%s: spurious reminder sent (LastReminderSent was updated)", tt.name)
+			}
+		})
+	}
+}
+
+func mockCustomAlertingConfig() *config.Config {
+	return &config.Config{
+		Alerting: &alerting.Config{
+			Custom: &custom.AlertProvider{
+				DefaultConfig: custom.Config{
+					URL:    "https://twin.sh/health",
+					Method: "GET",
+				},
+			},
+		},
 	}
 }
