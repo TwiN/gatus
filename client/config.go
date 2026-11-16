@@ -10,6 +10,7 @@ import (
 	"net/url"
 	"regexp"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/TwiN/gatus/v5/config/tunneling/sshtunnel"
@@ -38,6 +39,25 @@ var (
 		StoreCookies:   false,
 	}
 )
+
+// absoluteDialAddress fully qualifies the host of a host:port dial address, so that the
+// resolver answers it directly instead of walking the system search list first.
+//
+// A custom DNS resolver forces Go's pure-Go resolver, which still reads the search domains
+// and ndots from /etc/resolv.conf and applies them to the configured resolver. A hostname
+// configured on an endpoint is always meant as absolute, so that expansion is never wanted:
+// under Kubernetes, where kubelet writes ndots:5 into every pod, it turns each check into
+// several guaranteed-NXDOMAIN lookups sent to the configured resolver.
+//
+// Only the name handed to the resolver changes. SNI and the Host header are taken from the
+// request URL, so the trailing dot is not visible to the target.
+func absoluteDialAddress(address string) string {
+	host, port, err := net.SplitHostPort(address)
+	if err != nil || len(host) == 0 || strings.HasSuffix(host, ".") || net.ParseIP(host) != nil {
+		return address
+	}
+	return net.JoinHostPort(host+".", port)
+}
 
 // GetDefaultConfig returns a copy of the default configuration
 func GetDefaultConfig() *Config {
@@ -266,7 +286,7 @@ func (c *Config) getHTTPClient() *http.Client {
 					},
 				}
 				c.httpClient.Transport.(*http.Transport).DialContext = func(ctx context.Context, network, addr string) (net.Conn, error) {
-					return dialer.DialContext(ctx, network, addr)
+					return dialer.DialContext(ctx, network, absoluteDialAddress(addr))
 				}
 			}
 		}
