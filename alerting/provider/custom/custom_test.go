@@ -1,6 +1,7 @@
 package custom
 
 import (
+	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
@@ -265,7 +266,7 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholderAndResultConditions(
 	alertProvider := &AlertProvider{
 		DefaultConfig: Config{
 			URL:     "https://example.com/[ENDPOINT_GROUP]/[ENDPOINT_NAME]?event=[ALERT_TRIGGERED_OR_RESOLVED]&description=[ALERT_DESCRIPTION]",
-			Body:    "[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED],[RESULT_CONDITIONS]",
+			Body:    `{"text":"[ENDPOINT_NAME],[ENDPOINT_GROUP],[ALERT_DESCRIPTION],[ALERT_TRIGGERED_OR_RESOLVED],[RESULT_CONDITIONS]"}`,
 			Headers: nil,
 			Placeholders: map[string]map[string]string{
 				"ALERT_TRIGGERED_OR_RESOLVED": {
@@ -287,13 +288,13 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholderAndResultConditions(
 			AlertProvider: alertProvider,
 			Resolved:      true,
 			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=fixed&description=alert-description",
-			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,fixed,✅ - `[CONNECTED] == true`, ✅ - `[STATUS] == 200`",
+			ExpectedBody:  "{\"text\":\"endpoint-name,endpoint-group,alert-description,fixed,✅ - `[CONNECTED] == true`\\n✅ - `[STATUS] == 200`\"}",
 		},
 		{
 			AlertProvider: alertProvider,
 			Resolved:      false,
 			ExpectedURL:   "https://example.com/endpoint-group/endpoint-name?event=boom&description=alert-description",
-			ExpectedBody:  "endpoint-name,endpoint-group,alert-description,boom,❌ - `[CONNECTED] == true`, ❌ - `[STATUS] == 200`",
+			ExpectedBody:  "{\"text\":\"endpoint-name,endpoint-group,alert-description,boom,❌ - `[CONNECTED] == true`\\n❌ - `[STATUS] == 200`\"}",
 		},
 	}
 	for _, scenario := range scenarios {
@@ -317,10 +318,83 @@ func TestAlertProvider_buildHTTPRequestWithCustomPlaceholderAndResultConditions(
 				t.Error("expected URL to be", scenario.ExpectedURL, "got", request.URL.String())
 			}
 			body, _ := io.ReadAll(request.Body)
+			if !json.Valid(body) {
+				t.Error("expected body to contain valid JSON, got", string(body))
+			}
 			if string(body) != scenario.ExpectedBody {
 				t.Error("expected body to be", scenario.ExpectedBody, "got", string(body))
 			}
 		})
+	}
+}
+
+func TestAlertProvider_ResultConditionsBodyFormats(t *testing.T) {
+	scenarios := []struct {
+		name       string
+		conditions []*endpoint.ConditionResult
+		want       string
+	}{
+		{
+			name: "multiple-conditions",
+			conditions: []*endpoint.ConditionResult{
+				{Condition: "[CONNECTED] == true", Success: true},
+				{Condition: "[STATUS] == 200", Success: false},
+			},
+			want: "✅ - `[CONNECTED] == true`\n❌ - `[STATUS] == 200`",
+		},
+		{
+			name: "quotes-and-backslashes",
+			conditions: []*endpoint.ConditionResult{
+				{Condition: `[BODY] == "ready"`, Success: true},
+				{Condition: `[BODY] == C:\new`, Success: false},
+			},
+			want: "✅ - `[BODY] == \"ready\"`\n❌ - `[BODY] == C:\\new`",
+		},
+		{
+			name: "literal-backslash-n",
+			conditions: []*endpoint.ConditionResult{
+				{Condition: `[BODY] == a\nb`, Success: true},
+				{Condition: "[STATUS] == 200", Success: false},
+			},
+			want: "✅ - `[BODY] == a\\nb`\n❌ - `[STATUS] == 200`",
+		},
+		{
+			name: "single-condition-with-control-characters",
+			conditions: []*endpoint.ConditionResult{
+				{Condition: "[BODY] == first\nsecond\tline", Success: true},
+			},
+			want: "✅ - `[BODY] == first\nsecond\tline`",
+		},
+	}
+	for _, scenario := range scenarios {
+		for _, jsonBody := range []bool{false, true} {
+			t.Run(fmt.Sprintf("%s/json-%v", scenario.name, jsonBody), func(t *testing.T) {
+				cfg := Config{URL: "https://example.com", Body: "[RESULT_CONDITIONS]"}
+				if jsonBody {
+					cfg.Body = `{"text":"[RESULT_CONDITIONS]"}`
+				}
+				provider := &AlertProvider{}
+				request := provider.buildHTTPRequest(&cfg, &endpoint.Endpoint{}, &alert.Alert{},
+					&endpoint.Result{ConditionResults: scenario.conditions}, false)
+				body, err := io.ReadAll(request.Body)
+				if err != nil {
+					t.Fatal(err)
+				}
+				got := string(body)
+				if jsonBody {
+					var payload struct {
+						Text string `json:"text"`
+					}
+					if err := json.Unmarshal(body, &payload); err != nil {
+						t.Fatalf("invalid JSON body: %v; body: %s", err, body)
+					}
+					got = payload.Text
+				}
+				if got != scenario.want {
+					t.Errorf("expected condition text %q, got %q", scenario.want, got)
+				}
+			})
+		}
 	}
 }
 
