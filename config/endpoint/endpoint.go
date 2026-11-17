@@ -58,6 +58,10 @@ const (
 )
 
 var (
+	// Compiled once instead of on every health check
+	contextPlaceholderRegex      = regexp.MustCompile(`\[CONTEXT\]\.[\w\.\-]+`)
+	randomStringPlaceholderRegex = regexp.MustCompile(`\[RANDOM_STRING_\d+\]`)
+
 	// ErrEndpointWithNoCondition is the error with which Gatus will panic if an endpoint is configured with no conditions
 	ErrEndpointWithNoCondition = errors.New("you must specify at least one condition per endpoint")
 
@@ -398,8 +402,7 @@ func replaceContextPlaceholders(input string, ctx *gontext.Gontext) (string, err
 		return input, nil
 	}
 	var contextErrors []string
-	contextRegex := regexp.MustCompile(`\[CONTEXT\]\.[\w\.\-]+`)
-	result := contextRegex.ReplaceAllStringFunc(input, func(match string) string {
+	result := contextPlaceholderRegex.ReplaceAllStringFunc(input, func(match string) string {
 		// Extract the path after [CONTEXT].
 		path := strings.TrimPrefix(match, "[CONTEXT].")
 		value, err := ctx.Get(path)
@@ -420,22 +423,18 @@ func (e *Endpoint) getParsedBody() string {
 	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", e.Name)
 	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", e.Group)
 	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", e.URL)
-	randRegex, err := regexp.Compile(`\[RANDOM_STRING_\d+\]`)
-	if err == nil {
-		body = randRegex.ReplaceAllStringFunc(body, func(match string) string {
-			n, _ := strconv.Atoi(match[15 : len(match)-1])
-			if n > 8192 {
-				n = 8192 // Limit the length of the random string to 8192 bytes to avoid excessive memory usage
-			}
-			const availableCharacterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
-			b := make([]byte, n)
-			for i := range b {
-				b[i] = availableCharacterBytes[rand.Intn(len(availableCharacterBytes))]
-			}
-			return string(b)
-		})
-	}
-	return body
+	return randomStringPlaceholderRegex.ReplaceAllStringFunc(body, func(match string) string {
+		n, _ := strconv.Atoi(match[15 : len(match)-1])
+		if n > 8192 {
+			n = 8192 // Limit the length of the random string to 8192 bytes to avoid excessive memory usage
+		}
+		const availableCharacterBytes = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
+		b := make([]byte, n)
+		for i := range b {
+			b[i] = availableCharacterBytes[rand.Intn(len(availableCharacterBytes))]
+		}
+		return string(b)
+	})
 }
 
 func (e *Endpoint) getIP(result *Result) {
