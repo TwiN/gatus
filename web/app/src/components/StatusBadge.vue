@@ -1,58 +1,31 @@
 <template>
-  <Badge :variant="variant" class="flex items-center gap-1">
-    <span :class="['w-2 h-2 rounded-full', dotClass]"></span>
+  <div class="inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors
+              focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 border-transparent bg-primary
+              text-primary-foreground hover:bg-primary/80 flex items-center gap-1 text-white"
+       :style="`background-color: ${color};`">
+    <span :style="`background-color: ${color}; filter: brightness(115%)`" class="w-2 h-2 rounded-full"></span>
     {{ label }}
-  </Badge>
+  </div>
 </template>
 
 <script setup>
 import { computed } from 'vue'
-import { Badge } from '@/components/ui/badge'
+import { getStateColor } from '@/utils/color'
 
 const props = defineProps({
   status: {
     type: String,
     required: true,
-    validator: (value) => ['healthy', 'unhealthy', 'degraded', 'unknown'].includes(value)
-  }
-})
-
-const variant = computed(() => {
-  switch (props.status) {
-    case 'healthy':
-      return 'success'
-    case 'unhealthy':
-      return 'destructive'
-    case 'degraded':
-      return 'warning'
-    default:
-      return 'secondary'
-  }
+  },
 })
 
 const label = computed(() => {
-  switch (props.status) {
-    case 'healthy':
-      return 'Healthy'
-    case 'unhealthy':
-      return 'Unhealthy'
-    case 'degraded':
-      return 'Degraded'
-    default:
-      return 'Unknown'
-  }
+  if (!props.status) return 'Unknown'
+  return props.status.charAt(0).toUpperCase() + props.status.slice(1).replace(/_/g, ' ') // TODO#227 Capitalize every word
 })
 
-const dotClass = computed(() => {
-  switch (props.status) {
-    case 'healthy':
-      return 'bg-green-400'
-    case 'unhealthy':
-      return 'bg-red-400'
-    case 'degraded':
-      return 'bg-yellow-400'
-    default:
-      return 'bg-gray-400'
-  }
+const color = computed(() => {
+  if (!props.status) return window.config?.localStateColors.unknown
+  return getStateColor(props.status)
 })
 </script>
