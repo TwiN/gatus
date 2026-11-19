@@ -194,6 +194,9 @@ func TestGetDefaultConfig(t *testing.T) {
 	if defaultConfig.LoginSubtitle != defaultLoginSubtitle {
 		t.Error("expected GetDefaultConfig() to return defaultLoginSubtitle, got", defaultConfig.LoginSubtitle)
 	}
+	if !defaultConfig.IsDefaultGroupCollapsed() {
+		t.Error("expected GetDefaultConfig() to collapse groups by default")
+	}
 }
 
 func TestConfig_ValidateAndSetDefaults_DefaultSortBy(t *testing.T) {
@@ -295,6 +298,45 @@ func TestConfig_ValidateAndSetDefaults_DefaultFilterBy(t *testing.T) {
 			}
 			if cfg.DefaultFilterBy != scenario.ExpectedValue {
 				t.Errorf("expected DefaultFilterBy to be %s, got %s", scenario.ExpectedValue, cfg.DefaultFilterBy)
+			}
+		})
+	}
+}
+
+func TestConfig_ValidateAndSetDefaults_DefaultGroupCollapsed(t *testing.T) {
+	yes, no := true, false
+	scenarios := []struct {
+		Name                  string
+		DefaultGroupCollapsed *bool
+		ExpectedValue         bool
+	}{
+		{
+			Name:                  "UnsetDefaultGroupCollapsed",
+			DefaultGroupCollapsed: nil,
+			ExpectedValue:         defaultGroupCollapsed,
+		},
+		{
+			Name:                  "DefaultGroupCollapsed_true",
+			DefaultGroupCollapsed: &yes,
+			ExpectedValue:         true,
+		},
+		{
+			Name:                  "DefaultGroupCollapsed_false",
+			DefaultGroupCollapsed: &no,
+			ExpectedValue:         false,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			cfg := &Config{DefaultGroupCollapsed: scenario.DefaultGroupCollapsed}
+			if err := cfg.ValidateAndSetDefaults(); err != nil {
+				t.Error("expected no error, got", err.Error())
+			}
+			if cfg.DefaultGroupCollapsed == nil {
+				t.Fatal("expected DefaultGroupCollapsed to be set")
+			}
+			if cfg.IsDefaultGroupCollapsed() != scenario.ExpectedValue {
+				t.Errorf("expected IsDefaultGroupCollapsed() to be %v, got %v", scenario.ExpectedValue, cfg.IsDefaultGroupCollapsed())
 			}
 		})
 	}
