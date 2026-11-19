@@ -27,6 +27,20 @@ func TestOIDCConfig_ValidateAndSetDefaults(t *testing.T) {
 	}
 }
 
+func TestOIDCConfig_ValidateAndSetDefaultsWhenAPITokenIsEmpty(t *testing.T) {
+	c := &OIDCConfig{
+		IssuerURL:    "https://sso.gatus.io/",
+		RedirectURL:  "http://localhost:80/authorization-code/callback",
+		ClientID:     "client-id",
+		ClientSecret: "client-secret",
+		Scopes:       []string{"openid"},
+		APITokens:    []string{"token", ""},
+	}
+	if c.ValidateAndSetDefaults() {
+		t.Error("OIDCConfig shouldn't be valid")
+	}
+}
+
 func TestOIDCConfig_callbackHandler(t *testing.T) {
 	c := &OIDCConfig{
 		IssuerURL:       "https://sso.gatus.io/",
