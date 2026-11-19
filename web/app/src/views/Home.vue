@@ -192,6 +192,7 @@ import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
 import AnnouncementBanner from '@/components/AnnouncementBanner.vue'
 import PastAnnouncements from '@/components/PastAnnouncements.vue'
+import { authenticatedFetch } from '@/auth'
 
 const props = defineProps({
   announcements: {
@@ -432,20 +433,16 @@ const fetchData = async () => {
   }
   try {
     // Fetch endpoints
-    const endpointResponse = await fetch(`/api/v1/endpoints/statuses?page=1&pageSize=${resultPageSize}`, {
-      credentials: 'include'
-    })
+    const endpointResponse = await authenticatedFetch(`/api/v1/endpoints/statuses?page=1&pageSize=${resultPageSize}`)
     if (endpointResponse.status === 200) {
       const data = await endpointResponse.json()
       endpointStatuses.value = data
     } else {
       console.error('[Home][fetchData] Error fetching endpoints:', await endpointResponse.text())
     }
-    
+
     // Fetch suites
-    const suiteResponse = await fetch(`/api/v1/suites/statuses?page=1&pageSize=${resultPageSize}`, {
-      credentials: 'include'
-    })
+    const suiteResponse = await authenticatedFetch(`/api/v1/suites/statuses?page=1&pageSize=${resultPageSize}`)
     if (suiteResponse.status === 200) {
       const suiteData = await suiteResponse.json()
       suiteStatuses.value = suiteData || []
