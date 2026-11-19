@@ -425,6 +425,12 @@ func TestEndpoint_Type(t *testing.T) {
 			},
 			want: TypeUNKNOWN,
 		},
+		{
+			args: args{
+				URL: "[CONTEXT].clientUrl",
+			},
+			want: TypeHTTP,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(string(tt.want), func(t *testing.T) {
@@ -503,6 +509,58 @@ func TestEndpoint_ValidateAndSetDefaultsWithInvalidCondition(t *testing.T) {
 	}
 	if err := endpoint.ValidateAndSetDefaults(); err == nil {
 		t.Error("endpoint validation should've returned an error, but didn't")
+	}
+}
+
+func TestEndpoint_ValidateAndSetDefaultsWithContextInURL(t *testing.T) {
+	scenarios := []struct {
+		name    string
+		url     string
+		wantErr bool
+	}{
+		{
+			name:    "full-url-from-context",
+			url:     "[CONTEXT].clientUrl",
+			wantErr: false,
+		},
+		{
+			name:    "full-url-with-path-from-context",
+			url:     "[CONTEXT].clientUrl/subpath",
+			wantErr: false,
+		},
+		{
+			name:    "host-from-context",
+			url:     "https://[CONTEXT].serverUrl",
+			wantErr: false,
+		},
+		{
+			name:    "host-and-path-from-context",
+			url:     "https://[CONTEXT].serverUrl/path/to/resource",
+			wantErr: false,
+		},
+		{
+			name:    "host-and-port-from-context",
+			url:     "https://[CONTEXT].host:[CONTEXT].port/test",
+			wantErr: false,
+		},
+		{
+			name:    "tcp-with-host-from-context",
+			url:     "tcp://[CONTEXT].host:3306",
+			wantErr: false,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			ep := Endpoint{
+				Name:       "test-endpoint",
+				URL:        scenario.url,
+				Conditions: []Condition{"[STATUS] == 200"},
+			}
+			err := ep.ValidateAndSetDefaults()
+			if (err != nil) != scenario.wantErr {
+				t.Errorf("ValidateAndSetDefaults() error = %v, wantErr %v", err, scenario.wantErr)
+			}
+		})
 	}
 }
 
