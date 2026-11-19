@@ -20,6 +20,13 @@
             <span v-if="endpoint.group && hostname">•</span>
             <span v-if="hostname" class="truncate" :title="hostname">{{ hostname }}</span>
           </div>
+          <div v-if="endpoint.tags && endpoint.tags.length > 0" class="flex flex-wrap gap-1 mt-1">
+            <span
+              v-for="tag in endpoint.tags"
+              :key="tag"
+              class="rounded-full border px-2 py-0.5 text-xs text-muted-foreground dark:border-gray-700"
+            >{{ tag }}</span>
+          </div>
         </div>
         <div class="flex-shrink-0 ml-2">
           <StatusBadge :status="currentStatus" />

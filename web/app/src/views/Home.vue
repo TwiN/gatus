@@ -33,6 +33,25 @@
           @update:sortBy="sortBy = $event"
           @initializeCollapsedGroups="initializeCollapsedGroups"
         />
+        <!-- Tag filter -->
+        <div v-if="availableTags.length > 0" class="flex flex-wrap items-center gap-2 mt-3">
+          <span class="text-xs sm:text-sm font-medium text-muted-foreground whitespace-nowrap">Tags:</span>
+          <button
+            v-for="tag in availableTags"
+            :key="tag"
+            type="button"
+            :aria-pressed="activeTags.includes(tag)"
+            :class="[
+              'rounded-full border px-2.5 py-0.5 text-xs font-medium transition-colors focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2',
+              activeTags.includes(tag)
+                ? 'border-transparent bg-primary text-primary-foreground'
+                : 'bg-card text-muted-foreground hover:bg-accent hover:text-accent-foreground dark:hover:bg-accent'
+            ]"
+            @click="toggleTag(tag)"
+          >
+            {{ tag }}
+          </button>
+        </div>
       </div>
 
       <div v-if="loading" class="flex items-center justify-center py-20">
@@ -43,7 +62,7 @@
         <AlertCircle class="h-12 w-12 text-muted-foreground mx-auto mb-4" />
         <h3 class="text-lg font-semibold mb-2">No endpoints or suites found</h3>
         <p class="text-muted-foreground">
-          {{ searchQuery || showOnlyFailing || showRecentFailures 
+          {{ searchQuery || showOnlyFailing || showRecentFailures || activeTags.length > 0 
             ? 'Try adjusting your filters' 
             : 'No endpoints or suites are configured' }}
         </p>
@@ -224,6 +243,16 @@ const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
 const resultPageSize = 50
+const selectedTags = ref([])
+
+const availableTags = computed(() => {
+  const tags = new Set()
+  endpointStatuses.value.forEach(endpoint => (endpoint.tags || []).forEach(tag => tags.add(tag)))
+  return [...tags].sort((a, b) => a.localeCompare(b))
+})
+
+// Selected tags that still exist, in case a tag disappears after a configuration change
+const activeTags = computed(() => selectedTags.value.filter(tag => availableTags.value.includes(tag)))
 
 const filteredEndpoints = computed(() => {
   let filtered = [...endpointStatuses.value]
@@ -232,8 +261,14 @@ const filteredEndpoints = computed(() => {
     const query = searchQuery.value.toLowerCase()
     filtered = filtered.filter(endpoint => 
       endpoint.name.toLowerCase().includes(query) ||
-      (endpoint.group && endpoint.group.toLowerCase().includes(query))
+      (endpoint.group && endpoint.group.toLowerCase().includes(query)) ||
+      (endpoint.tags && endpoint.tags.some(tag => tag.toLowerCase().includes(query)))
     )
+  }
+  
+  // Keep endpoints that have at least one of the selected tags
+  if (activeTags.value.length > 0) {
+    filtered = filtered.filter(endpoint => endpoint.tags && endpoint.tags.some(tag => activeTags.value.includes(tag)))
   }
   
   if (showOnlyFailing.value) {
@@ -270,6 +305,9 @@ const filteredEndpoints = computed(() => {
 })
 
 const filteredSuites = computed(() => {
+  // Suites have no tags, so none of them can match a tag filter
+  if (activeTags.value.length > 0) return []
+  
   let filtered = [...(suiteStatuses.value || [])]
   
   if (searchQuery.value) {
@@ -473,6 +511,13 @@ const refreshData = () => {
 
 const handleSearch = (query) => {
   searchQuery.value = query
+  currentPage.value = 1
+}
+
+const toggleTag = (tag) => {
+  selectedTags.value = selectedTags.value.includes(tag)
+    ? selectedTags.value.filter(selectedTag => selectedTag !== tag)
+    : [...selectedTags.value, tag]
   currentPage.value = 1
 }
 

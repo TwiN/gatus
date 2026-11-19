@@ -149,6 +149,17 @@ func (config *Config) GetUniqueExtraMetricLabels() []string {
 	return labels
 }
 
+// GetEndpointTagsByKey returns the tags of the endpoint or external endpoint with the given key, if any
+func (config *Config) GetEndpointTagsByKey(key string) []string {
+	if ep := config.GetEndpointByKey(key); ep != nil {
+		return ep.Tags
+	}
+	if ee := config.GetExternalEndpointByKey(key); ee != nil {
+		return ee.Tags
+	}
+	return nil
+}
+
 func (config *Config) GetEndpointByKey(key string) *endpoint.Endpoint {
 	for i := 0; i < len(config.Endpoints); i++ {
 		ep := config.Endpoints[i]
