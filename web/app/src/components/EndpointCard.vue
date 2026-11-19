@@ -1,5 +1,5 @@
 <template>
-  <Card class="endpoint h-full flex flex-col transition hover:shadow-lg hover:scale-[1.01] dark:hover:border-gray-700">
+  <Card :class="['endpoint h-full flex flex-col transition hover:shadow-lg dark:hover:border-gray-700', compact ? '' : 'hover:scale-[1.01]']">
     <CardHeader class="endpoint-header px-3 sm:px-6 pt-3 sm:pt-6 pb-2 space-y-0">
       <div class="flex items-start justify-between gap-2 sm:gap-3">
         <div class="flex-1 min-w-0 overflow-hidden">
@@ -29,7 +29,7 @@
     <CardContent class="endpoint-content flex-1 pb-3 sm:pb-4 px-3 sm:px-6 pt-2">
       <div class="space-y-2">
         <div>
-          <div class="flex items-center justify-between mb-1">
+          <div v-if="!compact" class="endpoint-card-stats flex items-center justify-between mb-1">
             <div class="flex-1"></div>
             <p class="text-xs text-muted-foreground" :title="showAverageResponseTime ? 'Average response time' : 'Minimum and maximum response time'">{{ formattedResponseTime }}</p>
           </div>
@@ -38,7 +38,8 @@
               v-for="(result, index) in displayResults"
               :key="index"
               :class="[
-                'flex-1 h-6 sm:h-8 rounded-sm transition-all',
+                'flex-1 rounded-sm transition-all endpoint-result-bar',
+                compact ? 'h-5' : 'h-6 sm:h-8',
                 result ? 'cursor-pointer' : '',
                 result ? (
                   result.success 
@@ -51,7 +52,7 @@
               @click.stop="result && handleClick(result, $event, index)"
             />
           </div>
-          <div class="flex items-center justify-between text-xs text-muted-foreground mt-1">
+          <div v-if="!compact" class="endpoint-card-timestamps flex items-center justify-between text-xs text-muted-foreground mt-1">
             <span>{{ oldestResultTime }}</span>
             <span>{{ newestResultTime }}</span>
           </div>
@@ -82,6 +83,10 @@ const props = defineProps({
   showAverageResponseTime: {
     type: Boolean,
     default: true
+  },
+  compact: {
+    type: Boolean,
+    default: false
   }
 })
 

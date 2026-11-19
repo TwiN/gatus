@@ -53,6 +53,9 @@ func TestConfig_ValidateAndSetDefaults(t *testing.T) {
 		if cfg.LoginSubtitle != defaultLoginSubtitle {
 			t.Errorf("expected LoginSubtitle to be %s, got %s", defaultLoginSubtitle, cfg.LoginSubtitle)
 		}
+		if cfg.Density != defaultDensity {
+			t.Errorf("expected density to be %s, got %s", defaultDensity, cfg.Density)
+		}
 	})
 	t.Run("custom-values", func(t *testing.T) {
 		cfg := &Config{
@@ -191,6 +194,9 @@ func TestGetDefaultConfig(t *testing.T) {
 	if defaultConfig.DefaultFilterBy != defaultFilterBy {
 		t.Error("expected GetDefaultConfig() to return defaultFilterBy, got", defaultConfig.DefaultFilterBy)
 	}
+	if defaultConfig.Density != defaultDensity {
+		t.Error("expected GetDefaultConfig() to return defaultDensity, got", defaultConfig.Density)
+	}
 	if defaultConfig.LoginSubtitle != defaultLoginSubtitle {
 		t.Error("expected GetDefaultConfig() to return defaultLoginSubtitle, got", defaultConfig.LoginSubtitle)
 	}
@@ -295,6 +301,52 @@ func TestConfig_ValidateAndSetDefaults_DefaultFilterBy(t *testing.T) {
 			}
 			if cfg.DefaultFilterBy != scenario.ExpectedValue {
 				t.Errorf("expected DefaultFilterBy to be %s, got %s", scenario.ExpectedValue, cfg.DefaultFilterBy)
+			}
+		})
+	}
+}
+
+func TestConfig_ValidateAndSetDefaults_Density(t *testing.T) {
+	scenarios := []struct {
+		Name          string
+		Density       string
+		ExpectedError error
+		ExpectedValue string
+	}{
+		{
+			Name:          "EmptyDensity",
+			Density:       "",
+			ExpectedError: nil,
+			ExpectedValue: defaultDensity,
+		},
+		{
+			Name:          "ValidDensity_comfortable",
+			Density:       "comfortable",
+			ExpectedError: nil,
+			ExpectedValue: "comfortable",
+		},
+		{
+			Name:          "ValidDensity_compact",
+			Density:       "compact",
+			ExpectedError: nil,
+			ExpectedValue: "compact",
+		},
+		{
+			Name:          "InvalidDensity",
+			Density:       "invalid",
+			ExpectedError: ErrInvalidDensity,
+			ExpectedValue: "invalid",
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.Name, func(t *testing.T) {
+			cfg := &Config{Density: scenario.Density}
+			err := cfg.ValidateAndSetDefaults()
+			if !errors.Is(err, scenario.ExpectedError) {
+				t.Errorf("expected error %v, got %v", scenario.ExpectedError, err)
+			}
+			if cfg.Density != scenario.ExpectedValue {
+				t.Errorf("expected Density to be %s, got %s", scenario.ExpectedValue, cfg.Density)
 			}
 		})
 	}

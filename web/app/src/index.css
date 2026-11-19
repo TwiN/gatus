@@ -24,6 +24,7 @@
     --input: 214.3 31.8% 91.4%;
     --ring: 222.2 84% 4.9%;
     --radius: 0.5rem;
+    --gatus-card-min: 280px;
   }
   
   :root.dark {
@@ -76,4 +77,46 @@ body {
         padding-top: 0;
         padding-bottom: 0;
     }
+}
+
+@layer components {
+  .density-compact {
+    --gatus-card-min: 255px;
+  }
+
+  .endpoint-grid-fluid {
+    display: grid;
+    gap: 0.4rem;
+    grid-template-columns: repeat(auto-fill, minmax(var(--gatus-card-min), 1fr));
+  }
+
+  .density-compact .endpoint-header,
+  .density-compact .suite-header {
+    padding: 0.5rem 0.6rem;
+  }
+
+  .density-compact .endpoint-content,
+  .density-compact .suite-content {
+    padding: 0.5rem 0.6rem;
+    padding-top: 0.25rem;
+  }
+
+  .density-compact .endpoint .endpoint-card-stats,
+  .density-compact .suite .suite-card-stats {
+    display: none;
+  }
+
+  .density-compact .endpoint-result-bar {
+    height: 1.25rem;
+  }
+
+  .wall-display .dashboard-container {
+    padding-top: 0.5rem;
+    padding-bottom: 0.5rem;
+  }
+
+  html.wall-display #global[data-route-home="true"] #app-header,
+  html.wall-display #global[data-route-home="true"] #app-footer {
+    display: none !important;
+  }
 }
