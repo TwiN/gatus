@@ -59,6 +59,14 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 			AllowOrigins:     "http://localhost:8081",
 			AllowCredentials: true,
 		}))
+	} else if cfg.Web != nil && cfg.Web.CORS != nil {
+		app.Use(cors.New(cors.Config{
+			AllowOrigins:     cfg.Web.CORS.AllowOrigins,
+			AllowMethods:     cfg.Web.CORS.AllowMethods,
+			AllowHeaders:     cfg.Web.CORS.AllowHeaders,
+			AllowCredentials: cfg.Web.CORS.AllowCredentials,
+			MaxAge:           cfg.Web.CORS.MaxAge,
+		}))
 	}
 	// Middlewares
 	app.Use(recover.New())
