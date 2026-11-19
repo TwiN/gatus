@@ -19,7 +19,7 @@
                 target="_blank"
                 :class="['flex items-center gap-3', link && 'hover:opacity-80 transition-opacity']"
               >
-                <div class="w-12 h-12 flex items-center justify-center">
+                <div class="w-10 h-10 flex items-center justify-center">
                   <img 
                     v-if="logo" 
                     :src="logo" 
@@ -34,7 +34,7 @@
                   />
                 </div>
                 <div>
-                  <h1 class="text-2xl font-bold tracking-tight">{{ header }}</h1>
+                  <h1 class="text-xl font-semibold tracking-tight">{{ header }}</h1>
                   <p v-if="buttons && buttons.length" class="text-sm text-muted-foreground">
                     System Monitoring Dashboard
                   </p>

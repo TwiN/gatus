@@ -10,7 +10,7 @@
         
         <div class="flex items-start justify-between">
           <div>
-            <h1 class="text-3xl font-bold tracking-tight">{{ suite?.name || 'Loading...' }}</h1>
+            <h1 class="text-3xl font-semibold tracking-tight">{{ suite?.name || 'Loading...' }}</h1>
             <p class="text-muted-foreground mt-2">
               <span v-if="suite?.group">{{ suite.group }} • </span>
               <span v-if="latestResult">
