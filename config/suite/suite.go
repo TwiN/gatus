@@ -129,6 +129,7 @@ func (s *Suite) Execute() *Result {
 	timeoutChan := time.After(s.Timeout)
 	// Execute each endpoint sequentially
 	suiteHasFailed := false
+endpointLoop:
 	for _, ep := range s.Endpoints {
 		// Skip non-always-run endpoints if suite has already failed
 		if suiteHasFailed && !ep.AlwaysRun {
@@ -139,7 +140,7 @@ func (s *Suite) Execute() *Result {
 		case <-timeoutChan:
 			result.AddError(fmt.Sprintf("suite execution timed out after %v", s.Timeout))
 			result.Success = false
-			break
+			break endpointLoop
 		default:
 		}
 		// Execute endpoint with context
