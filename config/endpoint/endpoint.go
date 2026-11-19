@@ -286,6 +286,8 @@ func (e *Endpoint) Key() string {
 func (e *Endpoint) Close() {
 	if e.Type() == TypeHTTP {
 		client.GetHTTPClient(e.ClientConfig).CloseIdleConnections()
+	} else if e.Type() == TypeDNS && strings.HasPrefix(e.URL, "https://") {
+		client.GetDNSOverHTTPSClient(e.ClientConfig).CloseIdleConnections()
 	}
 }
 
@@ -303,7 +305,7 @@ func (e *Endpoint) EvaluateHealthWithContext(context *gontext.Gontext) *Result {
 		processedEndpoint = e.preprocessWithContext(result, context)
 	}
 	// Parse or extract hostname from URL
-	if processedEndpoint.DNSConfig != nil {
+	if processedEndpoint.DNSConfig != nil && !strings.Contains(processedEndpoint.URL, "://") {
 		result.Hostname = strings.TrimSuffix(processedEndpoint.URL, ":53")
 	} else if processedEndpoint.Type() == TypeICMP {
 		// To handle IPv6 addresses, we need to handle the hostname differently here. This is to avoid, for instance,
@@ -457,7 +459,7 @@ func (e *Endpoint) call(result *Result) {
 	}
 	startTime := time.Now()
 	if endpointType == TypeDNS {
-		result.Connected, result.DNSRCode, result.Body, err = client.QueryDNS(e.DNSConfig.QueryType, e.DNSConfig.QueryName, e.URL)
+		result.Connected, result.DNSRCode, result.Body, err = client.QueryDNS(e.DNSConfig.QueryType, e.DNSConfig.QueryName, e.URL, e.ClientConfig)
 		if err != nil {
 			result.AddError(err.Error())
 			return

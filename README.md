@@ -3310,6 +3310,27 @@ endpoints:
       - "[DNS_RCODE] == NOERROR"
 ```
 
+The DNS server can also be queried using DNS over TLS (DoT) by prefixing `endpoints[].url` with `tls://`, or
+using DNS over HTTPS (DoH) by setting `endpoints[].url` to the `https://` URL of the DNS server:
+```yaml
+endpoints:
+  - name: example-dns-over-tls-query
+    url: "tls://1.1.1.1" # port is optional. Default is 853.
+    dns:
+      query-name: "example.com"
+      query-type: "A"
+    conditions:
+      - "[DNS_RCODE] == NOERROR"
+
+  - name: example-dns-over-https-query
+    url: "https://1.1.1.1/dns-query"
+    dns:
+      query-name: "example.com"
+      query-type: "A"
+    conditions:
+      - "[DNS_RCODE] == NOERROR"
+```
+
 There are two placeholders that can be used in the conditions for endpoints of type DNS:
 - The placeholder `[BODY]` resolves to the output of the query. For instance, a query of type `A` would return an IPv4.
 - The placeholder `[DNS_RCODE]` resolves to the name associated to the response code returned by the query, such as
