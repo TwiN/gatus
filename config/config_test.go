@@ -11,6 +11,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/health"
 	"github.com/TwiN/gatus/v5/alerting/provider"
 	"github.com/TwiN/gatus/v5/alerting/provider/awsses"
 	"github.com/TwiN/gatus/v5/alerting/provider/bark"
@@ -2738,5 +2739,37 @@ func TestResolveTunnelForClientConfig(t *testing.T) {
 				t.Errorf("resolveTunnelForClientConfig() unexpected error = %v", err)
 			}
 		})
+	}
+}
+
+func TestParseAndValidateConfigBytes_AlertingHealth(t *testing.T) {
+	t.Parallel()
+	configYAML := `
+alerting:
+  slack: {}
+endpoints:
+  - name: example
+    url: https://example.org
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: slack
+`
+	cfg, err := parseAndValidateConfigBytes([]byte(configYAML))
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if cfg.Alerting.GetAlertingProviderByAlertType(alert.TypeSlack) != nil {
+		t.Error("expected slack provider to be nil after invalid validation")
+	}
+	snap := health.GetSnapshot()
+	if snap.Healthy {
+		t.Error("expected unhealthy snapshot")
+	}
+	if len(snap.Providers) != 1 || snap.Providers[0].Status != health.ProviderStatusIgnored {
+		t.Errorf("unexpected providers: %+v", snap.Providers)
+	}
+	if len(snap.Warnings) != 1 {
+		t.Errorf("expected one endpoint warning, got %+v", snap.Warnings)
 	}
 }

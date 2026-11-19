@@ -6,7 +6,7 @@
     </div>
 
     <!-- Main App Container -->
-    <div v-else-if="!config || !config.oidc || config.authenticated" class="relative">
+    <div v-else-if="!config || !config.oidc || config.authenticated || config.protectStatuses === false" class="relative">
       <!-- Header -->
       <header class="border-b bg-card/50 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div class="container mx-auto px-4 py-4 max-w-7xl">
@@ -167,7 +167,7 @@ const route = useRoute()
 
 // State
 const retrievedConfig = ref(false)
-const config = ref({ oidc: false, authenticated: true })
+const config = ref({ oidc: false, authenticated: true, protectStatuses: true })
 const announcements = ref([])
 const tooltip = ref({})
 const mobileMenuOpen = ref(false)
