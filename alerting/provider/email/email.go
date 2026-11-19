@@ -173,7 +173,11 @@ func (provider *AlertProvider) buildMessageSubjectAndBody(ep *endpoint.Endpoint,
 			extraLabels += fmt.Sprintf("  %s: %s\n", key, value)
 		}
 	}
-	return subject, message + description + extraLabels + formattedConditionResults
+	message += description + extraLabels + formattedConditionResults
+	if len(result.Errors) > 0 {
+		message = strings.TrimRight(message, "\n") + "\n\nErrors:\n" + strings.Join(result.Errors, "\n")
+	}
+	return subject, message
 }
 
 // GetDefaultAlert returns the provider's default alert configuration
