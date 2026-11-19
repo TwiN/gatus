@@ -997,6 +997,34 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	}
 }
 
+func TestEndpoint_EvaluateHealthForDNSHostname(t *testing.T) {
+	scenarios := []struct {
+		url              string
+		expectedHostname string
+	}{
+		{url: "127.0.0.1:53", expectedHostname: "127.0.0.1"},
+		{url: "tls://127.0.0.1:1", expectedHostname: "127.0.0.1"},
+		{url: "https://127.0.0.1:1/dns-query", expectedHostname: "127.0.0.1"},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.url, func(t *testing.T) {
+			endpoint := Endpoint{
+				Name:         "example",
+				URL:          scenario.url,
+				DNSConfig:    &dns.Config{QueryType: "A", QueryName: "example.com."},
+				ClientConfig: &client.Config{Timeout: time.Second},
+				Conditions:   []Condition{Condition("[DNS_RCODE] == NOERROR")},
+			}
+			if err := endpoint.ValidateAndSetDefaults(); err != nil {
+				t.Fatal("did not expect an error, got", err)
+			}
+			if result := endpoint.EvaluateHealth(); result.Hostname != scenario.expectedHostname {
+				t.Errorf("expected hostname %s, got %s", scenario.expectedHostname, result.Hostname)
+			}
+		})
+	}
+}
+
 func TestIntegrationEvaluateHealthForSSH(t *testing.T) {
 	scenarios := []struct {
 		name       string

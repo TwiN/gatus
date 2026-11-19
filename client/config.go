@@ -87,7 +87,8 @@ type Config struct {
 	// StoreCookies determines whether cookies are stored and included across requests.
 	StoreCookies bool `yaml:"store-cookies,omitempty"`
 
-	httpClient *http.Client
+	httpClient         *http.Client
+	dnsOverHTTPSClient *http.Client
 }
 
 // DNSResolverConfig is the parsed configuration from the DNSResolver config string.
@@ -294,6 +295,33 @@ func (c *Config) getHTTPClient() *http.Client {
 		}
 	}
 	return c.httpClient
+}
+
+// getDNSOverHTTPSClient returns an HTTP client matching the Config's parameters for DNS over HTTPS.
+func (c *Config) getDNSOverHTTPSClient() *http.Client {
+	if c.dnsOverHTTPSClient == nil {
+		httpClient := *c.getHTTPClient()
+		if transport, ok := httpClient.Transport.(*http.Transport); ok {
+			transport = transport.Clone()
+			// RFC 8484 recommends HTTP/2 as the minimum version, and some servers refuse HTTP/1.1
+			transport.ForceAttemptHTTP2 = true
+			// Without a health check, requests keep being sent to an HTTP/2 connection that silently died
+			transport.HTTP2 = &http.HTTP2Config{SendPingTimeout: 15 * time.Second}
+			httpClient.Transport = transport
+		}
+		httpClient.CheckRedirect = func(req *http.Request, via []*http.Request) error {
+			if c.IgnoreRedirect {
+				return http.ErrUseLastResponse
+			}
+			// Following a redirect to a URL that isn't HTTPS would send the query in plaintext
+			if req.URL.Scheme != "https" {
+				return errors.New("refusing to follow DNS over HTTPS redirect to " + req.URL.Scheme + " URL")
+			}
+			return nil
+		}
+		c.dnsOverHTTPSClient = &httpClient
+	}
+	return c.dnsOverHTTPSClient
 }
 
 // validateIAPToken returns a boolean that will define if the Google identity-aware-proxy token can be fetched
