@@ -368,12 +368,12 @@ func ExecuteSSHCommand(sshClient *ssh.Client, body string, config *Config) (bool
 	return true, exitErr.ExitStatus(), output, nil
 }
 
-// Ping checks if an address can be pinged and returns the round-trip time if the address can be pinged
+// Ping checks if an address can be pinged and returns the average round-trip time if the address can be pinged
 //
 // Note that this function takes at least 100ms, even if the address is 127.0.0.1
 func Ping(address string, config *Config) (bool, time.Duration) {
 	pinger := ping.New(address)
-	pinger.Count = 1
+	pinger.Count = config.PingCount
 	pinger.Timeout = config.Timeout
 	pinger.SetPrivileged(ShouldRunPingerAsPrivileged())
 	pinger.SetNetwork(config.Network)
@@ -382,11 +382,11 @@ func Ping(address string, config *Config) (bool, time.Duration) {
 		return false, 0
 	}
 	if pinger.Statistics() != nil {
-		// If the packet loss is 100, it means that the packet didn't reach the host
+		// If the packet loss is 100, it means that none of the packets reached the host
 		if pinger.Statistics().PacketLoss == 100 {
 			return false, pinger.Timeout
 		}
-		return true, pinger.Statistics().MaxRtt
+		return true, pinger.Statistics().AvgRtt
 	}
 	return true, 0
 }

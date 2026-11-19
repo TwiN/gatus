@@ -661,6 +661,7 @@ the client used to send the request.
 | `client.tls.private-key-file`          | Path to a client private key (in PEM format) for mTLS configurations.         | `""`            |
 | `client.tls.renegotiation`             | Type of renegotiation support to provide. (`never`, `freely`, `once`).        | `"never"`       |
 | `client.network`                       | The network to use for ICMP endpoint client (`ip`, `ip4` or `ip6`).           | `"ip"`          |
+| `client.ping-count`                    | Packets sent per ICMP check. The check succeeds if at least one is answered.  | `1`             |
 | `client.tunnel`                        | Name of the SSH tunnel to use for this endpoint. See [Tunneling](#tunneling). | `""`            |
 | `client.store-cookies`                 | Whether to store cookies between requests.                                    | `false`         |
 
@@ -3288,6 +3289,11 @@ endpoints:
 
 Only the placeholders `[CONNECTED]`, `[IP]` and `[RESPONSE_TIME]` are supported for endpoints of type ICMP.
 You can specify a domain prefixed by `icmp://`, or an IP address prefixed by `icmp://`.
+
+By default, each check sends a single packet. Like `ping -c`, `client.ping-count` sends multiple packets per check:
+the check succeeds if at least one is answered, and `[RESPONSE_TIME]` is the average round-trip time.
+Packets are sent one second apart, so `client.timeout` must be greater than `ping-count - 1` seconds, and if a packet
+is lost, the check only completes once the timeout is reached.
 
 If you run Gatus on Linux, please read the Linux section on [https://github.com/prometheus-community/pro-bing#linux]
 if you encounter any problems.

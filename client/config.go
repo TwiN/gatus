@@ -4,6 +4,7 @@ import (
 	"context"
 	"crypto/tls"
 	"errors"
+	"fmt"
 	"net"
 	"net/http"
 	"net/http/cookiejar"
@@ -14,6 +15,7 @@ import (
 
 	"github.com/TwiN/gatus/v5/config/tunneling/sshtunnel"
 	"github.com/TwiN/logr"
+	ping "github.com/prometheus-community/pro-bing"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/clientcredentials"
 	"google.golang.org/api/idtoken"
@@ -29,12 +31,18 @@ var (
 	ErrInvalidClientOAuth2Config = errors.New("invalid oauth2 configuration: must define all fields for client credentials flow (token-url, client-id, client-secret, scopes)")
 	ErrInvalidClientIAPConfig    = errors.New("invalid Identity-Aware-Proxy configuration: must define all fields for Google Identity-Aware-Proxy programmatic authentication (audience)")
 	ErrInvalidClientTLSConfig    = errors.New("invalid TLS configuration: certificate-file and private-key-file must be specified")
+	ErrInvalidClientPingCount    = errors.New("invalid ping-count: must not be negative")
+	ErrInvalidClientPingTimeout  = errors.New("invalid ping-count: timeout is too short to send all ICMP packets")
+
+	// pingInterval is pro-bing's default interval between ICMP packets, which it does not export as a constant
+	pingInterval = ping.New("").Interval
 
 	defaultConfig = Config{
 		Insecure:       false,
 		IgnoreRedirect: false,
 		Timeout:        defaultTimeout,
 		Network:        "ip",
+		PingCount:      1,
 		StoreCookies:   false,
 	}
 )
@@ -74,6 +82,10 @@ type Config struct {
 
 	// Network (ip, ip4 or ip6) for the ICMP client
 	Network string `yaml:"network"`
+
+	// PingCount is the number of packets sent by the ICMP client per check.
+	// The check succeeds if at least one of them is answered.
+	PingCount int `yaml:"ping-count,omitempty"`
 
 	// TLS configuration (optional)
 	TLS *TLSConfig `yaml:"tls,omitempty"`
@@ -125,6 +137,16 @@ type TLSConfig struct {
 func (c *Config) ValidateAndSetDefaults() error {
 	if c.Timeout < time.Millisecond {
 		c.Timeout = 10 * time.Second
+	}
+	if c.PingCount < 0 {
+		return ErrInvalidClientPingCount
+	}
+	if c.PingCount == 0 {
+		c.PingCount = 1
+	}
+	// pinger.Timeout caps the whole run, so packets scheduled after it would never be sent
+	if minTimeout := time.Duration(c.PingCount-1) * pingInterval; c.Timeout <= minTimeout {
+		return fmt.Errorf("%w: %d packets require a timeout greater than %s", ErrInvalidClientPingTimeout, c.PingCount, minTimeout)
 	}
 	if c.HasCustomDNSResolver() {
 		// Validate the DNS resolver now to make sure it will not return an error later.
