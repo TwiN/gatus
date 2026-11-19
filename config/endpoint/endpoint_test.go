@@ -6,6 +6,7 @@ import (
 	"crypto/x509"
 	"errors"
 	"io"
+	"net"
 	"net/http"
 	"strings"
 	"testing"
@@ -19,6 +20,7 @@ import (
 	"github.com/TwiN/gatus/v5/config/gontext"
 	"github.com/TwiN/gatus/v5/config/maintenance"
 	"github.com/TwiN/gatus/v5/test"
+	miekgdns "github.com/miekg/dns"
 )
 
 func TestHasHeader(t *testing.T) {
@@ -994,6 +996,179 @@ func TestIntegrationEvaluateHealthForDNS(t *testing.T) {
 	}
 	if !result.Success {
 		t.Error("Because all conditions passed, this should have been a success")
+	}
+}
+
+func TestIntegrationEvaluateHealthForDNSWithIPPlaceholder(t *testing.T) {
+	for _, address := range []string{"127.0.0.1:0", "[::1]:0"} {
+		t.Run(address, func(t *testing.T) {
+			// Local DNS server on a port other than 53 that answers every A query with 127.0.0.1
+			packetConn, err := net.ListenPacket("udp", address)
+			if err != nil {
+				t.Skip("cannot listen on", address, err)
+			}
+			server := &miekgdns.Server{PacketConn: packetConn, Handler: miekgdns.HandlerFunc(func(w miekgdns.ResponseWriter, r *miekgdns.Msg) {
+				m := new(miekgdns.Msg)
+				m.SetReply(r)
+				rr, _ := miekgdns.NewRR(r.Question[0].Name + " 60 IN A 127.0.0.1")
+				m.Answer = append(m.Answer, rr)
+				w.WriteMsg(m)
+			})}
+			go server.ActivateAndServe()
+			defer server.Shutdown()
+			serverIP := packetConn.LocalAddr().(*net.UDPAddr).IP.String()
+			endpoint := Endpoint{
+				Name:       "example",
+				URL:        packetConn.LocalAddr().String(), // e.g. 127.0.0.1:12345 or [::1]:12345
+				DNSConfig:  &dns.Config{QueryType: "A", QueryName: "example.com."},
+				Conditions: []Condition{Condition("[IP] == " + serverIP), "[DNS_RCODE] == NOERROR"},
+			}
+			if err := endpoint.ValidateAndSetDefaults(); err != nil {
+				t.Fatal("did not expect an error, got", err)
+			}
+			result := endpoint.EvaluateHealth()
+			if result.Hostname != serverIP {
+				t.Errorf("expected hostname %q, got %q", serverIP, result.Hostname)
+			}
+			if !result.Success {
+				t.Errorf("expected a success, got errors=%v", result.Errors)
+			}
+		})
+	}
+}
+
+func TestDNSServerHostAndPort(t *testing.T) {
+	scenarios := []struct {
+		address, host, port string
+	}{
+		{"8.8.8.8", "8.8.8.8", ""},
+		{"8.8.8.8:5353", "8.8.8.8", "5353"},
+		{"dns.google:53", "dns.google", "53"},
+		{"2001:db8::53", "2001:db8::53", ""},
+		{"[2001:db8::53]", "2001:db8::53", ""},
+		{"[2001:db8::53]:53", "2001:db8::53", "53"},
+		{"[2001:db8::53]:5353", "2001:db8::53", "5353"},
+		{"fe80::1%eth0", "fe80::1%eth0", ""},
+		{"[fe80::1%eth0]", "fe80::1%eth0", ""},
+		{"[fe80::1%eth0]:53", "fe80::1%eth0", "53"},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.address, func(t *testing.T) {
+			host, port := dnsServerHostAndPort(scenario.address)
+			if host != scenario.host || port != scenario.port {
+				t.Errorf("dnsServerHostAndPort(%q) = %q, %q; want %q, %q", scenario.address, host, port, scenario.host, scenario.port)
+			}
+		})
+	}
+}
+
+func TestIntegrationEvaluateHealthForDNSHideAddress(t *testing.T) {
+	for _, address := range []string{"127.0.0.1:0", "[::1]:0", "localhost:0"} {
+		t.Run(address, func(t *testing.T) {
+			packetConn, err := net.ListenPacket("udp", address)
+			if err != nil {
+				t.Skip("cannot listen on", address, err)
+			}
+			defer packetConn.Close()
+			host, port, err := net.SplitHostPort(packetConn.LocalAddr().String())
+			if err != nil {
+				t.Fatal(err)
+			}
+			if address == "localhost:0" {
+				host = "localhost"
+			}
+			for _, scenario := range []struct {
+				name         string
+				hideHostname bool
+				hidePort     bool
+			}{
+				{"hide-port", false, true},
+				{"hide-hostname", true, false},
+				{"hide-both", true, true},
+			} {
+				t.Run(scenario.name, func(t *testing.T) {
+					// 本地 UDP socket 不回复查询，让错误信息包含目标地址。
+					e := Endpoint{
+						Name:       "dns-redaction",
+						URL:        net.JoinHostPort(host, port),
+						DNSConfig:  &dns.Config{QueryType: "A", QueryName: "example.com."},
+						UIConfig:   &ui.Config{HideHostname: scenario.hideHostname, HidePort: scenario.hidePort},
+						Conditions: []Condition{"[CONNECTED] == true"},
+					}
+					if err := e.ValidateAndSetDefaults(); err != nil {
+						t.Fatal(err)
+					}
+					result := e.EvaluateHealth()
+					if result.Success || len(result.Errors) == 0 {
+						t.Fatalf("expected a network error, got %+v", result)
+					}
+					errorText := strings.Join(result.Errors, "\n")
+					if strings.Contains(errorText, ":"+port) {
+						t.Errorf("the target port should be hidden: %s", errorText)
+					}
+					if scenario.hideHostname {
+						if result.Hostname != "" || strings.Contains(errorText, host) || !strings.Contains(errorText, "-><redacted>") {
+							t.Errorf("hide-hostname should hide the hostname and target address: %+v", result)
+						}
+					} else if result.Hostname != host || !strings.Contains(errorText, ":<redacted>") {
+						t.Errorf("hide-port should preserve the hostname: %+v", result)
+					}
+					if scenario.hidePort && result.port != "" {
+						t.Errorf("expected the stored port to be cleared, got %q", result.port)
+					}
+				})
+			}
+		})
+	}
+}
+
+func TestRedactDNSAddress(t *testing.T) {
+	scenarios := []struct {
+		name, address, message, expected string
+		hideHostname                     bool
+	}{
+		{
+			"ipv4-port", "192.0.2.53:53",
+			"read udp 192.0.2.53:5353->192.0.2.53:53: timeout after 53ms (15353)",
+			"read udp 192.0.2.53:5353->192.0.2.53:<redacted>: timeout after 53ms (15353)", false,
+		},
+		{
+			"ipv6-port", "[2001:db8::53]:53",
+			"read udp [2001:db8::53]:5353->[2001:db8::53]:53: error 53",
+			"read udp [2001:db8::53]:5353->[2001:db8::53]:<redacted>: error 53", false,
+		},
+		{
+			"unrelated-addresses", "192.0.2.53:53",
+			"1192.0.2.53:53, other.192.0.2.53:53, 192.0.2.54:53, 192.0.2.53:5353",
+			"1192.0.2.53:53, other.192.0.2.53:53, 192.0.2.54:53, 192.0.2.53:5353", false,
+		},
+		{
+			"hostname-boundaries", "dns.example:53",
+			"(dns.example:53), my-dns.example:53, dns.example:5353, dns.example:53x",
+			"(dns.example:<redacted>), my-dns.example:53, dns.example:5353, dns.example:53x", false,
+		},
+		{
+			"hide-full-address", "192.0.2.53:5353",
+			"dial udp 192.0.2.53:5353: timeout after 5353ms",
+			"dial udp <redacted>: timeout after 5353ms", true,
+		},
+		{
+			"zone-and-repeated-address", "[fe80::53%eth0]:53",
+			"[fe80::53%eth0]:53 -> [fe80::53%eth0]:53",
+			"<redacted> -> <redacted>", true,
+		},
+		{
+			"missing-port", "192.0.2.53",
+			"lookup 192.0.2.53: no such host",
+			"lookup 192.0.2.53: no such host", false,
+		},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			if actual := redactDNSAddress(scenario.message, scenario.address, scenario.hideHostname); actual != scenario.expected {
+				t.Errorf("expected %q, got %q", scenario.expected, actual)
+			}
+		})
 	}
 }
 

@@ -15,6 +15,7 @@ import (
 	"net/smtp"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -170,7 +171,7 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 					PreferGo: true,
 					Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
 						d := net.Dialer{}
-						return d.DialContext(ctx, dnsResolver.Protocol, dnsResolver.Host+":"+dnsResolver.Port)
+						return d.DialContext(ctx, dnsResolver.Protocol, net.JoinHostPort(dnsResolver.Host, dnsResolver.Port))
 					},
 				},
 			}
@@ -467,10 +468,17 @@ func QueryWebSocket(address, body string, headers map[string]string, config *Con
 	return true, msg, nil
 }
 
-func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string, body []byte, err error) {
-	if !strings.Contains(url, ":") {
-		url = fmt.Sprintf("%s:%d", url, dnsPort)
+// dnsServerAddress appends the default DNS port to an address that doesn't have one.
+// An IPv6 address takes brackets when it comes with a port ("[2001:db8::1]:53"), and may go without them otherwise.
+func dnsServerAddress(address string) string {
+	if _, _, err := net.SplitHostPort(address); err == nil {
+		return address
 	}
+	return net.JoinHostPort(strings.TrimSuffix(strings.TrimPrefix(address, "["), "]"), strconv.Itoa(dnsPort))
+}
+
+func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string, body []byte, err error) {
+	url = dnsServerAddress(url)
 	queryTypeAsUint16 := dns.StringToType[queryType]
 	// Special handling: if this is a PTR query and queryName looks like a plain IP,
 	// convert it to the proper reverse lookup domain automatically.
