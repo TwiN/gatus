@@ -8,6 +8,7 @@ import (
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/ui"
 	"github.com/TwiN/gatus/v5/config/web"
+	"github.com/TwiN/gatus/v5/metrics"
 	static "github.com/TwiN/gatus/v5/web"
 	"github.com/TwiN/health"
 	"github.com/TwiN/logr"
@@ -65,7 +66,11 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 	app.Use(compress.New())
 	// Define metrics handler, if necessary
 	if cfg.Metrics {
-		metricsHandler := promhttp.InstrumentMetricHandler(prometheus.DefaultRegisterer, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
+		gatherers := prometheus.Gatherers{prometheus.DefaultGatherer}
+		if gatherer := metrics.Gatherer(); gatherer != nil {
+			gatherers = append(gatherers, gatherer)
+		}
+		metricsHandler := promhttp.InstrumentMetricHandler(prometheus.DefaultRegisterer, promhttp.HandlerFor(gatherers, promhttp.HandlerOpts{
 			DisableCompression: true,
 		}))
 		app.Get("/metrics", adaptor.HTTPHandler(metricsHandler))
