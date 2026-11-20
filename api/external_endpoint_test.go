@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/TwiN/gatus/v5/alerting"
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -173,4 +174,54 @@ func TestCreateExternalEndpointResult(t *testing.T) {
 			t.Errorf("expected 0 successes in a row but got %d", externalEndpointFromConfig.NumberOfSuccessesInARow)
 		}
 	})
+}
+
+func TestCreateExternalEndpointResultUnderEndpointMaintenanceWindow(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+	location, err := time.LoadLocation("Europe/Berlin")
+	if err != nil {
+		t.Fatal(err)
+	}
+	externalEndpoint := &endpoint.ExternalEndpoint{
+		Name:  "n",
+		Group: "g",
+		Token: "token",
+		Alerts: []*alert.Alert{
+			{
+				Type:             alert.TypeDiscord,
+				FailureThreshold: 2,
+				SuccessThreshold: 2,
+			},
+		},
+		MaintenanceWindows: []*maintenance.Config{{
+			Start:    time.Now().In(location).Add(-time.Minute).Format("15:04"),
+			Duration: time.Hour,
+			Timezone: "Europe/Berlin",
+		}},
+	}
+	if err := externalEndpoint.ValidateAndSetDefaults(); err != nil {
+		t.Fatal("did not expect an error, got", err)
+	}
+	cfg := &config.Config{
+		Alerting: &alerting.Config{
+			Discord: &discord.AlertProvider{},
+		},
+		ExternalEndpoints: []*endpoint.ExternalEndpoint{externalEndpoint},
+		Maintenance:       &maintenance.Config{},
+	}
+	router := New(cfg).Router()
+	request := httptest.NewRequest("POST", "/api/v1/endpoints/g_n/external?success=false", http.NoBody)
+	request.Header.Set("Authorization", "Bearer token")
+	response, err := router.Test(request)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer response.Body.Close()
+	if response.StatusCode != 200 {
+		t.Fatalf("expected 200, got %d", response.StatusCode)
+	}
+	if externalEndpoint.NumberOfFailuresInARow != 0 {
+		t.Errorf("expected alerting to be skipped because the endpoint is under maintenance, but NumberOfFailuresInARow is %d", externalEndpoint.NumberOfFailuresInARow)
+	}
 }

@@ -63,9 +63,28 @@ func New(config *Config) *SSHTunnel {
 		// Note: We don't return error here to maintain backward compatibility.
 		// Invalid keys will be caught during first connection attempt.
 	} else if config.Password != "" {
-		tunnel.authMethods = []ssh.AuthMethod{ssh.Password(config.Password)}
+		tunnel.authMethods = passwordAuthMethods(config.Password)
 	}
 	return tunnel
+}
+
+// passwordAuthMethods returns the authentication methods for password-based authentication.
+// In addition to the "password" method, "keyboard-interactive" is supported, because some servers
+// (e.g. PasswordAuthentication disabled, but PAM enabled) only offer the latter, which the OpenSSH CLI
+// transparently uses to prompt for the password. Every keyboard-interactive prompt is answered with the password.
+//
+// Note: client has an equivalent helper (sshPasswordAuthMethods); keep both in sync.
+func passwordAuthMethods(password string) []ssh.AuthMethod {
+	return []ssh.AuthMethod{
+		ssh.Password(password),
+		ssh.KeyboardInteractive(func(name, instruction string, questions []string, echos []bool) ([]string, error) {
+			answers := make([]string, len(questions))
+			for i := range questions {
+				answers[i] = password
+			}
+			return answers, nil
+		}),
+	}
 }
 
 // Connect establishes the SSH connection

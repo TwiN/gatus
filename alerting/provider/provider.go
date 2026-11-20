@@ -3,6 +3,7 @@ package provider
 import (
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/alerting/provider/awsses"
+	"github.com/TwiN/gatus/v5/alerting/provider/bark"
 	"github.com/TwiN/gatus/v5/alerting/provider/clickup"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/datadog"
@@ -28,6 +29,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/pagerduty"
 	"github.com/TwiN/gatus/v5/alerting/provider/plivo"
 	"github.com/TwiN/gatus/v5/alerting/provider/pushover"
+	"github.com/TwiN/gatus/v5/alerting/provider/resend"
 	"github.com/TwiN/gatus/v5/alerting/provider/rocketchat"
 	"github.com/TwiN/gatus/v5/alerting/provider/sendgrid"
 	"github.com/TwiN/gatus/v5/alerting/provider/signal"
@@ -93,6 +95,7 @@ func MergeProviderDefaultAlertIntoEndpointAlert(providerDefaultAlert, endpointAl
 var (
 	// Validate provider interface implementation on compile
 	_ AlertProvider = (*awsses.AlertProvider)(nil)
+	_ AlertProvider = (*bark.AlertProvider)(nil)
 	_ AlertProvider = (*clickup.AlertProvider)(nil)
 	_ AlertProvider = (*custom.AlertProvider)(nil)
 	_ AlertProvider = (*datadog.AlertProvider)(nil)
@@ -118,6 +121,7 @@ var (
 	_ AlertProvider = (*pagerduty.AlertProvider)(nil)
 	_ AlertProvider = (*plivo.AlertProvider)(nil)
 	_ AlertProvider = (*pushover.AlertProvider)(nil)
+	_ AlertProvider = (*resend.AlertProvider)(nil)
 	_ AlertProvider = (*rocketchat.AlertProvider)(nil)
 	_ AlertProvider = (*sendgrid.AlertProvider)(nil)
 	_ AlertProvider = (*signal.AlertProvider)(nil)
@@ -135,6 +139,7 @@ var (
 
 	// Validate config interface implementation on compile
 	_ Config[awsses.Config]         = (*awsses.Config)(nil)
+	_ Config[bark.Config]           = (*bark.Config)(nil)
 	_ Config[clickup.Config]        = (*clickup.Config)(nil)
 	_ Config[custom.Config]         = (*custom.Config)(nil)
 	_ Config[datadog.Config]        = (*datadog.Config)(nil)
@@ -160,6 +165,7 @@ var (
 	_ Config[pagerduty.Config]      = (*pagerduty.Config)(nil)
 	_ Config[plivo.Config]          = (*plivo.Config)(nil)
 	_ Config[pushover.Config]       = (*pushover.Config)(nil)
+	_ Config[resend.Config]         = (*resend.Config)(nil)
 	_ Config[rocketchat.Config]     = (*rocketchat.Config)(nil)
 	_ Config[sendgrid.Config]       = (*sendgrid.Config)(nil)
 	_ Config[signal.Config]         = (*signal.Config)(nil)

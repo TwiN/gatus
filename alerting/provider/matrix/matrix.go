@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"html"
 	"io"
 	"math/rand"
 	"net/http"
 	"net/url"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
 	"github.com/TwiN/gatus/v5/client"
@@ -144,39 +146,65 @@ func (provider *AlertProvider) buildRequestBody(ep *endpoint.Endpoint, alert *al
 	return body
 }
 
+func buildHeader(resolved bool) (emoji, status string) {
+	if resolved {
+		return "💚", "RESOLVED"
+	}
+	return "💔", "ALERT"
+}
+
+func buildSummary(alert *alert.Alert, resolved bool) string {
+	if resolved {
+		return fmt.Sprintf("passed %d time(s) in a row", alert.SuccessThreshold)
+	}
+	return fmt.Sprintf("failed %d time(s) in a row", alert.FailureThreshold)
+}
+
+func linkableURL(ep *endpoint.Endpoint) string {
+	if ep.UIConfig != nil && (ep.UIConfig.HideURL || ep.UIConfig.HideHostname || ep.UIConfig.HidePort) {
+		return ""
+	}
+	parsed, err := url.Parse(ep.URL)
+	if err != nil || (parsed.Scheme != "http" && parsed.Scheme != "https") || parsed.Host == "" ||
+		parsed.User != nil || parsed.RawQuery != "" || parsed.ForceQuery || parsed.Fragment != "" {
+		return ""
+	}
+	return parsed.String()
+}
+
 // buildPlaintextMessageBody builds the message body in plaintext to include in request
 func buildPlaintextMessageBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) string {
-	var message string
-	if resolved {
-		message = fmt.Sprintf("An alert for `%s` has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
-	} else {
-		message = fmt.Sprintf("An alert for `%s` has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
-	}
-	var formattedConditionResults string
-	for _, conditionResult := range result.ConditionResults {
-		var prefix string
-		if conditionResult.Success {
-			prefix = "✓"
-		} else {
-			prefix = "✕"
-		}
-		formattedConditionResults += fmt.Sprintf("\n%s - %s", prefix, conditionResult.Condition)
-	}
-	var description string
+	emoji, status := buildHeader(resolved)
+	message := fmt.Sprintf("%s %s\nEndpoint: %s (%s)", emoji, status, ep.DisplayName(), buildSummary(alert, resolved))
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
-		description = "\n" + alertDescription
+		message += "\n\n" + alertDescription
 	}
-	return fmt.Sprintf("%s%s\n%s", message, description, formattedConditionResults)
+	if len(result.ConditionResults) > 0 {
+		message += "\n"
+		for _, conditionResult := range result.ConditionResults {
+			var prefix string
+			if conditionResult.Success {
+				prefix = "✓"
+			} else {
+				prefix = "✕"
+			}
+			message += fmt.Sprintf("\n%s - %s", prefix, conditionResult.Condition)
+		}
+	}
+	if len(result.Errors) > 0 {
+		message += "\n\n" + strings.Join(result.Errors, "\n")
+	}
+	return message
 }
 
 // buildHTMLMessageBody builds the message body in HTML to include in request
 func buildHTMLMessageBody(ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) string {
-	var message string
-	if resolved {
-		message = fmt.Sprintf("An alert for <code>%s</code> has been resolved after passing successfully %d time(s) in a row", ep.DisplayName(), alert.SuccessThreshold)
-	} else {
-		message = fmt.Sprintf("An alert for <code>%s</code> has been triggered due to having failed %d time(s) in a row", ep.DisplayName(), alert.FailureThreshold)
+	emoji, status := buildHeader(resolved)
+	name := html.EscapeString(ep.DisplayName())
+	if link := linkableURL(ep); len(link) > 0 {
+		name = fmt.Sprintf("<a href=\"%s\">%s</a>", html.EscapeString(link), name)
 	}
+	message := fmt.Sprintf("<p>%s <b>%s</b><br>\nEndpoint: %s (%s)</p>", emoji, status, name, buildSummary(alert, resolved))
 	var formattedConditionResults string
 	if len(result.ConditionResults) > 0 {
 		formattedConditionResults = "\n<h5>Condition results</h5><ul>"
@@ -187,15 +215,19 @@ func buildHTMLMessageBody(ep *endpoint.Endpoint, alert *alert.Alert, result *end
 			} else {
 				prefix = "❌"
 			}
-			formattedConditionResults += fmt.Sprintf("<li>%s - <code>%s</code></li>", prefix, conditionResult.Condition)
+			formattedConditionResults += fmt.Sprintf("<li>%s - <code>%s</code></li>", prefix, html.EscapeString(conditionResult.Condition))
 		}
 		formattedConditionResults += "</ul>"
 	}
 	var description string
 	if alertDescription := alert.GetDescription(); len(alertDescription) > 0 {
-		description = fmt.Sprintf("\n<blockquote>%s</blockquote>", alertDescription)
+		description = fmt.Sprintf("\n<blockquote>%s</blockquote>", html.EscapeString(alertDescription))
 	}
-	return fmt.Sprintf("<h3>%s</h3>%s%s", message, description, formattedConditionResults)
+	var formattedErrors string
+	if len(result.Errors) > 0 {
+		formattedErrors = fmt.Sprintf("\n<pre><code>%s</code></pre>", html.EscapeString(strings.Join(result.Errors, "\n")))
+	}
+	return fmt.Sprintf("%s%s%s%s", message, description, formattedConditionResults, formattedErrors)
 }
 
 func randStringBytes(n int) string {
