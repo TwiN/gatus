@@ -58,7 +58,7 @@ type Alert struct {
 	ProviderOverride map[string]any `yaml:"provider-override,omitempty"`
 
 	// ResolveKey is an optional field that is used by some providers (i.e. PagerDuty's dedup_key) to resolve
-	// ongoing/triggered incidents
+	// ongoing/triggered incidents. The custom provider stores its incident id there.
 	ResolveKey string `yaml:"-"`
 
 	// Triggered is used to determine whether an alert has been triggered. When an alert is resolved, this value

@@ -2,6 +2,7 @@ package endpoint
 
 import (
 	"errors"
+	"sync"
 	"time"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
@@ -22,6 +23,9 @@ var (
 // said endpoints are not monitored by Gatus itself; Gatus only displays their results and takes
 // care of alerting
 type ExternalEndpoint struct {
+	// mutex serializes the handling of the results of the endpoint, which the push handler and the heartbeat check both do
+	mutex sync.Mutex
+
 	// Enabled defines whether to enable the monitoring of the endpoint
 	Enabled *bool `yaml:"enabled,omitempty"`
 
@@ -110,4 +114,10 @@ func (externalEndpoint *ExternalEndpoint) ToEndpoint() *Endpoint {
 		LastReminderSent:        externalEndpoint.LastReminderSent,
 	}
 	return endpoint
+}
+
+// Lock serializes the handling of the results of the external endpoint and returns the function that unlocks it.
+func (externalEndpoint *ExternalEndpoint) Lock() (unlock func()) {
+	externalEndpoint.mutex.Lock()
+	return externalEndpoint.mutex.Unlock
 }
