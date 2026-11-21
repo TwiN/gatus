@@ -531,3 +531,32 @@ func TestAlertProvider_GetConfig(t *testing.T) {
 		})
 	}
 }
+
+func TestAlertProvider_TopicPlaceholders(t *testing.T) {
+	t.Parallel()
+	provider := AlertProvider{}
+	cfg := Config{Topic: "[ALERT_TRIGGERED_OR_RESOLVED] [ENDPOINT] [ENDPOINT_GROUP]/[ENDPOINT_NAME] [ALERT_DESCRIPTION]"}
+	ep := endpoint.Endpoint{Name: "website", Group: "external"}
+	description := "healthcheck failed"
+	scenarios := []struct {
+		name     string
+		resolved bool
+		want     string
+	}{
+		{name: "triggered", want: "TRIGGERED external/website external/website healthcheck failed"},
+		{name: "resolved", resolved: true, want: "RESOLVED external/website external/website healthcheck failed"},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+			body := provider.buildRequestBody(&cfg, &ep, &alert.Alert{Description: &description}, &endpoint.Result{}, scenario.resolved)
+			values, err := url.ParseQuery(body)
+			if err != nil {
+				t.Fatal(err)
+			}
+			if got := values.Get("topic"); got != scenario.want {
+				t.Errorf("expected topic %q, got %q", scenario.want, got)
+			}
+		})
+	}
+}
