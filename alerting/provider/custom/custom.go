@@ -2,9 +2,11 @@ package custom
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
+	"mime"
 	"net/http"
 	"strings"
 
@@ -100,16 +102,29 @@ func (provider *AlertProvider) Send(ep *endpoint.Endpoint, alert *alert.Alert, r
 
 func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoint, alert *alert.Alert, result *endpoint.Result, resolved bool) *http.Request {
 	body, url, method := cfg.Body, cfg.URL, cfg.Method
-	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", alert.GetDescription())
+	// A body sent as JSON gets every value as the content of a JSON string, so that a quote,
+	// a backslash or a newline in it (e.g. the response body a failed [BODY] condition shows)
+	// cannot break the document. Other bodies get the values as they are.
+	jsonBody := hasJSONContentType(cfg.Headers)
+	escape := func(s string) string { return s }
+	if jsonBody {
+		escape = jsonStringContent
+	}
+	body = strings.ReplaceAll(body, "[ALERT_DESCRIPTION]", escape(alert.GetDescription()))
 	url = strings.ReplaceAll(url, "[ALERT_DESCRIPTION]", alert.GetDescription())
-	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", ep.Name)
+	body = strings.ReplaceAll(body, "[ENDPOINT_NAME]", escape(ep.Name))
 	url = strings.ReplaceAll(url, "[ENDPOINT_NAME]", ep.Name)
-	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", ep.Group)
+	body = strings.ReplaceAll(body, "[ENDPOINT_GROUP]", escape(ep.Group))
 	url = strings.ReplaceAll(url, "[ENDPOINT_GROUP]", ep.Group)
-	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", ep.URL)
+	body = strings.ReplaceAll(body, "[ENDPOINT_URL]", escape(ep.URL))
 	url = strings.ReplaceAll(url, "[ENDPOINT_URL]", ep.URL)
+	// Outside a JSON body, only the quotes of the errors are escaped, as before.
 	resultErrors := strings.ReplaceAll(strings.Join(result.Errors, ","), "\"", "\\\"")
-	body = strings.ReplaceAll(body, "[RESULT_ERRORS]", resultErrors)
+	if jsonBody {
+		body = strings.ReplaceAll(body, "[RESULT_ERRORS]", escape(strings.Join(result.Errors, ",")))
+	} else {
+		body = strings.ReplaceAll(body, "[RESULT_ERRORS]", resultErrors)
+	}
 	url = strings.ReplaceAll(url, "[RESULT_ERRORS]", resultErrors)
 
 	if len(result.ConditionResults) > 0 && strings.Contains(body, "[RESULT_CONDITIONS]") {
@@ -126,7 +141,7 @@ func (provider *AlertProvider) buildHTTPRequest(cfg *Config, ep *endpoint.Endpoi
 				formattedConditionResults += ", "
 			}
 		}
-		body = strings.ReplaceAll(body, "[RESULT_CONDITIONS]", formattedConditionResults)
+		body = strings.ReplaceAll(body, "[RESULT_CONDITIONS]", escape(formattedConditionResults))
 		url = strings.ReplaceAll(url, "[RESULT_CONDITIONS]", formattedConditionResults)
 	}
 
@@ -196,4 +211,26 @@ func (provider *AlertProvider) GetConfig(group string, alert *alert.Alert) (*Con
 func (provider *AlertProvider) ValidateOverrides(group string, alert *alert.Alert) error {
 	_, err := provider.GetConfig(group, alert)
 	return err
+}
+
+// hasJSONContentType returns whether the Content-Type header of the request is JSON
+// (application/json, or a type with the +json suffix such as application/vnd.api+json)
+func hasJSONContentType(headers map[string]string) bool {
+	for key, value := range headers {
+		if strings.EqualFold(key, "Content-Type") {
+			mediaType, _, err := mime.ParseMediaType(value)
+			return err == nil && (mediaType == "application/json" || strings.HasSuffix(mediaType, "+json"))
+		}
+	}
+	return false
+}
+
+// jsonStringContent returns s escaped as the content of a JSON string, without the surrounding quotes
+func jsonStringContent(s string) string {
+	var buffer bytes.Buffer
+	encoder := json.NewEncoder(&buffer)
+	encoder.SetEscapeHTML(false)
+	_ = encoder.Encode(s)
+	encoded := strings.TrimSuffix(buffer.String(), "\n")
+	return encoded[1 : len(encoded)-1]
 }
