@@ -162,6 +162,13 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 			Inline: false,
 		})
 	}
+	if endpointURL := ep.NotificationURL(); endpointURL != "" {
+		body.Embeds[0].Fields = append(body.Embeds[0].Fields, Field{
+			Name:   "Endpoint",
+			Value:  endpointURL,
+			Inline: false,
+		})
+	}
 	bodyAsJSON, _ := json.Marshal(body)
 	return bodyAsJSON
 }
