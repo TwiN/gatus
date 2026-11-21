@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bufio"
 	"bytes"
 	"crypto/tls"
 	"errors"
@@ -247,6 +248,54 @@ func TestCanPerformStartTLS(t *testing.T) {
 			}
 			if connected != tt.wantConnected {
 				t.Errorf("CanPerformStartTLS() connected=%v, wantConnected=%v", connected, tt.wantConnected)
+			}
+		})
+	}
+}
+
+func TestCanPerformStartTLSWithIMAP(t *testing.T) {
+	// Borrow the self-signed certificate of an httptest TLS server for the fake IMAP server
+	httpsServer := httptest.NewTLSServer(http.NotFoundHandler())
+	defer httpsServer.Close()
+	tests := []struct {
+		name             string
+		starttlsResponse string
+		wantConnected    bool
+	}{
+		{name: "starttls accepted", starttlsResponse: "a1 OK Begin TLS negotiation now\r\n", wantConnected: true},
+		{name: "starttls rejected", starttlsResponse: "a1 BAD STARTTLS not supported\r\n", wantConnected: false},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			listener, err := net.Listen("tcp", "127.0.0.1:0")
+			if err != nil {
+				t.Fatal(err)
+			}
+			defer listener.Close()
+			go func() {
+				conn, err := listener.Accept()
+				if err != nil {
+					return
+				}
+				defer conn.Close()
+				conn.Write([]byte("* OK [CAPABILITY IMAP4rev1 STARTTLS] Dovecot ready.\r\n"))
+				if _, err := bufio.NewReader(conn).ReadString('\n'); err != nil {
+					return
+				}
+				conn.Write([]byte(tt.starttlsResponse))
+				if tt.wantConnected {
+					tls.Server(conn, httpsServer.TLS).Handshake()
+				}
+			}()
+			connected, certificate, err := CanPerformStartTLS(listener.Addr().String(), &Config{Insecure: true, Timeout: 5 * time.Second})
+			if connected != tt.wantConnected {
+				t.Errorf("CanPerformStartTLS() connected=%v, wantConnected=%v, err=%v", connected, tt.wantConnected, err)
+			}
+			if tt.wantConnected && certificate == nil {
+				t.Error("expected a certificate")
+			}
+			if !tt.wantConnected && err == nil {
+				t.Error("expected an error")
 			}
 		})
 	}

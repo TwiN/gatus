@@ -1,6 +1,7 @@
 package client
 
 import (
+	"bufio"
 	"bytes"
 	"context"
 	"crypto/tls"
@@ -196,14 +197,25 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 		_ = connection.SetDeadline(time.Now().Add(config.Timeout))
 	}
 
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: config.Insecure,
+		ServerName:         hostAndPort[0],
+	}
+	// Peek at the greeting to tell IMAP ("* OK") apart from SMTP ("220") without consuming it
+	reader := bufio.NewReader(connection)
+	greeting, err := reader.Peek(4)
+	if err != nil {
+		return
+	}
+	connection = &bufferedConn{Conn: connection, reader: reader}
+	if string(greeting) == "* OK" {
+		return performIMAPStartTLS(connection, reader, tlsConfig)
+	}
 	smtpClient, err := smtp.NewClient(connection, hostAndPort[0])
 	if err != nil {
 		return
 	}
-	err = smtpClient.StartTLS(&tls.Config{
-		InsecureSkipVerify: config.Insecure,
-		ServerName:         hostAndPort[0],
-	})
+	err = smtpClient.StartTLS(tlsConfig)
 	if err != nil {
 		return
 	}
@@ -213,6 +225,44 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 		return false, nil, errors.New("could not get TLS connection state")
 	}
 	return true, certificate, nil
+}
+
+// bufferedConn is a net.Conn that reads through a bufio.Reader, so bytes that were peeked are not lost
+type bufferedConn struct {
+	net.Conn
+	reader *bufio.Reader
+}
+
+func (c *bufferedConn) Read(p []byte) (int, error) {
+	return c.reader.Read(p)
+}
+
+// performIMAPStartTLS upgrades an IMAP connection to TLS using the STARTTLS command (RFC 3501)
+func performIMAPStartTLS(connection net.Conn, reader *bufio.Reader, tlsConfig *tls.Config) (bool, *x509.Certificate, error) {
+	if _, err := reader.ReadString('\n'); err != nil { // greeting
+		return false, nil, err
+	}
+	if _, err := connection.Write([]byte("a1 STARTTLS\r\n")); err != nil {
+		return false, nil, err
+	}
+	for {
+		line, err := reader.ReadString('\n')
+		if err != nil {
+			return false, nil, err
+		}
+		if strings.HasPrefix(line, "a1 ") {
+			if !strings.HasPrefix(line, "a1 OK") {
+				return false, nil, fmt.Errorf("imap starttls failed: %s", strings.TrimSpace(line))
+			}
+			break
+		}
+	}
+	tlsConnection := tls.Client(connection, tlsConfig)
+	if err := tlsConnection.Handshake(); err != nil {
+		return false, nil, err
+	}
+	defer tlsConnection.Close()
+	return true, tlsConnection.ConnectionState().PeerCertificates[0], nil
 }
 
 // CanPerformTLS checks whether a connection can be established to an address using the TLS protocol
