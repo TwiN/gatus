@@ -44,6 +44,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/signal"
 	"github.com/TwiN/gatus/v5/alerting/provider/signl4"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
+	"github.com/TwiN/gatus/v5/alerting/provider/smstunnel"
 	"github.com/TwiN/gatus/v5/alerting/provider/splunk"
 	"github.com/TwiN/gatus/v5/alerting/provider/squadcast"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
@@ -1930,6 +1931,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		Signal:                &signal.AlertProvider{},
 		SIGNL4:                &signl4.AlertProvider{},
 		Slack:                 &slack.AlertProvider{},
+		SMSTunnel:             &smstunnel.AlertProvider{},
 		Splunk:                &splunk.AlertProvider{},
 		Squadcast:             &squadcast.AlertProvider{},
 		Telegram:              &telegram.AlertProvider{},
@@ -1977,6 +1979,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypeSignal, expected: alertingConfig.Signal},
 		{alertType: alert.TypeSIGNL4, expected: alertingConfig.SIGNL4},
 		{alertType: alert.TypeSlack, expected: alertingConfig.Slack},
+		{alertType: alert.TypeSMSTunnel, expected: alertingConfig.SMSTunnel},
 		{alertType: alert.TypeSplunk, expected: alertingConfig.Splunk},
 		{alertType: alert.TypeSquadcast, expected: alertingConfig.Squadcast},
 		{alertType: alert.TypeTelegram, expected: alertingConfig.Telegram},

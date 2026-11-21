@@ -39,6 +39,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/signal"
 	"github.com/TwiN/gatus/v5/alerting/provider/signl4"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
+	"github.com/TwiN/gatus/v5/alerting/provider/smstunnel"
 	"github.com/TwiN/gatus/v5/alerting/provider/splunk"
 	"github.com/TwiN/gatus/v5/alerting/provider/squadcast"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
@@ -152,6 +153,9 @@ type Config struct {
 
 	// Slack is the configuration for the slack alerting provider
 	Slack *slack.AlertProvider `yaml:"slack,omitempty"`
+
+	// SMSTunnel is the configuration for the smstunnel alerting provider
+	SMSTunnel *smstunnel.AlertProvider `yaml:"smstunnel,omitempty"`
 
 	// Splunk is the configuration for the splunk alerting provider
 	Splunk *splunk.AlertProvider `yaml:"splunk,omitempty"`

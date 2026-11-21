@@ -35,6 +35,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/signal"
 	"github.com/TwiN/gatus/v5/alerting/provider/signl4"
 	"github.com/TwiN/gatus/v5/alerting/provider/slack"
+	"github.com/TwiN/gatus/v5/alerting/provider/smstunnel"
 	"github.com/TwiN/gatus/v5/alerting/provider/splunk"
 	"github.com/TwiN/gatus/v5/alerting/provider/squadcast"
 	"github.com/TwiN/gatus/v5/alerting/provider/teams"
@@ -127,6 +128,7 @@ var (
 	_ AlertProvider = (*signal.AlertProvider)(nil)
 	_ AlertProvider = (*signl4.AlertProvider)(nil)
 	_ AlertProvider = (*slack.AlertProvider)(nil)
+	_ AlertProvider = (*smstunnel.AlertProvider)(nil)
 	_ AlertProvider = (*splunk.AlertProvider)(nil)
 	_ AlertProvider = (*squadcast.AlertProvider)(nil)
 	_ AlertProvider = (*teams.AlertProvider)(nil)
@@ -171,6 +173,7 @@ var (
 	_ Config[signal.Config]         = (*signal.Config)(nil)
 	_ Config[signl4.Config]         = (*signl4.Config)(nil)
 	_ Config[slack.Config]          = (*slack.Config)(nil)
+	_ Config[smstunnel.Config]      = (*smstunnel.Config)(nil)
 	_ Config[splunk.Config]         = (*splunk.Config)(nil)
 	_ Config[squadcast.Config]      = (*squadcast.Config)(nil)
 	_ Config[teams.Config]          = (*teams.Config)(nil)

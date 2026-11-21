@@ -104,6 +104,9 @@ const (
 	// TypeSlack is the Type for the slack alerting provider
 	TypeSlack Type = "slack"
 
+	// TypeSMSTunnel is the Type for the smstunnel alerting provider
+	TypeSMSTunnel Type = "smstunnel"
+
 	// TypeSplunk is the Type for the splunk alerting provider
 	TypeSplunk Type = "splunk"
 
