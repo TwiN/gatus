@@ -156,6 +156,11 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 
 	var connection net.Conn
 	var dnsResolver *DNSResolverConfig
+	defer func() {
+		if connection != nil {
+			_ = connection.Close()
+		}
+	}()
 
 	if config.HasCustomDNSResolver() {
 		dnsResolver, err = config.parseDNSResolver()
@@ -166,6 +171,7 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 			logr.Errorf("[client.getHTTPClient] THIS SHOULD NOT HAPPEN. Silently ignoring invalid DNS resolver due to error: %s", err.Error())
 		} else {
 			dialer := &net.Dialer{
+				Timeout: config.Timeout,
 				Resolver: &net.Resolver{
 					PreferGo: true,
 					Dial: func(ctx context.Context, network, address string) (net.Conn, error) {
@@ -178,12 +184,16 @@ func CanPerformStartTLS(address string, config *Config) (connected bool, certifi
 			if err != nil {
 				return
 			}
+			// Bound the SMTP greeting, EHLO and TLS handshake by the client timeout too
+			_ = connection.SetDeadline(time.Now().Add(config.Timeout))
 		}
 	} else {
 		connection, err = net.DialTimeout("tcp", address, config.Timeout)
 		if err != nil {
 			return
 		}
+		// Bound the SMTP greeting, EHLO and TLS handshake by the client timeout too
+		_ = connection.SetDeadline(time.Now().Add(config.Timeout))
 	}
 
 	smtpClient, err := smtp.NewClient(connection, hostAndPort[0])
