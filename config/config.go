@@ -124,6 +124,7 @@ type Config struct {
 	Announcements []*announcement.Announcement `yaml:"announcements,omitempty"`
 
 	configPath      string    // path to the file or directory from which config was loaded
+	configFiles     []string  // configuration files found in configPath by the last UpdateLastFileModTime
 	lastFileModTime time.Time // last modification time
 }
 
@@ -184,14 +185,17 @@ func (config *Config) HasLoadedConfigurationBeenModified() bool {
 			}
 			return nil
 		})
-		return errors.Is(err, errEarlyReturn)
+		// A file that has been removed, or added with an older modification time, can only be noticed by
+		// comparing the files in the directory with the ones found by the last UpdateLastFileModTime
+		return errors.Is(err, errEarlyReturn) || !slices.Equal(config.configFiles, listConfigFiles(config.configPath))
 	}
 	return !fileInfo.ModTime().IsZero() && config.lastFileModTime.Unix() < fileInfo.ModTime().Unix()
 }
 
-// UpdateLastFileModTime refreshes Config.lastFileModTime
+// UpdateLastFileModTime refreshes Config.lastFileModTime and Config.configFiles
 func (config *Config) UpdateLastFileModTime() {
 	config.lastFileModTime = time.Now()
+	config.configFiles = listConfigFiles(config.configPath)
 }
 
 // LoadConfiguration loads the full configuration composed of the main configuration file
@@ -255,6 +259,18 @@ func LoadConfiguration(configPath string) (*Config, error) {
 	config.configPath = usedConfigPath
 	config.UpdateLastFileModTime()
 	return config, nil
+}
+
+// listConfigFiles returns the configuration files that LoadConfiguration reads from the given directory
+func listConfigFiles(path string) []string {
+	var files []string
+	_ = walkConfigDir(path, func(path string, d fs.DirEntry, err error) error {
+		if !strings.Contains(path, "..") {
+			files = append(files, path)
+		}
+		return nil
+	})
+	return files
 }
 
 // walkConfigDir is a wrapper for filepath.WalkDir that strips directories and non-config files
