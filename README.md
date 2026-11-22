@@ -3291,9 +3291,9 @@ Only the placeholders `[CONNECTED]`, `[IP]` and `[RESPONSE_TIME]` are supported 
 You can specify a domain prefixed by `icmp://`, or an IP address prefixed by `icmp://`.
 
 By default, each check sends a single packet. Like `ping -c`, `client.ping-count` sends multiple packets per check:
-the check succeeds if at least one is answered, and `[RESPONSE_TIME]` is the average round-trip time.
-Packets are sent one second apart, so `client.timeout` must be greater than `ping-count - 1` seconds, and if a packet
-is lost, the check only completes once the timeout is reached.
+the check succeeds if at least one is answered, even if the others are lost, and `[RESPONSE_TIME]` is the average
+round-trip time. Packets are sent one second apart, so `client.timeout` must be greater than `ping-count - 1` seconds,
+and if a packet is lost, the check only completes once the timeout is reached.
 
 If you run Gatus on Linux, please read the Linux section on [https://github.com/prometheus-community/pro-bing#linux]
 if you encounter any problems.
