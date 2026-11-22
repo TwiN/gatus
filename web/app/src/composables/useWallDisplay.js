@@ -1,7 +1,6 @@
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 
 const STORAGE_KEY = 'gatus:wall-display'
-const PLACEHOLDER_DENSITY = '{{ .UI.Density }}'
 
 const wallDisplay = ref(getStoredWallDisplay())
 
@@ -12,15 +11,11 @@ function getStoredWallDisplay() {
   return localStorage.getItem(STORAGE_KEY) === 'true'
 }
 
+// window.config.density is set by the Go-rendered index template (authoritative).
+// This whitelist is a client-side fallback for frontend-dev and unexpected values.
 function getConfigDensity() {
-  if (typeof window === 'undefined' || !window.config) {
-    return 'comfortable'
-  }
-  const density = window.config.density
-  if (!density || density === PLACEHOLDER_DENSITY) {
-    return 'comfortable'
-  }
-  return density
+  const density = typeof window !== 'undefined' && window.config && window.config.density
+  return density === 'compact' ? 'compact' : 'comfortable'
 }
 
 function syncDocumentClasses() {

@@ -3,7 +3,9 @@ package ui
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"html/template"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/storage"
 	static "github.com/TwiN/gatus/v5/web"
@@ -139,8 +141,12 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 	if len(cfg.Density) == 0 {
 		cfg.Density = defaultDensity
-	} else if cfg.Density != "comfortable" && cfg.Density != "compact" {
-		return ErrInvalidDensity
+	} else {
+		normalized := strings.ToLower(strings.TrimSpace(cfg.Density))
+		if normalized != "comfortable" && normalized != "compact" {
+			return fmt.Errorf("%w: got %q", ErrInvalidDensity, cfg.Density)
+		}
+		cfg.Density = normalized
 	}
 	if cfg.DarkMode == nil {
 		cfg.DarkMode = &defaultDarkMode

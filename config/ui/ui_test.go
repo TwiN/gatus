@@ -332,6 +332,18 @@ func TestConfig_ValidateAndSetDefaults_Density(t *testing.T) {
 			ExpectedValue: "compact",
 		},
 		{
+			Name:          "ValidDensity_compact_normalized",
+			Density:       " Compact ",
+			ExpectedError: nil,
+			ExpectedValue: "compact",
+		},
+		{
+			Name:          "ValidDensity_comfortable_uppercase",
+			Density:       "COMFORTABLE",
+			ExpectedError: nil,
+			ExpectedValue: "comfortable",
+		},
+		{
 			Name:          "InvalidDensity",
 			Density:       "invalid",
 			ExpectedError: ErrInvalidDensity,
