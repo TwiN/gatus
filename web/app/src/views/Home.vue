@@ -559,10 +559,15 @@ const dashboardSubheading = computed(() => {
   return window.config && window.config.dashboardSubheading && window.config.dashboardSubheading !== '{{ .UI.DashboardSubheading }}' ? window.config.dashboardSubheading : "Monitor the health of your endpoints in real-time"
 })
 
+const onAuthenticated = () => {
+  fetchAlertingHealth()
+}
+
 onMounted(() => {
   fetchData()
   fetchAlertingHealth()
   alertingHealthInterval = setInterval(fetchAlertingHealth, 300000)
+  window.addEventListener('gatus:authenticated', onAuthenticated)
 })
 
 onUnmounted(() => {
@@ -570,5 +575,6 @@ onUnmounted(() => {
     clearInterval(alertingHealthInterval)
     alertingHealthInterval = null
   }
+  window.removeEventListener('gatus:authenticated', onAuthenticated)
 })
 </script>

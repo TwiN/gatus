@@ -35,10 +35,12 @@
         <ul class="text-sm text-yellow-700 dark:text-yellow-300 space-y-2">
           <li
             v-for="item in snapshot.delivery"
-            :key="item.type"
+            :key="`${item.type}-${item.endpointKey || ''}`"
             class="border-l-2 border-yellow-500 dark:border-yellow-400 pl-3"
           >
-            <span class="font-mono text-yellow-900 dark:text-yellow-100">{{ item.type }}</span>
+            <span class="font-mono text-yellow-900 dark:text-yellow-100">
+              {{ item.type }}<template v-if="item.endpointKey"> · {{ item.endpointKey }}</template>
+            </span>
             <span v-if="item.failureCount"> ({{ item.failureCount }} failure<span v-if="item.failureCount !== 1">s</span>)</span>
             <p v-if="item.lastError" class="text-xs text-yellow-600 dark:text-yellow-400 mt-0.5 opacity-90">
               {{ item.lastError }}

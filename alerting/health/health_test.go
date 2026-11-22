@@ -44,7 +44,6 @@ func TestSanitizeError(t *testing.T) {
 }
 
 func TestGetSnapshot_healthyAndUnhealthy(t *testing.T) {
-	t.Parallel()
 	ResetAndSetProviders([]ProviderStatus{
 		{Type: alert.TypeSlack, Status: ProviderStatusOK},
 	})
@@ -52,7 +51,7 @@ func TestGetSnapshot_healthyAndUnhealthy(t *testing.T) {
 	if snap := GetSnapshot(); !snap.Healthy {
 		t.Error("expected healthy snapshot")
 	}
-	RecordFailure(alert.TypeSlack, errors.New("status 404"))
+	RecordFailure(alert.TypeSlack, "group_ep", errors.New("status 404"))
 	snap := GetSnapshot()
 	if snap.Healthy {
 		t.Error("expected unhealthy after delivery failure")
@@ -60,15 +59,30 @@ func TestGetSnapshot_healthyAndUnhealthy(t *testing.T) {
 	if len(snap.Delivery) != 1 || snap.Delivery[0].FailureCount != 1 {
 		t.Errorf("unexpected delivery: %+v", snap.Delivery)
 	}
-	RecordSuccess(alert.TypeSlack)
+	RecordSuccess(alert.TypeSlack, "group_ep")
 	if snap := GetSnapshot(); !snap.Healthy {
 		t.Error("expected healthy after success clears delivery")
 	}
 }
 
+func TestRecordSuccessDoesNotClearOtherEndpoints(t *testing.T) {
+	ResetAndSetProviders(nil)
+	SetEndpointWarnings(nil)
+	RecordFailure(alert.TypeSlack, "group_a", errors.New("fail a"))
+	RecordSuccess(alert.TypeSlack, "group_b")
+	snap := GetSnapshot()
+	if snap.Healthy {
+		t.Error("expected still unhealthy")
+	}
+	if len(snap.Delivery) != 1 || snap.Delivery[0].EndpointKey != "group_a" {
+		t.Errorf("unexpected delivery: %+v", snap.Delivery)
+	}
+}
+
 func TestResetClearsDelivery(t *testing.T) {
-	t.Parallel()
-	RecordFailure(alert.TypeDiscord, errors.New("err"))
+	ResetAndSetProviders(nil)
+	SetEndpointWarnings(nil)
+	RecordFailure(alert.TypeDiscord, "g_ep", errors.New("err"))
 	ResetAndSetProviders(nil)
 	snap := GetSnapshot()
 	if len(snap.Delivery) != 0 {
@@ -77,7 +91,6 @@ func TestResetClearsDelivery(t *testing.T) {
 }
 
 func TestProviderIgnoredUnhealthy(t *testing.T) {
-	t.Parallel()
 	ResetAndSetProviders([]ProviderStatus{
 		{Type: alert.TypeSlack, Status: ProviderStatusIgnored, Reason: "webhook-url not set"},
 	})
@@ -88,10 +101,10 @@ func TestProviderIgnoredUnhealthy(t *testing.T) {
 }
 
 func TestRecordFailureTimestamp(t *testing.T) {
-	t.Parallel()
 	ResetAndSetProviders(nil)
+	SetEndpointWarnings(nil)
 	before := time.Now().UTC()
-	RecordFailure(alert.TypeTelegram, errors.New("fail"))
+	RecordFailure(alert.TypeTelegram, "g_ep", errors.New("fail"))
 	after := time.Now().UTC()
 	snap := GetSnapshot()
 	if len(snap.Delivery) != 1 {

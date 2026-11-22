@@ -12,25 +12,27 @@ import (
 )
 
 const (
-	ProviderStatusOK           = "ok"
-	ProviderStatusIgnored      = "ignored"
-	ProviderStatusUnavailable  = "unavailable"
-	maxSanitizedErrorRunes     = 256
+	ProviderStatusOK          = "ok"
+	ProviderStatusIgnored     = "ignored"
+	ProviderStatusUnavailable = "unavailable"
+	maxSanitizedErrorRunes  = 256
 )
 
 var (
-	urlPattern     = regexp.MustCompile(`(?i)https?://[^\s'"<>]+`)
-	bearerPattern  = regexp.MustCompile(`(?i)bearer\s+[a-z0-9\-._~+/]+=*`)
-	tokenPattern   = regexp.MustCompile(`(?i)(api[_-]?key|token|secret|webhook)[=:\s]+[^\s,;'"]+`)
+	urlPattern    = regexp.MustCompile(`(?i)https?://[^\s'"<>]+`)
+	bearerPattern = regexp.MustCompile(`(?i)bearer\s+[a-z0-9\-._~+/]+=*`)
+	tokenPattern  = regexp.MustCompile(`(?i)(api[_-]?key|token|secret|webhook)[=:\s]+[^\s,;'"]+`)
 
 	mu sync.RWMutex
 
 	providerStatuses []ProviderStatus
 	endpointWarnings []string
-	deliveryByType   map[alert.Type]*deliveryRecord
+	deliveryByKey    map[string]*deliveryRecord
 )
 
 type deliveryRecord struct {
+	alertType     alert.Type
+	endpointKey   string
 	lastError     string
 	lastFailureAt time.Time
 	failureCount  int
@@ -47,6 +49,7 @@ type ProviderStatus struct {
 // DeliveryStatus describes runtime alert delivery failures for a provider type.
 type DeliveryStatus struct {
 	Type          alert.Type `json:"type"`
+	EndpointKey   string     `json:"endpointKey,omitempty"`
 	LastError     string     `json:"lastError,omitempty"`
 	LastFailureAt time.Time  `json:"lastFailureAt,omitempty"`
 	FailureCount  int        `json:"failureCount"`
@@ -60,6 +63,10 @@ type Snapshot struct {
 	Warnings  []string         `json:"warnings,omitempty"`
 }
 
+func deliveryKey(alertType alert.Type, endpointKey string) string {
+	return fmt.Sprintf("%s:%s", alertType, endpointKey)
+}
+
 // ResetAndSetProviders replaces boot-time provider status and clears runtime delivery state.
 func ResetAndSetProviders(providers []ProviderStatus) {
 	mu.Lock()
@@ -68,7 +75,7 @@ func ResetAndSetProviders(providers []ProviderStatus) {
 	sort.Slice(providerStatuses, func(i, j int) bool {
 		return providerStatuses[i].Type < providerStatuses[j].Type
 	})
-	deliveryByType = make(map[alert.Type]*deliveryRecord)
+	deliveryByKey = make(map[string]*deliveryRecord)
 }
 
 // SetEndpointWarnings sets warnings for endpoints that reference unavailable providers.
@@ -78,8 +85,8 @@ func SetEndpointWarnings(warnings []string) {
 	endpointWarnings = append([]string(nil), warnings...)
 }
 
-// RecordFailure records a failed alert delivery for the given provider type.
-func RecordFailure(alertType alert.Type, err error) {
+// RecordFailure records a failed alert delivery for the given provider type and endpoint.
+func RecordFailure(alertType alert.Type, endpointKey string, err error) {
 	if alertType == "" {
 		return
 	}
@@ -88,15 +95,19 @@ func RecordFailure(alertType alert.Type, err error) {
 		msg = SanitizeError(err.Error())
 	}
 	now := time.Now().UTC()
+	key := deliveryKey(alertType, endpointKey)
 	mu.Lock()
 	defer mu.Unlock()
-	if deliveryByType == nil {
-		deliveryByType = make(map[alert.Type]*deliveryRecord)
+	if deliveryByKey == nil {
+		deliveryByKey = make(map[string]*deliveryRecord)
 	}
-	rec, ok := deliveryByType[alertType]
+	rec, ok := deliveryByKey[key]
 	if !ok {
-		rec = &deliveryRecord{}
-		deliveryByType[alertType] = rec
+		rec = &deliveryRecord{
+			alertType:   alertType,
+			endpointKey: endpointKey,
+		}
+		deliveryByKey[key] = rec
 	}
 	rec.lastError = msg
 	rec.lastFailureAt = now
@@ -104,14 +115,14 @@ func RecordFailure(alertType alert.Type, err error) {
 	rec.hasFailure = true
 }
 
-// RecordSuccess clears runtime delivery failure state for the given provider type.
-func RecordSuccess(alertType alert.Type) {
+// RecordSuccess clears runtime delivery failure state for the given provider type and endpoint.
+func RecordSuccess(alertType alert.Type, endpointKey string) {
 	if alertType == "" {
 		return
 	}
 	mu.Lock()
 	defer mu.Unlock()
-	delete(deliveryByType, alertType)
+	delete(deliveryByKey, deliveryKey(alertType, endpointKey))
 }
 
 // GetSnapshot returns the current alerting health.
@@ -121,19 +132,23 @@ func GetSnapshot() Snapshot {
 	providers := append([]ProviderStatus(nil), providerStatuses...)
 	warnings := append([]string(nil), endpointWarnings...)
 	var delivery []DeliveryStatus
-	for alertType, rec := range deliveryByType {
+	for _, rec := range deliveryByKey {
 		if rec == nil || !rec.hasFailure {
 			continue
 		}
 		delivery = append(delivery, DeliveryStatus{
-			Type:          alertType,
+			Type:          rec.alertType,
+			EndpointKey:   rec.endpointKey,
 			LastError:     rec.lastError,
 			LastFailureAt: rec.lastFailureAt,
 			FailureCount:  rec.failureCount,
 		})
 	}
 	sort.Slice(delivery, func(i, j int) bool {
-		return delivery[i].Type < delivery[j].Type
+		if delivery[i].Type != delivery[j].Type {
+			return delivery[i].Type < delivery[j].Type
+		}
+		return delivery[i].EndpointKey < delivery[j].EndpointKey
 	})
 	healthy := len(warnings) == 0 && len(delivery) == 0
 	for _, p := range providers {

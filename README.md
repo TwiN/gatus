@@ -867,7 +867,13 @@ security:
 ```
 
 Delivery failures appear after an alert is actually triggered and fails to send (for example, a Slack webhook URL
-that passes validation but returns an HTTP error).
+that passes validation but returns an HTTP error). Delivery failures are tracked **per endpoint** and alert type, so
+one endpoint's successful send does not clear another endpoint's failure for the same provider.
+
+With **OIDC** and `protect-statuses: false`, the status page stays public; use the **Login** button in the dashboard
+header to sign in and load the alerting health banner when issues exist. With **HTTP Basic** and public statuses, the
+browser must supply credentials for `/api/v1/alerting/health` (for example after authenticating in the same browser
+session).
 
 | Parameter                  | Description                                                                                                                             | Default |
 |:---------------------------|:----------------------------------------------------------------------------------------------------------------------------------------|:--------|

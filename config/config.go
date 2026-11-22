@@ -693,7 +693,7 @@ func ValidateAlertingConfig(alertingConfig *alerting.Config, endpoints []*endpoi
 				providerHealth = append(providerHealth, health.ProviderStatus{
 					Type:   alertType,
 					Status: health.ProviderStatusIgnored,
-					Reason: err.Error(),
+					Reason: health.SanitizeError(err.Error()),
 				})
 				alertingConfig.SetAlertingProviderToNil(alertProvider)
 			}

@@ -44,6 +44,14 @@
 
             <!-- Right Side Actions -->
             <div class="flex items-center gap-2">
+              <a
+                v-if="config && config.oidc && !config.authenticated"
+                href="/oidc/login"
+                class="inline-flex items-center gap-2 px-3 py-2 text-sm font-medium rounded-md bg-primary text-primary-foreground hover:bg-primary/90 transition-colors"
+              >
+                <LogIn class="h-4 w-4" />
+                Login
+              </a>
               <!-- Navigation Links (Desktop) -->
               <nav v-if="buttons && buttons.length" class="hidden md:flex items-center gap-1">
                 <a 
@@ -202,8 +210,12 @@ const fetchConfig = async () => {
     const response = await fetch(`/api/v1/config`, { credentials: 'include' })
     if (response.status === 200) {
       const data = await response.json()
+      const wasAuthenticated = config.value.authenticated === true
       config.value = data
       announcements.value = data.announcements || []
+      if (!wasAuthenticated && data.authenticated === true) {
+        window.dispatchEvent(new CustomEvent('gatus:authenticated'))
+      }
     }
     retrievedConfig.value = true
   } catch (error) {
