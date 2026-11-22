@@ -103,6 +103,9 @@ type OAuth2Config struct {
 	ClientID     string   `yaml:"client-id"`
 	ClientSecret string   `yaml:"client-secret"`
 	Scopes       []string `yaml:"scopes"` // e.g. ["openid"]
+
+	// ExpiryDelta is how long before its expiry the token is refreshed (defaults to 10s)
+	ExpiryDelta time.Duration `yaml:"expiry-delta,omitempty"`
 }
 
 // IAPConfig is the configuration for the Google Cloud Identity-Aware-Proxy
@@ -344,9 +347,21 @@ func configureOAuth2(httpClient *http.Client, c OAuth2Config) *http.Client {
 		TokenURL:     c.TokenURL,
 	}
 	ctx := context.WithValue(context.Background(), oauth2.HTTPClient, httpClient)
-	client := oauth2cfg.Client(ctx)
+	tokenSource := oauth2.ReuseTokenSourceWithExpiry(nil, clientCredentialsTokenSource{ctx: ctx, config: &oauth2cfg}, c.ExpiryDelta)
+	client := oauth2.NewClient(ctx, tokenSource)
 	client.Timeout = httpClient.Timeout
 	return client
+}
+
+// clientCredentialsTokenSource fetches a new token on every call, so that caching and the
+// refresh margin are left to oauth2.ReuseTokenSourceWithExpiry
+type clientCredentialsTokenSource struct {
+	ctx    context.Context
+	config *clientcredentials.Config
+}
+
+func (s clientCredentialsTokenSource) Token() (*oauth2.Token, error) {
+	return s.config.Token(s.ctx)
 }
 
 // configureTLS returns a TLS Config that will enable mTLS
