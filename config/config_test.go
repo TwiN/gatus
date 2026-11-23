@@ -17,6 +17,7 @@ import (
 	"github.com/TwiN/gatus/v5/alerting/provider/clickup"
 	"github.com/TwiN/gatus/v5/alerting/provider/custom"
 	"github.com/TwiN/gatus/v5/alerting/provider/datadog"
+	"github.com/TwiN/gatus/v5/alerting/provider/dingtalk"
 	"github.com/TwiN/gatus/v5/alerting/provider/discord"
 	"github.com/TwiN/gatus/v5/alerting/provider/email"
 	"github.com/TwiN/gatus/v5/alerting/provider/gitea"
@@ -1903,6 +1904,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		ClickUp:               &clickup.AlertProvider{},
 		Custom:                &custom.AlertProvider{},
 		Datadog:               &datadog.AlertProvider{},
+		DingTalk:              &dingtalk.AlertProvider{},
 		Discord:               &discord.AlertProvider{},
 		Email:                 &email.AlertProvider{},
 		Gitea:                 &gitea.AlertProvider{},
@@ -1950,6 +1952,7 @@ func TestGetAlertingProviderByAlertType(t *testing.T) {
 		{alertType: alert.TypeClickUp, expected: alertingConfig.ClickUp},
 		{alertType: alert.TypeCustom, expected: alertingConfig.Custom},
 		{alertType: alert.TypeDatadog, expected: alertingConfig.Datadog},
+		{alertType: alert.TypeDingTalk, expected: alertingConfig.DingTalk},
 		{alertType: alert.TypeDiscord, expected: alertingConfig.Discord},
 		{alertType: alert.TypeEmail, expected: alertingConfig.Email},
 		{alertType: alert.TypeGitea, expected: alertingConfig.Gitea},
@@ -2058,6 +2061,68 @@ endpoints:
 	}
 	if merged.Level != "passive" || merged.Sound != "alarm" || merged.Group != "incident" {
 		t.Errorf("expected group and alert overrides, got %#v", merged)
+	}
+}
+
+func TestParseAndValidateConfigBytesWithDingTalkAlerting(t *testing.T) {
+	t.Parallel()
+
+	config, err := parseAndValidateConfigBytes([]byte(`
+alerting:
+  dingtalk:
+    token: "test-token"
+    secret: "dummy-secret"
+    title: "Gatus"
+    default-alert:
+      failure-threshold: 3
+      success-threshold: 2
+      send-on-resolved: true
+    overrides:
+      - group: production
+        token: "prod-token"
+
+endpoints:
+  - name: website
+    group: production
+    url: https://example.com/health
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: dingtalk
+        provider-override:
+          secret: "dummy-override-secret"
+`))
+	if err != nil {
+		t.Fatal("expected DingTalk configuration to parse, got", err)
+	}
+	if config.Alerting == nil || config.Alerting.DingTalk == nil {
+		t.Fatal("expected DingTalk alerting provider")
+	}
+	if config.Alerting.DingTalk.DefaultConfig.Token != "test-token" {
+		t.Errorf("expected DingTalk token %q, got %q", "test-token", config.Alerting.DingTalk.DefaultConfig.Token)
+	}
+	if config.Alerting.DingTalk.DefaultConfig.Secret != "dummy-secret" {
+		t.Errorf("expected DingTalk secret %q, got %q", "dummy-secret", config.Alerting.DingTalk.DefaultConfig.Secret)
+	}
+	if config.Alerting.DingTalk.DefaultConfig.Title != "Gatus" {
+		t.Errorf("expected DingTalk title %q, got %q", "Gatus", config.Alerting.DingTalk.DefaultConfig.Title)
+	}
+	if config.Alerting.GetAlertingProviderByAlertType(alert.TypeDingTalk) != config.Alerting.DingTalk {
+		t.Error("expected DingTalk provider to be discoverable by alert type")
+	}
+	endpointAlert := config.Endpoints[0].Alerts[0]
+	if endpointAlert.Type != alert.TypeDingTalk {
+		t.Errorf("expected alert type %q, got %q", alert.TypeDingTalk, endpointAlert.Type)
+	}
+	if endpointAlert.FailureThreshold != 3 || endpointAlert.SuccessThreshold != 2 || !endpointAlert.IsSendingOnResolved() {
+		t.Errorf("expected DingTalk default alert to be merged, got %#v", endpointAlert)
+	}
+	merged, err := config.Alerting.DingTalk.GetConfig(config.Endpoints[0].Group, endpointAlert)
+	if err != nil {
+		t.Fatal("expected merged DingTalk configuration to be valid, got", err)
+	}
+	if merged.Token != "prod-token" || merged.Secret != "dummy-override-secret" {
+		t.Errorf("expected group and alert overrides to be applied, got %#v", merged)
 	}
 }
 
