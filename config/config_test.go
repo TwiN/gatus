@@ -1889,6 +1889,124 @@ endpoints:
 	}
 }
 
+func TestExpandEnv(t *testing.T) {
+	t.Setenv("GATUS_TEST_SET_VAR", "custom-value")
+	t.Setenv("GATUS_TEST_EMPTY_VAR", "")
+
+	tests := []struct {
+		name  string
+		input string
+		want  string
+	}{
+		{
+			name:  "standard set variable",
+			input: "$GATUS_TEST_SET_VAR and ${GATUS_TEST_SET_VAR}",
+			want:  "custom-value and custom-value",
+		},
+		{
+			name:  "standard unset variable",
+			input: "${GATUS_TEST_UNSET_VAR}",
+			want:  "",
+		},
+		{
+			name:  "colon-dash uses default when unset",
+			input: "${GATUS_TEST_UNSET_VAR:-false}",
+			want:  "false",
+		},
+		{
+			name:  "colon-dash uses default when empty",
+			input: "${GATUS_TEST_EMPTY_VAR:-fallback}",
+			want:  "fallback",
+		},
+		{
+			name:  "colon-dash uses value when set and non-empty",
+			input: "${GATUS_TEST_SET_VAR:-fallback}",
+			want:  "custom-value",
+		},
+		{
+			name:  "colon-dash preserves colons and dashes in default value",
+			input: "${GATUS_TEST_UNSET_VAR:-https://example.com:8080/health-check}",
+			want:  "https://example.com:8080/health-check",
+		},
+		{
+			name:  "colon-dash with empty default",
+			input: "${GATUS_TEST_UNSET_VAR:-}",
+			want:  "",
+		},
+		{
+			name:  "dash uses default when unset",
+			input: "${GATUS_TEST_UNSET_VAR-fallback}",
+			want:  "fallback",
+		},
+		{
+			name:  "dash keeps empty string when set to empty",
+			input: "${GATUS_TEST_EMPTY_VAR-fallback}",
+			want:  "",
+		},
+		{
+			name:  "dash preserves colon-dash inside default value",
+			input: "${GATUS_TEST_UNSET_VAR-a:-b}",
+			want:  "a:-b",
+		},
+		{
+			name:  "unbraced variable followed by dash stays literal",
+			input: "$GATUS_TEST_SET_VAR-suffix",
+			want:  "custom-value-suffix",
+		},
+		{
+			name:  "empty variable name with colon-dash returns empty",
+			input: "${:-fallback}",
+			want:  "",
+		},
+	}
+
+	for _, test := range tests {
+		t.Run(test.name, func(t *testing.T) {
+			if got := expandEnv(test.input); got != test.want {
+				t.Errorf("expandEnv(%q) = %q, want %q", test.input, got, test.want)
+			}
+		})
+	}
+}
+
+func TestParseAndValidateConfigBytesWithEnvDefaultValue(t *testing.T) {
+	t.Setenv("GATUS_TEST_ENDPOINT_NAME", "custom-site")
+	t.Setenv("GATUS_TEST_EMPTY_GROUP", "")
+
+	cfg, err := parseAndValidateConfigBytes([]byte(`
+web:
+  port: ${GATUS_TEST_UNSET_PORT:-8081}
+endpoints:
+  - name: ${GATUS_TEST_ENDPOINT_NAME:-default-site}
+    group: ${GATUS_TEST_EMPTY_GROUP:-default-group}
+    url: ${GATUS_TEST_UNSET_URL:-https://twin.sh:443/health}
+    conditions:
+      - "[STATUS] == ${GATUS_TEST_UNSET_STATUS:-200}"
+      - "[BODY] == $${GATUS_TEST_UNSET_VAR:-literal}"
+`))
+	if err != nil {
+		t.Fatalf("expected no error, got %v", err)
+	}
+	if cfg.Web.Port != 8081 {
+		t.Errorf("expected port 8081, got %d", cfg.Web.Port)
+	}
+	if cfg.Endpoints[0].Name != "custom-site" {
+		t.Errorf("expected endpoint name 'custom-site', got %q", cfg.Endpoints[0].Name)
+	}
+	if cfg.Endpoints[0].Group != "default-group" {
+		t.Errorf("expected endpoint group 'default-group', got %q", cfg.Endpoints[0].Group)
+	}
+	if cfg.Endpoints[0].URL != "https://twin.sh:443/health" {
+		t.Errorf("expected endpoint URL 'https://twin.sh:443/health', got %q", cfg.Endpoints[0].URL)
+	}
+	if cfg.Endpoints[0].Conditions[0] != "[STATUS] == 200" {
+		t.Errorf("expected condition '[STATUS] == 200', got %q", cfg.Endpoints[0].Conditions[0])
+	}
+	if cfg.Endpoints[0].Conditions[1] != "[BODY] == ${GATUS_TEST_UNSET_VAR:-literal}" {
+		t.Errorf("expected escaped literal condition, got %q", cfg.Endpoints[0].Conditions[1])
+	}
+}
+
 func TestParseAndValidateConfigBytesWithNoEndpoints(t *testing.T) {
 	_, err := parseAndValidateConfigBytes([]byte(``))
 	if !errors.Is(err, ErrNoEndpointOrSuiteInConfig) {

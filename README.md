@@ -3566,10 +3566,10 @@ variable instead see [Use environment variables in config files](#use-environmen
 
 ### Use environment variables in config files
 
-You can use environment variables directly in the configuration file which will be substituted from the environment:
+You can use environment variables directly in the configuration file which will be substituted from the environment. You can also specify default fallback values using `${VAR:-default}` (used when the variable is unset or empty) or `${VAR-default}` (used only when the variable is unset):
 ```yaml
 web:
-  port: ${PORT}
+  port: ${PORT:-8080}
 
 ui:
   title: $TITLE
