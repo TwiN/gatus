@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/suite"
 	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/storage/store"
@@ -53,9 +54,12 @@ func executeSuite(s *suite.Suite, cfg *config.Config, extraLabels []string) {
 	// Store result
 	UpdateSuiteStatus(s, result)
 	// Handle alerting for suite endpoints
-	for i, ep := range s.Endpoints {
-		if i < len(result.EndpointResults) {
-			epResult := result.EndpointResults[i]
+	endpointsByName := make(map[string]*endpoint.Endpoint, len(s.Endpoints))
+	for _, ep := range s.Endpoints {
+		endpointsByName[ep.Name] = ep
+	}
+	for _, epResult := range result.EndpointResults {
+		if ep, ok := endpointsByName[epResult.Name]; ok {
 			// Handle alerting if configured and not under maintenance
 			if cfg.Alerting != nil && !cfg.Maintenance.IsUnderMaintenance() {
 				// Check if endpoint is under maintenance
