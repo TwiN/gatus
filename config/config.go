@@ -282,13 +282,41 @@ func walkConfigDir(path string, fn fs.WalkDirFunc) error {
 	})
 }
 
+// expandEnv expands environment variables in s, supporting ${VAR:-default} (fallback when unset or empty)
+// and ${VAR-default} (fallback when unset) in addition to standard $VAR and ${VAR} syntax.
+func expandEnv(s string) string {
+	return os.Expand(s, func(key string) string {
+		if value, ok := os.LookupEnv(key); ok {
+			return value
+		}
+		if idx := strings.IndexByte(key, '-'); idx > 0 {
+			if key[idx-1] == ':' {
+				name := key[:idx-1]
+				if name != "" {
+					if value := os.Getenv(name); value != "" {
+						return value
+					}
+					return key[idx+1:]
+				}
+			} else {
+				name := key[:idx]
+				if value, exists := os.LookupEnv(name); exists {
+					return value
+				}
+				return key[idx+1:]
+			}
+		}
+		return ""
+	})
+}
+
 // parseAndValidateConfigBytes parses a Gatus configuration file into a Config struct and validates its parameters
 func parseAndValidateConfigBytes(yamlBytes []byte) (config *Config, err error) {
-	// Replace $$ with __GATUS_LITERAL_DOLLAR_SIGN__ to prevent os.ExpandEnv from treating "$$" as if it was an
+	// Replace $$ with __GATUS_LITERAL_DOLLAR_SIGN__ to prevent expandEnv from treating "$$" as if it was an
 	// environment variable. This allows Gatus to support literal "$" in the configuration file.
 	yamlBytes = []byte(strings.ReplaceAll(string(yamlBytes), "$$", "__GATUS_LITERAL_DOLLAR_SIGN__"))
-	// Expand environment variables
-	yamlBytes = []byte(os.ExpandEnv(string(yamlBytes)))
+	// Expand environment variables (including ${VAR:-default} and ${VAR-default} fallbacks)
+	yamlBytes = []byte(expandEnv(string(yamlBytes)))
 	// Replace __GATUS_LITERAL_DOLLAR_SIGN__ with "$" to restore the literal "$" in the configuration file
 	yamlBytes = []byte(strings.ReplaceAll(string(yamlBytes), "__GATUS_LITERAL_DOLLAR_SIGN__", "$"))
 	// Parse configuration file
