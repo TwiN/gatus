@@ -60,6 +60,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Bark alerts](#configuring-bark-alerts)
     - [Configuring ClickUp alerts](#configuring-clickup-alerts)
     - [Configuring Datadog alerts](#configuring-datadog-alerts)
+    - [Configuring DingTalk alerts](#configuring-dingtalk-alerts)
     - [Configuring Discord alerts](#configuring-discord-alerts)
     - [Configuring Email alerts](#configuring-email-alerts)
     - [Configuring Gitea alerts](#configuring-gitea-alerts)
