@@ -163,7 +163,7 @@ const newestResultTime = computed(() => {
 })
 
 const navigateToDetails = () => {
-  router.push(`/endpoints/${props.endpoint.key}`)
+  router.push(`/endpoints/${encodeURIComponent(props.endpoint.key)}`)
 }
 
 const handleMouseEnter = (result, event) => {
