@@ -1,0 +1,990 @@
+{
+  "commit": "eb1d214a44c80913d83c8eb6adcf25fb67c06106",
+  "rota": "http://127.0.0.1:18080/api/v1/endpoints/monitoramento_recuperacao-http/statuses?page=1&pageSize=6",
+  "painelComFixtureParadaHttp": 200,
+  "tabelaDeDecisao": [
+    {
+      "fase": "Fixture disponível, HTTP 200",
+      "capturadoEmUtc": "2026-11-23T14:38:57.8373220+00:00",
+      "respostaApi": {
+        "name": "recuperacao-http",
+        "group": "monitoramento",
+        "key": "monitoramento_recuperacao-http",
+        "results": [
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 9599125,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:39.865924219Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 9273071,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:42.866117777Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 4212875,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:45.86025247Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 6490399,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:48.863257015Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 5051058,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:51.861752992Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 10028213,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:54.865321125Z"
+          }
+        ],
+        "events": [
+          {
+            "type": "START",
+            "timestamp": "2026-11-23T14:32:39.890233795Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:32:39.890227859Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:32:42.905931701Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:32:45.897688637Z"
+          }
+        ]
+      }
+    },
+    {
+      "fase": "Fixture disponível, HTTP 201",
+      "capturadoEmUtc": "2026-11-23T14:38:58.2996957+00:00",
+      "respostaApi": {
+        "name": "recuperacao-http",
+        "group": "monitoramento",
+        "key": "monitoramento_recuperacao-http",
+        "results": [
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 9273071,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:42.866117777Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 4212875,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:45.86025247Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 6490399,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:48.863257015Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 5051058,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:51.861752992Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 10028213,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:54.865321125Z"
+          },
+          {
+            "status": 201,
+            "hostname": "fixture",
+            "duration": 17888564,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] (201) == 200",
+                "success": false
+              }
+            ],
+            "success": false,
+            "timestamp": "2026-11-23T14:38:57.873290152Z"
+          }
+        ],
+        "events": [
+          {
+            "type": "START",
+            "timestamp": "2026-11-23T14:32:39.890233795Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:32:39.890227859Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:32:42.905931701Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:32:45.897688637Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:38:57.873290152Z"
+          }
+        ]
+      }
+    },
+    {
+      "fase": "Fixture parada",
+      "capturadoEmUtc": "2026-11-23T14:39:09.0970410+00:00",
+      "respostaApi": {
+        "name": "recuperacao-http",
+        "group": "monitoramento",
+        "key": "monitoramento_recuperacao-http",
+        "results": [
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 4212875,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:45.86025247Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 6490399,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:48.863257015Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 5051058,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:51.861752992Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 10028213,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:54.865321125Z"
+          },
+          {
+            "status": 201,
+            "hostname": "fixture",
+            "duration": 17888564,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] (201) == 200",
+                "success": false
+              }
+            ],
+            "success": false,
+            "timestamp": "2026-11-23T14:38:57.873290152Z"
+          },
+          {
+            "hostname": "fixture",
+            "duration": 7855871385,
+            "errors": [
+              "Get \"http://fixture:8000/estado\": dial tcp: lookup fixture on 127.0.0.11:53: no such host"
+            ],
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] (false) == true",
+                "success": false
+              },
+              {
+                "condition": "[STATUS] (0) == 200",
+                "success": false
+              }
+            ],
+            "success": false,
+            "timestamp": "2026-11-23T14:39:08.710920461Z"
+          }
+        ],
+        "events": [
+          {
+            "type": "START",
+            "timestamp": "2026-11-23T14:32:39.890233795Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:32:39.890227859Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:32:42.905931701Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:32:45.897688637Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:38:57.873290152Z"
+          }
+        ]
+      }
+    }
+  ],
+  "falhaRepetida": [
+    {
+      "fase": "Fixture recuperada antes da falha repetida",
+      "capturadoEmUtc": "2026-11-23T14:39:13.0328273+00:00",
+      "respostaApi": {
+        "name": "recuperacao-http",
+        "group": "monitoramento",
+        "key": "monitoramento_recuperacao-http",
+        "results": [
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 10028213,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:38:54.865321125Z"
+          },
+          {
+            "status": 201,
+            "hostname": "fixture",
+            "duration": 17888564,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] (201) == 200",
+                "success": false
+              }
+            ],
+            "success": false,
+            "timestamp": "2026-11-23T14:38:57.873290152Z"
+          },
+          {
+            "hostname": "fixture",
+            "duration": 7855871385,
+            "errors": [
+              "Get \"http://fixture:8000/estado\": dial tcp: lookup fixture on 127.0.0.11:53: no such host"
+            ],
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] (false) == true",
+                "success": false
+              },
+              {
+                "condition": "[STATUS] (0) == 200",
+                "success": false
+              }
+            ],
+            "success": false,
+            "timestamp": "2026-11-23T14:39:08.710920461Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 11306844,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:39:12.688945178Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 3693435,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:39:12.692793942Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 5452612,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:39:12.861230115Z"
+          }
+        ],
+        "events": [
+          {
+            "type": "START",
+            "timestamp": "2026-11-23T14:32:39.890233795Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:32:39.890227859Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:32:42.905931701Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:32:45.897688637Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:38:57.873290152Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:39:12.688945178Z"
+          }
+        ]
+      }
+    },
+    {
+      "fase": "Primeira verificação com HTTP 503",
+      "capturadoEmUtc": "2026-11-23T14:39:15.9488815+00:00",
+      "respostaApi": {
+        "name": "recuperacao-http",
+        "group": "monitoramento",
+        "key": "monitoramento_recuperacao-http",
+        "results": [
+          {
+            "status": 201,
+            "hostname": "fixture",
+            "duration": 17888564,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] (201) == 200",
+                "success": false
+              }
+            ],
+            "success": false,
+            "timestamp": "2026-11-23T14:38:57.873290152Z"
+          },
+          {
+            "hostname": "fixture",
+            "duration": 7855871385,
+            "errors": [
+              "Get \"http://fixture:8000/estado\": dial tcp: lookup fixture on 127.0.0.11:53: no such host"
+            ],
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] (false) == true",
+                "success": false
+              },
+              {
+                "condition": "[STATUS] (0) == 200",
+                "success": false
+              }
+            ],
+            "success": false,
+            "timestamp": "2026-11-23T14:39:08.710920461Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 11306844,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:39:12.688945178Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 3693435,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:39:12.692793942Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 5452612,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:39:12.861230115Z"
+          },
+          {
+            "status": 503,
+            "hostname": "fixture",
+            "duration": 8720292,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] (503) == 200",
+                "success": false
+              }
+            ],
+            "success": false,
+            "timestamp": "2026-11-23T14:39:15.864624841Z"
+          }
+        ],
+        "events": [
+          {
+            "type": "START",
+            "timestamp": "2026-11-23T14:32:39.890233795Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:32:39.890227859Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:32:42.905931701Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:32:45.897688637Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:38:57.873290152Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:39:12.688945178Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:39:15.864624841Z"
+          }
+        ]
+      }
+    },
+    {
+      "fase": "Segunda verificação com HTTP 503",
+      "capturadoEmUtc": "2026-11-23T14:39:19.2607051+00:00",
+      "respostaApi": {
+        "name": "recuperacao-http",
+        "group": "monitoramento",
+        "key": "monitoramento_recuperacao-http",
+        "results": [
+          {
+            "hostname": "fixture",
+            "duration": 7855871385,
+            "errors": [
+              "Get \"http://fixture:8000/estado\": dial tcp: lookup fixture on 127.0.0.11:53: no such host"
+            ],
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] (false) == true",
+                "success": false
+              },
+              {
+                "condition": "[STATUS] (0) == 200",
+                "success": false
+              }
+            ],
+            "success": false,
+            "timestamp": "2026-11-23T14:39:08.710920461Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 11306844,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:39:12.688945178Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 3693435,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:39:12.692793942Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 5452612,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:39:12.861230115Z"
+          },
+          {
+            "status": 503,
+            "hostname": "fixture",
+            "duration": 8720292,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] (503) == 200",
+                "success": false
+              }
+            ],
+            "success": false,
+            "timestamp": "2026-11-23T14:39:15.864624841Z"
+          },
+          {
+            "status": 503,
+            "hostname": "fixture",
+            "duration": 4399435,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] (503) == 200",
+                "success": false
+              }
+            ],
+            "success": false,
+            "timestamp": "2026-11-23T14:39:18.859018577Z"
+          }
+        ],
+        "events": [
+          {
+            "type": "START",
+            "timestamp": "2026-11-23T14:32:39.890233795Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:32:39.890227859Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:32:42.905931701Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:32:45.897688637Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:38:57.873290152Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:39:12.688945178Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:39:15.864624841Z"
+          }
+        ]
+      }
+    },
+    {
+      "fase": "Recuperação após a falha repetida",
+      "capturadoEmUtc": "2026-11-23T14:39:22.1873762+00:00",
+      "respostaApi": {
+        "name": "recuperacao-http",
+        "group": "monitoramento",
+        "key": "monitoramento_recuperacao-http",
+        "results": [
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 11306844,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:39:12.688945178Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 3693435,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:39:12.692793942Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 5452612,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:39:12.861230115Z"
+          },
+          {
+            "status": 503,
+            "hostname": "fixture",
+            "duration": 8720292,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] (503) == 200",
+                "success": false
+              }
+            ],
+            "success": false,
+            "timestamp": "2026-11-23T14:39:15.864624841Z"
+          },
+          {
+            "status": 503,
+            "hostname": "fixture",
+            "duration": 4399435,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] (503) == 200",
+                "success": false
+              }
+            ],
+            "success": false,
+            "timestamp": "2026-11-23T14:39:18.859018577Z"
+          },
+          {
+            "status": 200,
+            "hostname": "fixture",
+            "duration": 5207556,
+            "conditionResults": [
+              {
+                "condition": "[CONNECTED] == true",
+                "success": true
+              },
+              {
+                "condition": "[STATUS] == 200",
+                "success": true
+              }
+            ],
+            "success": true,
+            "timestamp": "2026-11-23T14:39:21.860645931Z"
+          }
+        ],
+        "events": [
+          {
+            "type": "START",
+            "timestamp": "2026-11-23T14:32:39.890233795Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:32:39.890227859Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:32:42.905931701Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:32:45.897688637Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:38:57.873290152Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:39:12.688945178Z"
+          },
+          {
+            "type": "UNHEALTHY",
+            "timestamp": "2026-11-23T14:39:15.864624841Z"
+          },
+          {
+            "type": "HEALTHY",
+            "timestamp": "2026-11-23T14:39:21.860645931Z"
+          }
+        ]
+      }
+    }
+  ]
+}
