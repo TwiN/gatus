@@ -1,6 +1,9 @@
 package endpoint
 
-import "github.com/TwiN/gatus/v5/config/key"
+import (
+	"github.com/TwiN/gatus/v5/config/endpoint/ui"
+	"github.com/TwiN/gatus/v5/config/key"
+)
 
 // Status contains the evaluation Results of an Endpoint
 // This is essentially a DTO
@@ -13,6 +16,10 @@ type Status struct {
 
 	// Key of the Endpoint
 	Key string `json:"key"`
+
+	// Links is the list of external links configured for the endpoint (endpoint.UIConfig.Links).
+	// Populated from live config, not persisted to storage.
+	Links []ui.Link `json:"links,omitempty"`
 
 	// Results is the list of endpoint evaluation results
 	Results []*Result `json:"results"`
