@@ -38,6 +38,10 @@ const props = defineProps({
   events: {
     type: Array,
     default: () => []
+  },
+  refreshKey: {
+    type: Number,
+    default: 0
   }
 })
 
@@ -279,7 +283,7 @@ const fetchData = async () => {
   }
 }
 
-watch(() => props.duration, () => {
+watch(() => [props.duration, props.refreshKey], () => {
   fetchData()
 })
 
