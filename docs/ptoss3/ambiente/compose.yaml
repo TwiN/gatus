@@ -1,0 +1,20 @@
+name: ptoss3
+
+services:
+  fixture:
+    image: python:3.12-alpine
+    command: ["python", "-u", "/fixture/servidor.py"]
+    volumes:
+      - ./fixture:/fixture:ro
+
+  gatus:
+    build:
+      context: ../../..
+    depends_on:
+      - fixture
+    environment:
+      GATUS_CONFIG_PATH: /config/config.yaml
+    ports:
+      - "127.0.0.1:${PTOSS3_PORT:-8080}:8080"
+    volumes:
+      - ./config:/config:ro

@@ -1,0 +1,50 @@
+skip-invalid-config-update: true
+
+storage:
+  type: memory
+  maximum-number-of-results: 6
+
+endpoints:
+  - name: recuperacao-http
+    group: monitoramento
+    url: http://fixture:8000/estado
+    interval: 3s
+    conditions:
+      - "[CONNECTED] == true"
+      - "[STATUS] == 200"
+
+  - name: painel-ok
+    group: vitrine
+    url: http://fixture:8000/ok
+    interval: 3s
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: painel-falha
+    group: vitrine
+    url: http://fixture:8000/falha
+    interval: 3s
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: regra-json
+    group: regras
+    url: http://fixture:8000/json
+    interval: 3s
+    conditions:
+      - "[STATUS] == 200"
+      - "[BODY].checks.ativos >= 2"
+
+  - name: recarga-original
+    group: configuracao
+    url: http://fixture:8000/ok
+    interval: 3s
+    conditions:
+      - "[STATUS] == 200"
+
+  - name: pagina-historico
+    group: historico
+    url: http://fixture:8000/ok
+    interval: 5s
+    conditions:
+      - "[STATUS] == 200"
