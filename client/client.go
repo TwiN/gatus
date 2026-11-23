@@ -14,8 +14,10 @@ import (
 	"net"
 	"net/http"
 	"net/smtp"
+	"net/url"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,7 +34,8 @@ import (
 )
 
 const (
-	dnsPort = 53
+	dnsPort        = 53
+	dnsOverTLSPort = 853
 )
 
 var (
@@ -53,6 +56,14 @@ func GetHTTPClient(config *Config) *http.Client {
 		return defaultConfig.getHTTPClient()
 	}
 	return config.getHTTPClient()
+}
+
+// GetDNSOverHTTPSClient returns the HTTP client used for DNS over HTTPS from the configuration passed
+func GetDNSOverHTTPSClient(config *Config) *http.Client {
+	if injectedHTTPClient != nil {
+		return injectedHTTPClient
+	}
+	return config.getDNSOverHTTPSClient()
 }
 
 // GetDomainExpiration retrieves the duration until the domain provided expires
@@ -527,10 +538,7 @@ func QueryWebSocket(address, body string, headers map[string]string, config *Con
 	return true, msg, nil
 }
 
-func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string, body []byte, err error) {
-	if !strings.Contains(url, ":") {
-		url = fmt.Sprintf("%s:%d", url, dnsPort)
-	}
+func QueryDNS(queryType, queryName, url string, config *Config) (connected bool, dnsRcode string, body []byte, err error) {
 	queryTypeAsUint16 := dns.StringToType[queryType]
 	// Special handling: if this is a PTR query and queryName looks like a plain IP,
 	// convert it to the proper reverse lookup domain automatically.
@@ -543,10 +551,20 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 			return false, "", nil, convErr
 		}
 	}
-	c := new(dns.Client)
 	m := new(dns.Msg)
 	m.SetQuestion(queryName, queryTypeAsUint16)
-	r, _, err := c.Exchange(m, url)
+	var r *dns.Msg
+	switch {
+	case strings.HasPrefix(url, "https://"):
+		r, err = queryDNSOverHTTPS(m, url, config)
+	case strings.HasPrefix(url, "tls://"):
+		r, err = queryDNSOverTLS(m, url, config)
+	default:
+		if !strings.Contains(url, ":") {
+			url = fmt.Sprintf("%s:%d", url, dnsPort)
+		}
+		r, _, err = new(dns.Client).Exchange(m, url)
+	}
 	if err != nil {
 		logr.Infof("[client.QueryDNS] Error exchanging DNS message: %v", err)
 		return false, "", nil, err
@@ -595,6 +613,57 @@ func QueryDNS(queryType, queryName, url string) (connected bool, dnsRcode string
 		}
 	}
 	return connected, dnsRcode, body, nil
+}
+
+// queryDNSOverTLS sends a DNS message to a DNS over TLS server, as defined in RFC 7858
+func queryDNSOverTLS(message *dns.Msg, rawURL string, config *Config) (*dns.Msg, error) {
+	parsedURL, err := url.Parse(rawURL)
+	if err != nil {
+		return nil, err
+	}
+	port := parsedURL.Port()
+	if port == "" {
+		port = strconv.Itoa(dnsOverTLSPort)
+	}
+	c := &dns.Client{Net: "tcp-tls", Timeout: config.Timeout, TLSConfig: &tls.Config{InsecureSkipVerify: config.Insecure}}
+	reply, _, err := c.Exchange(message, net.JoinHostPort(parsedURL.Hostname(), port))
+	return reply, err
+}
+
+// queryDNSOverHTTPS sends a DNS message to a DNS over HTTPS server, as defined in RFC 8484
+func queryDNSOverHTTPS(message *dns.Msg, rawURL string, config *Config) (*dns.Msg, error) {
+	// RFC 8484 section 4.1 recommends an ID of 0 to keep responses cacheable
+	message.Id = 0
+	packedMessage, err := message.Pack()
+	if err != nil {
+		return nil, err
+	}
+	request, err := http.NewRequest(http.MethodPost, rawURL, bytes.NewReader(packedMessage))
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Content-Type", "application/dns-message")
+	request.Header.Set("Accept", "application/dns-message")
+	response, err := GetDNSOverHTTPSClient(config).Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer response.Body.Close()
+	if response.StatusCode < 200 || response.StatusCode > 299 {
+		return nil, fmt.Errorf("DNS over HTTPS server responded with status code %d", response.StatusCode)
+	}
+	packedReply, err := io.ReadAll(io.LimitReader(response.Body, dns.MaxMsgSize))
+	if err != nil {
+		return nil, err
+	}
+	reply := new(dns.Msg)
+	if err = reply.Unpack(packedReply); err != nil {
+		return nil, err
+	}
+	if !reply.Response {
+		return nil, errors.New("DNS over HTTPS server responded with a message that is not a DNS response")
+	}
+	return reply, nil
 }
 
 // InjectHTTPClient is used to inject a custom HTTP client for testing purposes

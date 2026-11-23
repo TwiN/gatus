@@ -20,6 +20,7 @@ import (
 	"github.com/TwiN/gatus/v5/pattern"
 	"github.com/TwiN/gatus/v5/test"
 	"github.com/gorilla/websocket"
+	miekgdns "github.com/miekg/dns"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -682,7 +683,7 @@ func TestQueryDNS(t *testing.T) {
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.name, func(t *testing.T) {
-			_, dnsRCode, body, err := QueryDNS(scenario.inputDNS.QueryType, scenario.inputDNS.QueryName, scenario.inputURL)
+			_, dnsRCode, body, err := QueryDNS(scenario.inputDNS.QueryType, scenario.inputDNS.QueryName, scenario.inputURL, &Config{Timeout: 5 * time.Second})
 			if scenario.isErrExpected && err == nil {
 				t.Errorf("there should be an error")
 			}
@@ -717,6 +718,137 @@ func TestQueryDNS(t *testing.T) {
 			}
 		})
 		time.Sleep(10 * time.Millisecond)
+	}
+}
+
+// answerTestDNSQuery replies to any DNS query with a single A record
+func answerTestDNSQuery(query *miekgdns.Msg) *miekgdns.Msg {
+	reply := new(miekgdns.Msg)
+	reply.SetReply(query)
+	reply.Answer = append(reply.Answer, &miekgdns.A{
+		Hdr: miekgdns.RR_Header{Name: query.Question[0].Name, Rrtype: miekgdns.TypeA, Class: miekgdns.ClassINET, Ttl: 60},
+		A:   net.ParseIP("93.184.215.14"),
+	})
+	return reply
+}
+
+func TestQueryDNSOverTLS(t *testing.T) {
+	t.Parallel()
+	// Borrow the self-signed certificate of httptest, which is valid for 127.0.0.1
+	certificateSource := httptest.NewTLSServer(nil)
+	defer certificateSource.Close()
+	listener, err := tls.Listen("tcp", "127.0.0.1:0", &tls.Config{Certificates: certificateSource.TLS.Certificates})
+	if err != nil {
+		t.Fatal("failed to create listener:", err)
+	}
+	started := make(chan struct{})
+	server := &miekgdns.Server{
+		Listener:          listener,
+		NotifyStartedFunc: func() { close(started) },
+		Handler: miekgdns.HandlerFunc(func(w miekgdns.ResponseWriter, query *miekgdns.Msg) {
+			_ = w.WriteMsg(answerTestDNSQuery(query))
+		}),
+	}
+	go server.ActivateAndServe()
+	<-started
+	defer server.Shutdown()
+	_, port, _ := net.SplitHostPort(listener.Addr().String())
+	scenarios := []struct {
+		name          string
+		inputURL      string
+		insecure      bool
+		isErrExpected bool
+	}{
+		{name: "insecure", inputURL: "tls://127.0.0.1:" + port, insecure: true},
+		{name: "untrusted-certificate", inputURL: "tls://127.0.0.1:" + port, insecure: false, isErrExpected: true},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			connected, dnsRCode, body, err := QueryDNS("A", "example.com.", scenario.inputURL, &Config{Insecure: scenario.insecure, Timeout: 2 * time.Second})
+			if scenario.isErrExpected {
+				if err == nil {
+					t.Error("expected an error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal("expected no error, got", err)
+			}
+			if !connected || dnsRCode != "NOERROR" || string(body) != "93.184.215.14" {
+				t.Errorf("expected connected=true, NOERROR and 93.184.215.14, got connected=%v, %s and %s", connected, dnsRCode, body)
+			}
+		})
+	}
+	t.Run("default-port", func(t *testing.T) {
+		// 192.0.2.1 is reserved for documentation (RFC 5737), so nothing answers and the error names the dialed address
+		_, _, _, err := QueryDNS("A", "example.com.", "tls://192.0.2.1", &Config{Timeout: 100 * time.Millisecond})
+		if err == nil || !strings.Contains(err.Error(), "192.0.2.1:853") {
+			t.Errorf("expected an error mentioning 192.0.2.1:853, got %v", err)
+		}
+	})
+}
+
+func TestQueryDNSOverHTTPS(t *testing.T) {
+	t.Parallel()
+	server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/dns-query" {
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+		if r.URL.RawQuery == "garbage" {
+			_, _ = w.Write([]byte("not a DNS message"))
+			return
+		}
+		if r.URL.RawQuery == "redirect" {
+			http.Redirect(w, r, "http://"+r.Host+"/dns-query", http.StatusTemporaryRedirect)
+			return
+		}
+		body, _ := io.ReadAll(r.Body)
+		if r.URL.RawQuery == "echo" {
+			_, _ = w.Write(body)
+			return
+		}
+		query := new(miekgdns.Msg)
+		if r.ProtoMajor != 2 || r.Method != http.MethodPost || r.Header.Get("Content-Type") != "application/dns-message" || query.Unpack(body) != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		packedReply, _ := answerTestDNSQuery(query).Pack()
+		w.Header().Set("Content-Type", "application/dns-message")
+		_, _ = w.Write(packedReply)
+	}))
+	server.EnableHTTP2 = true
+	server.StartTLS()
+	defer server.Close()
+	scenarios := []struct {
+		name          string
+		inputURL      string
+		insecure      bool
+		isErrExpected bool
+	}{
+		{name: "insecure", inputURL: server.URL + "/dns-query", insecure: true},
+		{name: "untrusted-certificate", inputURL: server.URL + "/dns-query", insecure: false, isErrExpected: true},
+		{name: "unexpected-status-code", inputURL: server.URL + "/missing", insecure: true, isErrExpected: true},
+		{name: "invalid-response-body", inputURL: server.URL + "/dns-query?garbage", insecure: true, isErrExpected: true},
+		{name: "query-echoed-as-response", inputURL: server.URL + "/dns-query?echo", insecure: true, isErrExpected: true},
+		{name: "redirect-to-http", inputURL: server.URL + "/dns-query?redirect", insecure: true, isErrExpected: true},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			connected, dnsRCode, body, err := QueryDNS("A", "example.com.", scenario.inputURL, &Config{Insecure: scenario.insecure, Timeout: 2 * time.Second})
+			if scenario.isErrExpected {
+				if err == nil {
+					t.Error("expected an error")
+				}
+				return
+			}
+			if err != nil {
+				t.Fatal("expected no error, got", err)
+			}
+			if !connected || dnsRCode != "NOERROR" || string(body) != "93.184.215.14" {
+				t.Errorf("expected connected=true, NOERROR and 93.184.215.14, got connected=%v, %s and %s", connected, dnsRCode, body)
+			}
+		})
 	}
 }
 
