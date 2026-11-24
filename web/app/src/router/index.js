@@ -26,4 +26,12 @@ const router = createRouter({
     routes
 });
 
+// Preserve valid ?theme= across SPA navigations (e.g. Home <-> Endpoint details)
+router.beforeEach((to, from) => {
+    const fromTheme = from.query.theme;
+    if ((fromTheme === 'dark' || fromTheme === 'light') && !to.query.theme) {
+        return { ...to, query: { ...to.query, theme: fromTheme } };
+    }
+});
+
 export default router;

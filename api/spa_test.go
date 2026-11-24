@@ -43,6 +43,7 @@ func TestSinglePageApplication(t *testing.T) {
 		Path              string
 		Gzip              bool
 		CookieDarkMode    bool
+		CookieLightMode   bool
 		UIDarkMode        bool
 		ExpectedCode      int
 		ExpectedDarkTheme bool
@@ -72,6 +73,46 @@ func TestSinglePageApplication(t *testing.T) {
 			ExpectedDarkTheme: true,
 			ExpectedCode:      200,
 		},
+		{
+			Name:              "theme-query-dark",
+			Path:              "/?theme=dark",
+			CookieDarkMode:    false,
+			UIDarkMode:        false,
+			ExpectedDarkTheme: true,
+			ExpectedCode:      200,
+		},
+		{
+			Name:              "theme-query-light-overrides-cookie",
+			Path:              "/?theme=light",
+			CookieDarkMode:    true,
+			UIDarkMode:        true,
+			ExpectedDarkTheme: false,
+			ExpectedCode:      200,
+		},
+		{
+			Name:              "theme-query-dark-overrides-cookie",
+			Path:              "/?theme=dark",
+			CookieLightMode:   true,
+			UIDarkMode:        false,
+			ExpectedDarkTheme: true,
+			ExpectedCode:      200,
+		},
+		{
+			Name:              "theme-query-invalid-falls-back-to-cookie",
+			Path:              "/?theme=invalid",
+			CookieDarkMode:    true,
+			UIDarkMode:        false,
+			ExpectedDarkTheme: true,
+			ExpectedCode:      200,
+		},
+		{
+			Name:              "theme-query-invalid-falls-back-to-ui",
+			Path:              "/?theme=invalid",
+			CookieDarkMode:    false,
+			UIDarkMode:        true,
+			ExpectedDarkTheme: true,
+			ExpectedCode:      200,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
@@ -82,6 +123,9 @@ func TestSinglePageApplication(t *testing.T) {
 			}
 			if scenario.CookieDarkMode {
 				request.Header.Set("Cookie", "theme=dark")
+			}
+			if scenario.CookieLightMode {
+				request.Header.Set("Cookie", "theme=light")
 			}
 			response, err := router.Test(request)
 			if err != nil {
