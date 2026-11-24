@@ -689,12 +689,17 @@ func (s *Store) updateEndpointUptime(tx *sql.Tx, endpointID int64, result *endpo
 func (s *Store) getAllEndpointKeys(tx *sql.Tx) (keys []string, err error) {
 	// Only get endpoints that have at least one result not linked to a suite
 	// This excludes endpoints that only exist as part of suites
-	// Using JOIN for better performance than EXISTS subquery
+	// Stop at the first standalone result per endpoint instead of joining and
+	// deduplicating the entire result history.
 	rows, err := tx.Query(`
-		SELECT DISTINCT e.endpoint_key 
+		SELECT e.endpoint_key
 		FROM endpoints e
-		INNER JOIN endpoint_results er ON e.endpoint_id = er.endpoint_id
-		WHERE er.suite_result_id IS NULL
+		WHERE EXISTS (
+			SELECT 1
+			FROM endpoint_results er
+			WHERE er.endpoint_id = e.endpoint_id
+				AND er.suite_result_id IS NULL
+		)
 		ORDER BY e.endpoint_key
 	`)
 	if err != nil {
