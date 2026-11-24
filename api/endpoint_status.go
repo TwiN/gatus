@@ -30,6 +30,9 @@ func EndpointStatuses(cfg *config.Config) fiber.Handler {
 				logr.Errorf("[api.EndpointStatuses] Failed to retrieve endpoint statuses: %s", err.Error())
 				return c.Status(500).SendString(err.Error())
 			}
+			for _, endpointStatus := range endpointStatuses {
+				endpointStatus.Tags = cfg.GetEndpointTagsByKey(endpointStatus.Key)
+			}
 			// ALPHA: Retrieve endpoint statuses from remote instances
 			if endpointStatusesFromRemote, err := getEndpointStatusesFromRemoteInstances(cfg.Remote); err != nil {
 				logr.Errorf("[handler.EndpointStatuses] Silently failed to retrieve endpoint statuses from remote: %s", err.Error())
@@ -104,6 +107,7 @@ func EndpointStatus(cfg *config.Config) fiber.Handler {
 			logr.Errorf("[api.EndpointStatus] Endpoint with key=%s not found", key)
 			return c.Status(404).SendString("not found")
 		}
+		endpointStatus.Tags = cfg.GetEndpointTagsByKey(endpointStatus.Key)
 		output, err := json.Marshal(endpointStatus)
 		if err != nil {
 			logr.Errorf("[api.EndpointStatus] Unable to marshal object to JSON: %s", err.Error())

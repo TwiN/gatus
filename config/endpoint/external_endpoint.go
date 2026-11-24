@@ -31,6 +31,9 @@ type ExternalEndpoint struct {
 	// Group the endpoint is a part of. Used for grouping multiple endpoints together on the front end.
 	Group string `yaml:"group,omitempty"`
 
+	// Tags are free-form labels used for categorizing and filtering endpoints on the front end and through the API.
+	Tags []string `yaml:"tags,omitempty"`
+
 	// Token is the bearer token that must be provided through the Authorization header to push results to the endpoint
 	Token string `yaml:"token,omitempty"`
 

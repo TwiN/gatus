@@ -1,9 +1,12 @@
 package api
 
 import (
+	"encoding/json"
 	"io"
 	"net/http"
 	"net/http/httptest"
+	"slices"
+	"strings"
 	"testing"
 	"time"
 
@@ -225,6 +228,75 @@ func TestEndpointStatuses(t *testing.T) {
 			}
 			if string(body) != scenario.ExpectedBody {
 				t.Errorf("expected:\n %s\n\ngot:\n %s", scenario.ExpectedBody, string(body))
+			}
+		})
+	}
+}
+
+func TestEndpointStatuses_WithTags(t *testing.T) {
+	defer store.Get().Clear()
+	defer cache.Clear()
+	cfg := &config.Config{
+		Endpoints: []*endpoint.Endpoint{
+			{Name: "frontend", Group: "core", Tags: []string{"critical", "public"}},
+			{Name: "backend", Group: "core"},
+		},
+		ExternalEndpoints: []*endpoint.ExternalEndpoint{
+			{Name: "cron", Group: "core", Tags: []string{"internal"}},
+		},
+		Storage: &storage.Config{
+			MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+			MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
+		},
+	}
+	watchdog.UpdateEndpointStatus(cfg.Endpoints[0], &endpoint.Result{Success: true, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatus(cfg.Endpoints[1], &endpoint.Result{Success: true, Timestamp: time.Now()})
+	watchdog.UpdateEndpointStatus(cfg.ExternalEndpoints[0].ToEndpoint(), &endpoint.Result{Success: true, Timestamp: time.Now()})
+	router := New(cfg).Router()
+	expectedTagsByKey := map[string][]string{
+		"core_frontend": {"critical", "public"},
+		"core_backend":  nil,
+		"core_cron":     {"internal"},
+	}
+	t.Run("all-statuses", func(t *testing.T) {
+		response, err := router.Test(httptest.NewRequest("GET", "/api/v1/endpoints/statuses", http.NoBody))
+		if err != nil {
+			t.Fatal("expected err to be nil, but was", err)
+		}
+		defer response.Body.Close()
+		var endpointStatuses []*endpoint.Status
+		if err = json.NewDecoder(response.Body).Decode(&endpointStatuses); err != nil {
+			t.Fatal("expected err to be nil, but was", err)
+		}
+		if len(endpointStatuses) != len(expectedTagsByKey) {
+			t.Fatalf("expected %d endpoint statuses, got %d", len(expectedTagsByKey), len(endpointStatuses))
+		}
+		for _, endpointStatus := range endpointStatuses {
+			if !slices.Equal(endpointStatus.Tags, expectedTagsByKey[endpointStatus.Key]) {
+				t.Errorf("expected tags of %s to be %v, got %v", endpointStatus.Key, expectedTagsByKey[endpointStatus.Key], endpointStatus.Tags)
+			}
+		}
+	})
+	for key, expectedTags := range expectedTagsByKey {
+		t.Run("single-status-"+key, func(t *testing.T) {
+			response, err := router.Test(httptest.NewRequest("GET", "/api/v1/endpoints/"+key+"/statuses", http.NoBody))
+			if err != nil {
+				t.Fatal("expected err to be nil, but was", err)
+			}
+			defer response.Body.Close()
+			body, err := io.ReadAll(response.Body)
+			if err != nil {
+				t.Fatal("expected err to be nil, but was", err)
+			}
+			var endpointStatus endpoint.Status
+			if err = json.Unmarshal(body, &endpointStatus); err != nil {
+				t.Fatal("expected err to be nil, but was", err)
+			}
+			if !slices.Equal(endpointStatus.Tags, expectedTags) {
+				t.Errorf("expected tags to be %v, got %v", expectedTags, endpointStatus.Tags)
+			}
+			if expectedTags == nil && strings.Contains(string(body), `"tags"`) {
+				t.Errorf("expected tags to be omitted for an endpoint without tags, got %s", body)
 			}
 		})
 	}
