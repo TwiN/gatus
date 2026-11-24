@@ -88,6 +88,7 @@ Have any feedback or questions? [Create a discussion](https://github.com/TwiN/ga
     - [Configuring Signal alerts](#configuring-signal-alerts)
     - [Configuring SIGNL4 alerts](#configuring-signl4-alerts)
     - [Configuring Slack alerts](#configuring-slack-alerts)
+    - [Configuring SMSTunnel alerts](#configuring-smstunnel-alerts)
     - [Configuring Splunk alerts](#configuring-splunk-alerts)
     - [Configuring Squadcast alerts](#configuring-squadcast-alerts)
     - [Configuring Teams alerts *(Deprecated)*](#configuring-teams-alerts-deprecated)
@@ -882,6 +883,7 @@ endpoints:
 | `alerting.signal`          | Configuration for alerts of type `signal`. <br />See [Configuring Signal alerts](#configuring-signal-alerts).                           | `{}`    |
 | `alerting.signl4`          | Configuration for alerts of type `signl4`. <br />See [Configuring SIGNL4 alerts](#configuring-signl4-alerts).                           | `{}`    |
 | `alerting.slack`           | Configuration for alerts of type `slack`. <br />See [Configuring Slack alerts](#configuring-slack-alerts).                              | `{}`    |
+| `alerting.smstunnel`       | Configuration for alerts of type `smstunnel`. <br />See [Configuring SMSTunnel alerts](#configuring-smstunnel-alerts).                  | `{}`    |
 | `alerting.splunk`          | Configuration for alerts of type `splunk`. <br />See [Configuring Splunk alerts](#configuring-splunk-alerts).                           | `{}`    |
 | `alerting.squadcast`       | Configuration for alerts of type `squadcast`. <br />See [Configuring Squadcast alerts](#configuring-squadcast-alerts).                  | `{}`    |
 | `alerting.teams`           | Configuration for alerts of type `teams`. *(Deprecated)* <br />See [Configuring Teams alerts](#configuring-teams-alerts-deprecated).    | `{}`    |
@@ -2271,6 +2273,48 @@ endpoints:
 Here's an example of what the notifications look like:
 
 ![Slack notifications](.github/assets/slack-alerts.png)
+
+
+#### Configuring SMSTunnel alerts
+| Parameter                              | Description                                                                                | Default       |
+|:---------------------------------------|:-------------------------------------------------------------------------------------------|:--------------|
+| `alerting.smstunnel`                   | Configuration for alerts of type `smstunnel`                                               | `{}`          |
+| `alerting.smstunnel.api-key`           | SMSTunnel API key                                                                          | Required `""` |
+| `alerting.smstunnel.to`                | One phone number in international format, in quotes (e.g. `"+14155550123"`)                | Required `""` |
+| `alerting.smstunnel.device-id`         | ID of the phone that sends the text. Defaults to the account's default phone               | `""`          |
+| `alerting.smstunnel.default-alert`     | Default alert configuration. <br />See [Setting a default alert](#setting-a-default-alert) | N/A           |
+| `alerting.smstunnel.overrides`         | List of overrides that may be prioritized over the default configuration                   | `[]`          |
+| `alerting.smstunnel.overrides[].group` | Endpoint group for which the configuration will be overridden by this configuration        | `""`          |
+| `alerting.smstunnel.overrides[].*`     | See `alerting.smstunnel.*` parameters                                                      | `{}`          |
+
+[SMSTunnel](https://smstunnel.io) sends alerts as ordinary text messages from your own Android phone and number, under your mobile plan.
+If the phone is offline, the text waits for it for up to 3 days.
+
+Each alert goes to one number. If sending an alert fails or times out, Gatus tries again on the next failed check with
+the same `Idempotency-Key`, so that the retry doesn't send a second text.
+
+```yaml
+alerting:
+  smstunnel:
+    api-key: "${SMSTUNNEL_API_KEY}"
+    to: "+14155550123"
+    # You can also add group-specific overrides, which will
+    # override the number above for the specified groups
+    overrides:
+      - group: "core"
+        to: "+14155550124"
+
+endpoints:
+  - name: website
+    url: "https://twin.sh/health"
+    interval: 5m
+    conditions:
+      - "[STATUS] == 200"
+    alerts:
+      - type: smstunnel
+        send-on-resolved: true
+        description: "healthcheck failed"
+```
 
 
 #### Configuring Splunk alerts
