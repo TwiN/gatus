@@ -847,6 +847,35 @@ endpoints:
 > 📝 If an alerting provider is not properly configured, all alerts configured with the provider's type will be
 > ignored.
 
+#### Alerting health
+
+When [security](#security) is enabled, authenticated users can check alerting configuration and recent delivery
+failures:
+
+| Endpoint                   | Description                                                                 |
+|:---------------------------|:----------------------------------------------------------------------------|
+| `GET /api/v1/alerting/health` | JSON snapshot: invalid providers, endpoints referencing missing providers, and runtime send failures (sanitized). Always requires authentication when security is configured. |
+
+The dashboard shows a warning banner when this endpoint reports `healthy: false` (only after successful authentication).
+Set `security.protect-statuses` to `false` to keep the status page public while restricting alerting health to authenticated operators:
+
+```yaml
+security:
+  basic:
+    username: "admin"
+    password-bcrypt-base64: "..."
+  protect-statuses: false
+```
+
+Delivery failures appear after an alert is actually triggered and fails to send (for example, a Slack webhook URL
+that passes validation but returns an HTTP error). Delivery failures are tracked **per endpoint** and alert type, so
+one endpoint's successful send does not clear another endpoint's failure for the same provider.
+
+With **OIDC** and `protect-statuses: false`, the status page stays public; use the **Login** button in the dashboard
+header to sign in and load the alerting health banner when issues exist. With **HTTP Basic** and public statuses, the
+browser must supply credentials for `/api/v1/alerting/health` (for example after authenticating in the same browser
+session).
+
 | Parameter                  | Description                                                                                                                             | Default |
 |:---------------------------|:----------------------------------------------------------------------------------------------------------------------------------------|:--------|
 | `alerting.awsses`          | Configuration for alerts of type `awsses`. <br />See [Configuring AWS SES alerts](#configuring-aws-ses-alerts).                         | `{}`    |
@@ -2881,11 +2910,12 @@ endpoints:
 
 
 ### Security
-| Parameter        | Description                  | Default |
-|:-----------------|:-----------------------------|:--------|
-| `security`       | Security configuration       | `{}`    |
-| `security.basic` | HTTP Basic configuration     | `{}`    |
-| `security.oidc`  | OpenID Connect configuration | `{}`    |
+| Parameter                   | Description                                                                                                         | Default |
+|:----------------------------|:--------------------------------------------------------------------------------------------------------------------|:--------|
+| `security`                  | Security configuration                                                                                              | `{}`    |
+| `security.basic`            | HTTP Basic configuration                                                                                            | `{}`    |
+| `security.oidc`             | OpenID Connect configuration                                                                                        | `{}`    |
+| `security.protect-statuses` | Whether endpoint and suite status APIs require authentication. If `false`, only alerting health requires auth (see [Alerting health](#alerting-health)). | `true`  |
 
 
 #### Basic Authentication

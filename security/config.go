@@ -23,7 +23,19 @@ type Config struct {
 	Basic *BasicConfig `yaml:"basic,omitempty"`
 	OIDC  *OIDCConfig  `yaml:"oidc,omitempty"`
 
+	// ProtectStatuses determines whether endpoint and suite status APIs require authentication.
+	// When set to false, only alerting health and OIDC login flows use the security configuration for access control.
+	ProtectStatuses *bool `yaml:"protect-statuses,omitempty"`
+
 	gate *g8.Gate
+}
+
+// ProtectStatusesEnabled reports whether status APIs require authentication (default: true).
+func (c *Config) ProtectStatusesEnabled() bool {
+	if c == nil || c.ProtectStatuses == nil {
+		return true
+	}
+	return *c.ProtectStatuses
 }
 
 // ValidateAndSetDefaults returns whether the security configuration is valid or not and sets default values.

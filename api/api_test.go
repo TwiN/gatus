@@ -8,16 +8,18 @@ import (
 	"github.com/TwiN/gatus/v5/config"
 	"github.com/TwiN/gatus/v5/config/ui"
 	"github.com/TwiN/gatus/v5/security"
+	"github.com/TwiN/gatus/v5/storage"
 	"github.com/gofiber/fiber/v2"
 )
 
 func TestNew(t *testing.T) {
 	type Scenario struct {
-		Name         string
-		Path         string
-		ExpectedCode int
-		Gzip         bool
-		WithSecurity bool
+		Name               string
+		Path               string
+		ExpectedCode       int
+		Gzip               bool
+		WithSecurity       bool
+		WithPublicStatuses bool
 	}
 	scenarios := []Scenario{
 		{
@@ -91,6 +93,12 @@ func TestNew(t *testing.T) {
 			WithSecurity: true,
 		},
 		{
+			Name:         "alerting-health-should-return-401-if-not-authenticated",
+			Path:         "/api/v1/alerting/health",
+			ExpectedCode: fiber.StatusUnauthorized,
+			WithSecurity: true,
+		},
+		{
 			Name:         "config-should-return-200-even-if-not-authenticated",
 			Path:         "/api/v1/config",
 			ExpectedCode: fiber.StatusOK,
@@ -102,16 +110,34 @@ func TestNew(t *testing.T) {
 			ExpectedCode: fiber.StatusOK,
 			WithSecurity: false,
 		},
+		{
+			Name:                         "endpoints-should-return-200-when-protect-statuses-disabled",
+			Path:                         "/api/v1/endpoints/statuses",
+			ExpectedCode:                 fiber.StatusOK,
+			WithSecurity:                 true,
+			WithPublicStatuses:           true,
+		},
 	}
 	for _, scenario := range scenarios {
 		t.Run(scenario.Name, func(t *testing.T) {
 			cfg := &config.Config{Metrics: true, UI: &ui.Config{}}
 			if scenario.WithSecurity {
-				cfg.Security = &security.Config{
+				securityConfig := &security.Config{
 					Basic: &security.BasicConfig{
 						Username:                        "john.doe",
 						PasswordBcryptHashBase64Encoded: "JDJhJDA4JDFoRnpPY1hnaFl1OC9ISlFsa21VS09wOGlPU1ZOTDlHZG1qeTFvb3dIckRBUnlHUmNIRWlT",
 					},
+				}
+				if scenario.WithPublicStatuses {
+					publicStatuses := false
+					securityConfig.ProtectStatuses = &publicStatuses
+				}
+				cfg.Security = securityConfig
+			}
+			if scenario.WithPublicStatuses {
+				cfg.Storage = &storage.Config{
+					MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
+					MaximumNumberOfEvents:  storage.DefaultMaximumNumberOfEvents,
 				}
 			}
 			api := New(cfg)
