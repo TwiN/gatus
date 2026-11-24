@@ -1,7 +1,7 @@
 <template>
   <div class="dashboard-container bg-background">
-    <div class="container mx-auto px-4 py-8 max-w-7xl">
-      <div class="mb-6">
+    <div :class="dashboardContainerClass">
+      <div v-if="!isWallDisplay" class="mb-6">
         <div class="flex items-center justify-between mb-6">
           <div>
             <h1 class="text-4xl font-bold tracking-tight">{{ dashboardHeading }}</h1>
@@ -77,12 +77,13 @@
               <!-- Suites Section -->
               <div v-if="items.suites.length > 0" class="mb-4">
                 <h3 class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Suites</h3>
-                <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                <div :class="endpointGridClass">
                   <SuiteCard
                     v-for="suite in items.suites"
                     :key="suite.key"
                     :suite="suite"
-                    :maxResults="resultPageSize"
+                    :compact="isCompact"
+                    :maxResults="cardMaxResults"
                     @showTooltip="showTooltip"
                   />
                 </div>
@@ -91,12 +92,13 @@
               <!-- Endpoints Section -->
               <div v-if="items.endpoints.length > 0">
                 <h3 v-if="items.suites.length > 0" class="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Endpoints</h3>
-                <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+                <div :class="endpointGridClass">
                   <EndpointCard
                     v-for="endpoint in items.endpoints"
                     :key="endpoint.key"
                     :endpoint="endpoint"
-                    :maxResults="resultPageSize"
+                    :compact="isCompact"
+                    :maxResults="cardMaxResults"
                     :showAverageResponseTime="showAverageResponseTime"
                     @showTooltip="showTooltip"
                   />
@@ -111,12 +113,13 @@
           <!-- Suites Section -->
           <div v-if="filteredSuites.length > 0" class="mb-6">
             <h2 class="text-lg font-semibold text-foreground mb-3">Suites</h2>
-            <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div :class="endpointGridClass">
               <SuiteCard
                 v-for="suite in paginatedSuites"
                 :key="suite.key"
                 :suite="suite"
-                :maxResults="resultPageSize"
+                :compact="isCompact"
+                :maxResults="cardMaxResults"
                 @showTooltip="showTooltip"
               />
             </div>
@@ -125,12 +128,13 @@
           <!-- Endpoints Section -->
           <div v-if="filteredEndpoints.length > 0">
             <h2 v-if="filteredSuites.length > 0" class="text-lg font-semibold text-foreground mb-3">Endpoints</h2>
-            <div class="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
+            <div :class="endpointGridClass">
               <EndpointCard
                 v-for="endpoint in paginatedEndpoints"
                 :key="endpoint.key"
                 :endpoint="endpoint"
-                :maxResults="resultPageSize"
+                :compact="isCompact"
+                :maxResults="cardMaxResults"
                 :showAverageResponseTime="showAverageResponseTime"
                 @showTooltip="showTooltip"
               />
@@ -138,7 +142,7 @@
           </div>
         </div>
 
-        <div v-if="!groupByGroup && totalPages > 1" class="mt-8 flex items-center justify-center gap-2">
+        <div v-if="!groupByGroup && !isWallDisplay && totalPages > 1" class="mt-8 flex items-center justify-center gap-2">
           <Button
             variant="outline"
             size="icon"
@@ -172,7 +176,7 @@
       </div>
 
       <!-- Past Announcements Section -->
-      <div v-if="archivedAnnouncements.length > 0" class="mt-12 pb-8">
+      <div v-if="!isWallDisplay && archivedAnnouncements.length > 0" class="mt-12 pb-8">
         <PastAnnouncements :announcements="archivedAnnouncements" />
       </div>
     </div>
@@ -192,6 +196,9 @@ import Settings from '@/components/Settings.vue'
 import Loading from '@/components/Loading.vue'
 import AnnouncementBanner from '@/components/AnnouncementBanner.vue'
 import PastAnnouncements from '@/components/PastAnnouncements.vue'
+import { useWallDisplay } from '@/composables/useWallDisplay'
+
+const { isWallDisplay, isCompact, syncDocumentClasses } = useWallDisplay()
 
 const props = defineProps({
   announcements: {
@@ -224,6 +231,24 @@ const groupByGroup = ref(false)
 const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 const uncollapsedGroups = ref(new Set())
 const resultPageSize = 50
+
+const dashboardContainerClass = computed(() =>
+  isWallDisplay.value
+    ? 'container mx-auto px-2 py-2 max-w-full'
+    : 'container mx-auto px-4 py-8 max-w-7xl'
+)
+
+const endpointGridClass = computed(() =>
+  isCompact.value
+    ? 'endpoint-grid-fluid'
+    : 'grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3'
+)
+
+const cardMaxResults = computed(() => (isCompact.value ? 10 : resultPageSize))
+
+const effectiveItemsPerPage = computed(() =>
+  isWallDisplay.value ? Number.MAX_SAFE_INTEGER : itemsPerPage
+)
 
 const filteredEndpoints = computed(() => {
   let filtered = [...endpointStatuses.value]
@@ -313,7 +338,7 @@ const filteredSuites = computed(() => {
 })
 
 const totalPages = computed(() => {
-  return Math.ceil((filteredEndpoints.value.length + filteredSuites.value.length) / itemsPerPage)
+  return Math.ceil((filteredEndpoints.value.length + filteredSuites.value.length) / effectiveItemsPerPage.value)
 })
 
 const groupedEndpoints = computed(() => {
@@ -391,8 +416,8 @@ const paginatedEndpoints = computed(() => {
     return groupedEndpoints.value
   }
   
-  const start = (currentPage.value - 1) * itemsPerPage
-  const end = start + itemsPerPage
+  const start = (currentPage.value - 1) * effectiveItemsPerPage.value
+  const end = start + effectiveItemsPerPage.value
   return filteredEndpoints.value.slice(start, end)
 })
 
@@ -402,8 +427,8 @@ const paginatedSuites = computed(() => {
     return filteredSuites.value
   }
   
-  const start = (currentPage.value - 1) * itemsPerPage
-  const end = start + itemsPerPage
+  const start = (currentPage.value - 1) * effectiveItemsPerPage.value
+  const end = start + effectiveItemsPerPage.value
   return filteredSuites.value.slice(start, end)
 })
 
@@ -541,6 +566,7 @@ const dashboardSubheading = computed(() => {
 })
 
 onMounted(() => {
+  syncDocumentClasses()
   fetchData()
 })
 </script>

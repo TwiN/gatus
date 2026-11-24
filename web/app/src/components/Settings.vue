@@ -34,6 +34,23 @@
       <!-- Divider -->
       <div class="h-5 w-px bg-border/50" />
 
+      <!-- Wall display -->
+      <button
+        type="button"
+        @click="toggleWallDisplay"
+        :aria-label="isWallDisplay ? 'Exit wall display' : 'Enter wall display'"
+        class="p-1.5 rounded-full hover:bg-accent transition-colors group relative"
+      >
+        <Minimize2 v-if="isWallDisplay" class="h-3.5 w-3.5" />
+        <Maximize2 v-else class="h-3.5 w-3.5" />
+        <div class="absolute bottom-full left-1/2 -translate-x-1/2 mb-2 px-2 py-1 bg-popover text-popover-foreground text-xs rounded-md shadow-md opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none whitespace-nowrap">
+          {{ isWallDisplay ? 'Exit wall display' : 'Wall display' }}
+        </div>
+      </button>
+
+      <!-- Divider -->
+      <div class="h-5 w-px bg-border/50" />
+
       <!-- Theme Toggle -->
       <button
         @click="toggleDarkMode"
@@ -55,9 +72,11 @@
 
 <script setup>
 import { ref, onMounted, onUnmounted } from 'vue'
-import { Sun, Moon, RefreshCw } from 'lucide-vue-next'
+import { Sun, Moon, RefreshCw, Maximize2, Minimize2 } from 'lucide-vue-next'
+import { useWallDisplay } from '@/composables/useWallDisplay'
 
 const emit = defineEmits(['refreshData'])
+const { isWallDisplay, toggleWallDisplay } = useWallDisplay()
 
 // Constants
 const REFRESH_INTERVALS = [

@@ -3,7 +3,9 @@ package ui
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"html/template"
+	"strings"
 
 	"github.com/TwiN/gatus/v5/storage"
 	static "github.com/TwiN/gatus/v5/web"
@@ -21,6 +23,7 @@ const (
 	defaultFavicon16            = "/favicon-16x16.png"
 	defaultFavicon32            = "/favicon-32x32.png"
 	defaultCustomCSS            = ""
+	defaultDensity                = "comfortable"
 	defaultSortBy               = "name"
 	defaultFilterBy             = "none"
 	defaultLoginSubtitle        = "System Monitoring Dashboard"
@@ -30,6 +33,7 @@ var (
 	defaultDarkMode = true
 
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
+	ErrInvalidDensity         = errors.New("invalid density value: must be 'comfortable' or 'compact'")
 	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
 	ErrInvalidDefaultFilterBy = errors.New("invalid default-filter-by value: must be 'none', 'failing', or 'unstable'")
 )
@@ -46,6 +50,7 @@ type Config struct {
 	Favicon                 Favicon  `yaml:"favicon,omitempty"`                // Favourite icon to display in web browser tab or address bar
 	Buttons                 []Button `yaml:"buttons,omitempty"`                // Buttons to display below the header
 	CustomCSS               string   `yaml:"custom-css,omitempty"`             // Custom CSS to include in the page
+	Density                 string   `yaml:"density,omitempty"`                // Dashboard card density ('comfortable' or 'compact')
 	DarkMode                *bool    `yaml:"dark-mode,omitempty"`              // DarkMode is a flag to enable dark mode by default
 	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
 	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
@@ -94,6 +99,7 @@ func GetDefaultConfig() *Config {
 		Logo:                   defaultLogo,
 		Link:                   defaultLink,
 		CustomCSS:              defaultCustomCSS,
+		Density:                defaultDensity,
 		DarkMode:               &defaultDarkMode,
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
@@ -132,6 +138,15 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 	}
 	if len(cfg.CustomCSS) == 0 {
 		cfg.CustomCSS = defaultCustomCSS
+	}
+	if len(cfg.Density) == 0 {
+		cfg.Density = defaultDensity
+	} else {
+		normalized := strings.ToLower(strings.TrimSpace(cfg.Density))
+		if normalized != "comfortable" && normalized != "compact" {
+			return fmt.Errorf("%w: got %q", ErrInvalidDensity, cfg.Density)
+		}
+		cfg.Density = normalized
 	}
 	if cfg.DarkMode == nil {
 		cfg.DarkMode = &defaultDarkMode
