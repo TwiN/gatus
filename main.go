@@ -49,8 +49,9 @@ func main() {
 }
 
 func start(cfg *config.Config) {
-	go controller.Handle(cfg)
+	// Before controller.Handle: the API serves the registry this call creates.
 	metrics.InitializePrometheusMetrics(cfg, nil)
+	go controller.Handle(cfg)
 	watchdog.Monitor(cfg)
 	go listenToConfigurationFileChanges(cfg)
 }

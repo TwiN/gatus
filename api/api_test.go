@@ -1,12 +1,16 @@
 package api
 
 import (
+	"io"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/TwiN/gatus/v5/config"
+	"github.com/TwiN/gatus/v5/config/endpoint"
 	"github.com/TwiN/gatus/v5/config/ui"
+	"github.com/TwiN/gatus/v5/metrics"
 	"github.com/TwiN/gatus/v5/security"
 	"github.com/gofiber/fiber/v2"
 )
@@ -128,5 +132,28 @@ func TestNew(t *testing.T) {
 				t.Errorf("%s %s should have returned %d, but returned %d instead", request.Method, request.URL, scenario.ExpectedCode, response.StatusCode)
 			}
 		})
+	}
+}
+
+// TestNew_metricsServesTheRegistryInitializePrometheusMetricsCreated covers the metrics handler gathering the
+// registry metrics.InitializePrometheusMetrics creates when it is passed no registerer.
+func TestNew_metricsServesTheRegistryInitializePrometheusMetricsCreated(t *testing.T) {
+	ep := &endpoint.Endpoint{Name: "ep", Group: "g", URL: "https://example.org", ExtraLabels: map[string]string{"app": "web"}}
+	cfg := &config.Config{Metrics: true, UI: &ui.Config{}, Endpoints: []*endpoint.Endpoint{ep}}
+	metrics.InitializePrometheusMetrics(cfg, nil)
+	defer metrics.UnregisterPrometheusMetrics()
+	metrics.PublishMetricsForEndpoint(ep, &endpoint.Result{Success: true}, cfg.GetUniqueExtraMetricLabels())
+	response, err := New(cfg).Router().Test(httptest.NewRequest("GET", "/metrics", http.NoBody))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body, err := io.ReadAll(response.Body)
+	if err != nil {
+		t.Fatal(err)
+	}
+	for _, want := range []string{`gatus_results_total{app="web",group="g",key="g_ep",name="ep",success="true",type="HTTP"} 1`, "go_goroutines "} {
+		if !strings.Contains(string(body), want) {
+			t.Errorf("/metrics does not contain %q", want)
+		}
 	}
 }
