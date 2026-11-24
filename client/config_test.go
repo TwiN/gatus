@@ -1,8 +1,12 @@
 package client
 
 import (
+	"io"
+	"net"
 	"net/http"
+	"net/http/httptest"
 	"net/url"
+	"sync/atomic"
 	"testing"
 	"time"
 )
@@ -180,6 +184,66 @@ func TestConfig_TlsIsValid(t *testing.T) {
 				if test.cfg.TLS.isValid() != nil {
 					t.Error("cfg.TLS.isValid() returned an error even though no error was expected")
 				}
+			}
+		})
+	}
+}
+
+func TestConfig_ValidateAndSetDefaults_withMaxReuses(t *testing.T) {
+	cfg := &Config{}
+	if err := cfg.ValidateAndSetDefaults(); err != nil {
+		t.Fatal(err)
+	}
+	if cfg.MaxReuses == nil || *cfg.MaxReuses != defaultMaxReuses {
+		t.Errorf("expected Config.MaxReuses to default to %d", defaultMaxReuses)
+	}
+	cfg = &Config{MaxReuses: new(0)}
+	if err := cfg.ValidateAndSetDefaults(); err != nil || *cfg.MaxReuses != 0 {
+		t.Error("expected Config.MaxReuses set to 0 to be kept")
+	}
+	cfg = &Config{MaxReuses: new(-1)}
+	if err := cfg.ValidateAndSetDefaults(); err != ErrInvalidClientMaxReuses {
+		t.Errorf("expected %v, got %v", ErrInvalidClientMaxReuses, err)
+	}
+}
+
+func TestConfig_EnforceMaxReuses(t *testing.T) {
+	scenarios := []struct {
+		name                string
+		maxReuses           *int
+		requests            int
+		expectedConnections int32
+	}{
+		{name: "default", maxReuses: nil, requests: 7, expectedConnections: 3},
+		{name: "one", maxReuses: new(1), requests: 4, expectedConnections: 4},
+		{name: "unlimited", maxReuses: new(0), requests: 7, expectedConnections: 1},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			var connections atomic.Int32
+			server := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+			server.Config.ConnState = func(_ net.Conn, state http.ConnState) {
+				if state == http.StateNew {
+					connections.Add(1)
+				}
+			}
+			server.Start()
+			defer server.Close()
+			cfg := &Config{MaxReuses: scenario.maxReuses}
+			if err := cfg.ValidateAndSetDefaults(); err != nil {
+				t.Fatal(err)
+			}
+			for i := 0; i < scenario.requests; i++ {
+				cfg.EnforceMaxReuses(server.Listener.Addr().String())
+				response, err := cfg.getHTTPClient().Get(server.URL)
+				if err != nil {
+					t.Fatal(err)
+				}
+				io.Copy(io.Discard, response.Body)
+				response.Body.Close()
+			}
+			if connections.Load() != scenario.expectedConnections {
+				t.Errorf("expected %d connections, got %d", scenario.expectedConnections, connections.Load())
 			}
 		})
 	}
