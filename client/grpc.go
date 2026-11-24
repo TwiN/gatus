@@ -46,7 +46,7 @@ func PerformGRPCHealthCheck(address string, useTLS bool, cfg *Config) (bool, str
 			} else {
 				d := &net.Dialer{Resolver: &net.Resolver{PreferGo: true, Dial: func(ctx context.Context, network, _ string) (net.Conn, error) {
 					d := net.Dialer{}
-					return d.DialContext(ctx, resolverCfg.Protocol, resolverCfg.Host+":"+resolverCfg.Port)
+					return d.DialContext(ctx, resolverCfg.Protocol, net.JoinHostPort(resolverCfg.Host, resolverCfg.Port))
 				}}}
 				return d.DialContext(ctx, "tcp", addr)
 			}
