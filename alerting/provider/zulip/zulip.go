@@ -7,9 +7,9 @@ import (
 	"io"
 	"net/http"
 	"net/url"
-	"strings"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/provider/placeholder"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"gopkg.in/yaml.v3"
@@ -29,9 +29,6 @@ type Config struct {
 	Domain    string `yaml:"domain"`          // Domain of the Zulip server
 	ChannelID string `yaml:"channel-id"`      // ID of the channel to send the message to
 	Topic     string `yaml:"topic,omitempty"` // Topic to send the message to; defaults to "Gatus" when not set
-
-	// The following placeholders are supported in Topic:
-	//   [ENDPOINT_NAME], [ENDPOINT_GROUP], [ALERT_DESCRIPTION]
 }
 
 func (cfg *Config) Validate() error {
@@ -150,13 +147,10 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	if len(topic) == 0 {
 		topic = "Gatus"
 	}
-	topic = strings.ReplaceAll(topic, "[ENDPOINT_NAME]", ep.Name)
-	topic = strings.ReplaceAll(topic, "[ENDPOINT_GROUP]", ep.Group)
-	topic = strings.ReplaceAll(topic, "[ALERT_DESCRIPTION]", alert.GetDescription())
 	return url.Values{
 		"type":    {"channel"},
 		"to":      {cfg.ChannelID},
-		"topic":   {topic},
+		"topic":   {placeholder.Replace(topic, ep, alert, resolved)},
 		"content": {message},
 	}.Encode()
 }

@@ -9,6 +9,7 @@ import (
 	"net/http"
 
 	"github.com/TwiN/gatus/v5/alerting/alert"
+	"github.com/TwiN/gatus/v5/alerting/provider/placeholder"
 	"github.com/TwiN/gatus/v5/client"
 	"github.com/TwiN/gatus/v5/config/endpoint"
 	"gopkg.in/yaml.v3"
@@ -119,7 +120,7 @@ func (provider *AlertProvider) buildRequestBody(cfg *Config, ep *endpoint.Endpoi
 	}
 	title := "Gatus"
 	if cfg.Title != "" {
-		title = cfg.Title
+		title = placeholder.Replace(cfg.Title, ep, alert, resolved)
 	}
 	var conditionResults []ConditionResult
 	for _, conditionResult := range result.ConditionResults {
