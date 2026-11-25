@@ -6,7 +6,7 @@ module.exports = {
 	filenameHashing: false,
 	productionSourceMap: false,
 	outputDir: '../static',
-	publicPath: '/',
+	publicPath: './',
 	devServer: {
 		port: 8081,
 		https: false,
