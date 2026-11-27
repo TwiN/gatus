@@ -27,7 +27,8 @@ const (
 )
 
 var (
-	defaultDarkMode = true
+	defaultDarkMode       = true
+	defaultGroupCollapsed = true
 
 	ErrButtonValidationFailed = errors.New("invalid button configuration: missing required name or link")
 	ErrInvalidDefaultSortBy   = errors.New("invalid default-sort-by value: must be 'name', 'group', or 'health'")
@@ -36,20 +37,21 @@ var (
 
 // Config is the configuration for the UI of Gatus
 type Config struct {
-	Title                   string   `yaml:"title,omitempty"`                  // Title of the page
-	Description             string   `yaml:"description,omitempty"`            // Meta description of the page
-	DashboardHeading        string   `yaml:"dashboard-heading,omitempty"`      // Dashboard Title between header and endpoints
-	DashboardSubheading     string   `yaml:"dashboard-subheading,omitempty"`   // Dashboard Description between header and endpoints
-	Header                  string   `yaml:"header,omitempty"`                 // Header is the text at the top of the page
-	Logo                    string   `yaml:"logo,omitempty"`                   // Logo to display on the page
-	Link                    string   `yaml:"link,omitempty"`                   // Link to open when clicking on the logo
-	Favicon                 Favicon  `yaml:"favicon,omitempty"`                // Favourite icon to display in web browser tab or address bar
-	Buttons                 []Button `yaml:"buttons,omitempty"`                // Buttons to display below the header
-	CustomCSS               string   `yaml:"custom-css,omitempty"`             // Custom CSS to include in the page
-	DarkMode                *bool    `yaml:"dark-mode,omitempty"`              // DarkMode is a flag to enable dark mode by default
-	DefaultSortBy           string   `yaml:"default-sort-by,omitempty"`        // DefaultSortBy is the default sort option ('name', 'group', 'health')
-	DefaultFilterBy         string   `yaml:"default-filter-by,omitempty"`      // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
-	LoginSubtitle           string   `yaml:"login-subtitle,omitempty"`         // LoginSubtitle is the subtitle displayed on the OIDC login page
+	Title                 string   `yaml:"title,omitempty"`                   // Title of the page
+	Description           string   `yaml:"description,omitempty"`             // Meta description of the page
+	DashboardHeading      string   `yaml:"dashboard-heading,omitempty"`       // Dashboard Title between header and endpoints
+	DashboardSubheading   string   `yaml:"dashboard-subheading,omitempty"`    // Dashboard Description between header and endpoints
+	Header                string   `yaml:"header,omitempty"`                  // Header is the text at the top of the page
+	Logo                  string   `yaml:"logo,omitempty"`                    // Logo to display on the page
+	Link                  string   `yaml:"link,omitempty"`                    // Link to open when clicking on the logo
+	Favicon               Favicon  `yaml:"favicon,omitempty"`                 // Favourite icon to display in web browser tab or address bar
+	Buttons               []Button `yaml:"buttons,omitempty"`                 // Buttons to display below the header
+	CustomCSS             string   `yaml:"custom-css,omitempty"`              // Custom CSS to include in the page
+	DarkMode              *bool    `yaml:"dark-mode,omitempty"`               // DarkMode is a flag to enable dark mode by default
+	DefaultSortBy         string   `yaml:"default-sort-by,omitempty"`         // DefaultSortBy is the default sort option ('name', 'group', 'health')
+	DefaultFilterBy       string   `yaml:"default-filter-by,omitempty"`       // DefaultFilterBy is the default filter option ('none', 'failing', 'unstable')
+	DefaultGroupCollapsed *bool    `yaml:"default-group-collapsed,omitempty"` // DefaultGroupCollapsed is whether groups start collapsed when endpoints are sorted by group
+	LoginSubtitle         string   `yaml:"login-subtitle,omitempty"`          // LoginSubtitle is the subtitle displayed on the OIDC login page
 	//////////////////////////////////////////////
 	// Non-configurable - used for UI rendering //
 	//////////////////////////////////////////////
@@ -61,6 +63,14 @@ func (cfg *Config) IsDarkMode() bool {
 		return *cfg.DarkMode
 	}
 	return defaultDarkMode
+}
+
+// IsDefaultGroupCollapsed returns whether groups start collapsed when endpoints are sorted by group
+func (cfg *Config) IsDefaultGroupCollapsed() bool {
+	if cfg.DefaultGroupCollapsed != nil {
+		return *cfg.DefaultGroupCollapsed
+	}
+	return defaultGroupCollapsed
 }
 
 // Button is the configuration for a button on the UI
@@ -97,6 +107,7 @@ func GetDefaultConfig() *Config {
 		DarkMode:               &defaultDarkMode,
 		DefaultSortBy:          defaultSortBy,
 		DefaultFilterBy:        defaultFilterBy,
+		DefaultGroupCollapsed:  &defaultGroupCollapsed,
 		LoginSubtitle:          defaultLoginSubtitle,
 		MaximumNumberOfResults: storage.DefaultMaximumNumberOfResults,
 		Favicon: Favicon{
@@ -145,6 +156,9 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		cfg.DefaultFilterBy = defaultFilterBy
 	} else if cfg.DefaultFilterBy != "none" && cfg.DefaultFilterBy != "failing" && cfg.DefaultFilterBy != "unstable" {
 		return ErrInvalidDefaultFilterBy
+	}
+	if cfg.DefaultGroupCollapsed == nil {
+		cfg.DefaultGroupCollapsed = &defaultGroupCollapsed
 	}
 	if len(cfg.LoginSubtitle) == 0 {
 		cfg.LoginSubtitle = defaultLoginSubtitle
