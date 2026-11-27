@@ -942,3 +942,38 @@ func TestEventOrderingFix(t *testing.T) {
 	t.Logf("First event: %s at %v", events[0].Type, events[0].Timestamp)
 	t.Logf("Last event: %s at %v", events[len(events)-1].Type, events[len(events)-1].Timestamp)
 }
+
+func TestStore_GetEndpointStatusByKeyResultsOrderedOldestFirst(t *testing.T) {
+	store, err := NewStore("sqlite", t.TempDir()+"/TestStore_GetEndpointStatusByKeyResultsOrderedOldestFirst.db", false, storage.DefaultMaximumNumberOfResults, storage.DefaultMaximumNumberOfEvents)
+	if err != nil {
+		t.Fatalf("NewStore: %v", err)
+	}
+	defer store.Close()
+	ep := &endpoint.Endpoint{Name: "ordering-test", Group: "test", URL: "https://example.com"}
+	baseTime := time.Now().Add(-10 * time.Hour)
+	const n = 10
+	for i := range n {
+		result := &endpoint.Result{Success: true, Timestamp: baseTime.Add(time.Duration(i) * time.Hour)}
+		if err := store.InsertEndpointResult(ep, result); err != nil {
+			t.Fatalf("InsertEndpointResult %d: %v", i, err)
+		}
+	}
+	status, err := store.GetEndpointStatusByKey(ep.Key(), paging.NewEndpointStatusParams().WithResults(1, n))
+	if err != nil {
+		t.Fatalf("GetEndpointStatusByKey: %v", err)
+	}
+	if len(status.Results) != n {
+		t.Fatalf("expected %d results, got %d", n, len(status.Results))
+	}
+	for i := 1; i < len(status.Results); i++ {
+		if status.Results[i].Timestamp.Before(status.Results[i-1].Timestamp) {
+			t.Fatalf("results not oldest-first: index %d (%v) is before index %d (%v)", i, status.Results[i].Timestamp, i-1, status.Results[i-1].Timestamp)
+		}
+	}
+	if !status.Results[0].Timestamp.Equal(baseTime) {
+		t.Errorf("expected first result timestamp %v, got %v", baseTime, status.Results[0].Timestamp)
+	}
+	if last := status.Results[len(status.Results)-1].Timestamp; !last.Equal(baseTime.Add((n - 1) * time.Hour)) {
+		t.Errorf("expected last result timestamp %v, got %v", baseTime.Add((n-1)*time.Hour), last)
+	}
+}
