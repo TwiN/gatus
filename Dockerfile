@@ -10,8 +10,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o gatus .
 #RUN apk update && apk add --virtual build-dependencies build-base gcc
 #RUN go test ./... -mod vendor
 
-# Run the binary on an empty container
-FROM scratch
+# Run the binary on a minimal container
+FROM alpine:latest
+RUN apk --no-cache add curl
 COPY --from=builder /app/gatus .
 COPY --from=builder /app/config.yaml ./config/config.yaml
 COPY --from=builder /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/ca-certificates.crt
