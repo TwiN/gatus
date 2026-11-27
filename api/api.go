@@ -68,7 +68,14 @@ func (a *API) createRouter(cfg *config.Config) *fiber.App {
 		metricsHandler := promhttp.InstrumentMetricHandler(prometheus.DefaultRegisterer, promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
 			DisableCompression: true,
 		}))
-		app.Get("/metrics", adaptor.HTTPHandler(metricsHandler))
+		metricsRouter := app.Group("/metrics")
+		if cfg.Security != nil && cfg.Security.ProtectMetrics {
+			if err := cfg.Security.ApplySecurityMiddleware(metricsRouter); err != nil {
+				panic(err)
+			}
+		}
+		metricsRouter.Get("", adaptor.HTTPHandler(metricsHandler))
+		metricsRouter.Get("/", adaptor.HTTPHandler(metricsHandler))
 	}
 	// Define main router
 	apiRouter := app.Group("/api")
