@@ -435,6 +435,36 @@ func TestCanCreateConnection(t *testing.T) {
 	}
 }
 
+func TestCanCreateUDPConnection(t *testing.T) {
+	scenarios := []struct {
+		name          string
+		withListener  bool
+		wantConnected bool
+	}{
+		{name: "open-port", withListener: true, wantConnected: true},
+		{name: "closed-port", withListener: false, wantConnected: false},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			t.Parallel()
+			listener, err := net.ListenPacket("udp", "127.0.0.1:0")
+			if err != nil {
+				t.Fatal(err)
+			}
+			addr := listener.LocalAddr().String()
+			if scenario.withListener {
+				defer listener.Close()
+			} else {
+				listener.Close()
+			}
+			connected, _ := CanCreateNetworkConnection("udp", addr, "", &Config{Timeout: time.Second})
+			if connected != scenario.wantConnected {
+				t.Errorf("expected connected=%v, got %v", scenario.wantConnected, connected)
+			}
+		})
+	}
+}
+
 // This test checks if a HTTP client configured with `configureOAuth2()` automatically
 // performs a Client Credentials OAuth2 flow and adds the obtained token as a `Authorization`
 // header to all outgoing HTTP calls.
