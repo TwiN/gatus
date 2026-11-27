@@ -17,9 +17,13 @@ type ConfigHandler struct {
 
 func (handler ConfigHandler) GetConfig(c *fiber.Ctx) error {
 	hasOIDC := false
+	hasBasic := false
+	authLevel := ""
 	isAuthenticated := true // Default to true if no security config is set
 	if handler.securityConfig != nil {
 		hasOIDC = handler.securityConfig.OIDC != nil
+		hasBasic = handler.securityConfig.Basic != nil
+		authLevel = handler.securityConfig.Level
 		isAuthenticated = handler.securityConfig.IsAuthenticated(c)
 	}
 	logr.Debugf("[api.GetConfig] /api/v1/config: oidc=%v, authenticated=%v", hasOIDC, isAuthenticated)
@@ -27,6 +31,8 @@ func (handler ConfigHandler) GetConfig(c *fiber.Ctx) error {
 	// Prepare response with announcements
 	response := map[string]interface{}{
 		"oidc":          hasOIDC,
+		"basic":         hasBasic,
+		"authLevel":     authLevel,
 		"authenticated": isAuthenticated,
 	}
 	// Add announcements if available, otherwise use empty slice

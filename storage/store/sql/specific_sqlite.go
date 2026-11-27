@@ -144,5 +144,10 @@ func (s *Store) createSQLiteSchema() error {
 	_, _ = s.db.Exec(`CREATE INDEX IF NOT EXISTS endpoint_results_suite_result_id_idx ON endpoint_results(suite_result_id)`)
 	// Note: SQLite doesn't support DROP COLUMN in older versions, so we skip this cleanup
 	// The suite_id column in endpoints table will remain but unused
+	// Create public column on status and endpoints
+	_, _ = s.db.Exec(`ALTER TABLE endpoints ADD COLUMN endpoint_public INTEGER DEFAULT 0 CHECK (endpoint_public IN (0, 1));`)
+	_, _ = s.db.Exec(`ALTER TABLE endpoint_results ADD COLUMN endpoint_public INTEGER DEFAULT 0 CHECK (endpoint_public IN (0, 1));`)
+	_, _ = s.db.Exec(`ALTER TABLE suites ADD COLUMN suite_public INTEGER DEFAULT 0 CHECK (suite_public IN (0, 1));`)
+	_, _ = s.db.Exec(`ALTER TABLE suite_results ADD COLUMN suite_public INTEGER DEFAULT 0 CHECK (suite_public IN (0, 1));`)
 	return err
 }
