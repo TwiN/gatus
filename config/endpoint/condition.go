@@ -3,6 +3,7 @@ package endpoint
 import (
 	"errors"
 	"fmt"
+	"slices"
 	"strconv"
 	"strings"
 	"time"
@@ -57,28 +58,28 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, re
 			conditionToDisplay = prettify(parameters, resolvedParameters, "!=")
 		}
 	} else if strings.Contains(condition, " <= ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " <= "), result, context)
-		success = resolvedParameters[0] <= resolvedParameters[1]
+		parameters, resolvedParameters, invalidParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " <= "), result, context)
+		success = !slices.Contains(invalidParameters, true) && resolvedParameters[0] <= resolvedParameters[1]
 		if shouldResolveCondition(success) {
-			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<=")
+			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, invalidParameters, "<=")
 		}
 	} else if strings.Contains(condition, " >= ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " >= "), result, context)
-		success = resolvedParameters[0] >= resolvedParameters[1]
+		parameters, resolvedParameters, invalidParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " >= "), result, context)
+		success = !slices.Contains(invalidParameters, true) && resolvedParameters[0] >= resolvedParameters[1]
 		if shouldResolveCondition(success) {
-			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">=")
+			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, invalidParameters, ">=")
 		}
 	} else if strings.Contains(condition, " > ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " > "), result, context)
-		success = resolvedParameters[0] > resolvedParameters[1]
+		parameters, resolvedParameters, invalidParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " > "), result, context)
+		success = !slices.Contains(invalidParameters, true) && resolvedParameters[0] > resolvedParameters[1]
 		if shouldResolveCondition(success) {
-			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, ">")
+			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, invalidParameters, ">")
 		}
 	} else if strings.Contains(condition, " < ") {
-		parameters, resolvedParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " < "), result, context)
-		success = resolvedParameters[0] < resolvedParameters[1]
+		parameters, resolvedParameters, invalidParameters := sanitizeAndResolveNumericalWithContext(strings.Split(condition, " < "), result, context)
+		success = !slices.Contains(invalidParameters, true) && resolvedParameters[0] < resolvedParameters[1]
 		if shouldResolveCondition(success) {
-			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, "<")
+			conditionToDisplay = prettifyNumericalParameters(parameters, resolvedParameters, invalidParameters, "<")
 		}
 	} else {
 		result.AddError(fmt.Sprintf("invalid condition: %s", condition))
@@ -95,6 +96,12 @@ func (c Condition) evaluate(result *Result, dontResolveFailedConditions bool, re
 // Used for determining whether the response body should be read or not
 func (c Condition) hasBodyPlaceholder() bool {
 	return strings.Contains(string(c), BodyPlaceholder)
+}
+
+// hasHeaderPlaceholder checks whether the condition has a HeaderPlaceholder
+// Used for determining whether the response headers should be kept or not
+func (c Condition) hasHeaderPlaceholder() bool {
+	return strings.Contains(strings.ToUpper(string(c)), HeaderPlaceholder)
 }
 
 // hasDomainExpirationPlaceholder checks whether the condition has a DomainExpirationPlaceholder
@@ -191,9 +198,16 @@ func sanitizeAndResolveWithContext(elements []string, result *Result, context *g
 	return parameters, resolvedParameters
 }
 
-func sanitizeAndResolveNumericalWithContext(list []string, result *Result, context *gontext.Gontext) (parameters []string, resolvedNumericalParameters []int64) {
+// sanitizeAndResolveNumericalWithContext resolves a list of elements to numbers.
+//
+// Elements that cannot be converted to a number default to 0, except for age() elements, which are reported through
+// invalidParameters instead, as defaulting a timestamp that couldn't be resolved to an age of 0 would make freshness
+// checks pass.
+func sanitizeAndResolveNumericalWithContext(list []string, result *Result, context *gontext.Gontext) (parameters []string, resolvedNumericalParameters []int64, invalidParameters []bool) {
 	parameters, resolvedParameters := sanitizeAndResolveWithContext(list, result, context)
-	for _, element := range resolvedParameters {
+	invalidParameters = make([]bool, len(parameters))
+	for i, element := range resolvedParameters {
+		invalidParameters[i] = strings.HasPrefix(parameters[i], AgeFunctionPrefix) && strings.HasSuffix(element, InvalidConditionElementSuffix)
 		if duration, err := time.ParseDuration(element); duration != 0 && err == nil {
 			// If the string is a duration, convert it to milliseconds
 			resolvedNumericalParameters = append(resolvedNumericalParameters, duration.Milliseconds())
@@ -211,14 +225,16 @@ func sanitizeAndResolveNumericalWithContext(list []string, result *Result, conte
 			resolvedNumericalParameters = append(resolvedNumericalParameters, number)
 		}
 	}
-	return parameters, resolvedNumericalParameters
+	return parameters, resolvedNumericalParameters, invalidParameters
 }
 
-func prettifyNumericalParameters(parameters []string, resolvedParameters []int64, operator string) string {
+func prettifyNumericalParameters(parameters []string, resolvedParameters []int64, invalidParameters []bool, operator string) string {
 	resolvedStrings := make([]string, 2)
 	for i := range 2 {
-		// Check if the parameter is a certificate or domain expiration placeholder
-		if parameters[i] == CertificateExpirationPlaceholder || parameters[i] == DomainExpirationPlaceholder {
+		if invalidParameters[i] {
+			// Mark the parameter as invalid rather than showing the value it defaulted to
+			resolvedStrings[i] = parameters[i] + " " + InvalidConditionElementSuffix
+		} else if parameters[i] == CertificateExpirationPlaceholder || parameters[i] == DomainExpirationPlaceholder || strings.HasPrefix(parameters[i], AgeFunctionPrefix) {
 			// Format as duration string (convert milliseconds back to duration)
 			duration := time.Duration(resolvedParameters[i]) * time.Millisecond
 			resolvedStrings[i] = formatDuration(duration)
@@ -249,8 +265,11 @@ func formatDuration(d time.Duration) string {
 	// Remove trailing "0s" if present
 	if strings.HasSuffix(s, "0s") {
 		s = strings.TrimSuffix(s, "0s")
-		// Remove trailing "0m" if present after removing "0s"
-		s = strings.TrimSuffix(s, "0m")
+		// Remove trailing "0m" if present after removing "0s", but only if it's a zero minute component (e.g. 1h0m)
+		// rather than the end of a non-zero one (e.g. 10m)
+		if strings.HasSuffix(s, "h0m") {
+			s = strings.TrimSuffix(s, "0m")
+		}
 	}
 	return s
 }
