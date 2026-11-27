@@ -435,6 +435,54 @@ func TestCanCreateConnection(t *testing.T) {
 	}
 }
 
+func TestHttpClientRefreshesOAuth2TokenWithinExpiryDelta(t *testing.T) {
+	tokenRequests := 0
+	mockHttpClient := &http.Client{
+		Transport: test.MockRoundTripper(func(r *http.Request) *http.Response {
+			if r.Host == "token-server.local" {
+				tokenRequests++
+				return &http.Response{
+					StatusCode: http.StatusOK,
+					Body: io.NopCloser(bytes.NewReader(
+						[]byte(`{"token_type":"Bearer","expires_in":60,"access_token":"secret-token"}`),
+					)),
+				}
+			}
+			return &http.Response{StatusCode: http.StatusOK, Body: http.NoBody}
+		}),
+	}
+	scenarios := []struct {
+		name                  string
+		expiryDelta           time.Duration
+		expectedTokenRequests int
+	}{
+		{name: "default", expiryDelta: 0, expectedTokenRequests: 1},
+		{name: "token-expires-within-delta", expiryDelta: 2 * time.Minute, expectedTokenRequests: 2},
+	}
+	for _, scenario := range scenarios {
+		t.Run(scenario.name, func(t *testing.T) {
+			tokenRequests = 0
+			client := configureOAuth2(mockHttpClient, OAuth2Config{
+				ClientID:     "00000000-0000-0000-0000-000000000000",
+				ClientSecret: "secretsauce",
+				TokenURL:     "https://token-server.local/token",
+				ExpiryDelta:  scenario.expiryDelta,
+			})
+			for range 2 {
+				request, _ := http.NewRequest(http.MethodGet, "http://127.0.0.1:8282", http.NoBody)
+				response, err := client.Do(request)
+				if err != nil {
+					t.Fatal("expected no error, got", err.Error())
+				}
+				response.Body.Close()
+			}
+			if tokenRequests != scenario.expectedTokenRequests {
+				t.Errorf("expected %d token requests, got %d", scenario.expectedTokenRequests, tokenRequests)
+			}
+		})
+	}
+}
+
 // This test checks if a HTTP client configured with `configureOAuth2()` automatically
 // performs a Client Credentials OAuth2 flow and adds the obtained token as a `Authorization`
 // header to all outgoing HTTP calls.

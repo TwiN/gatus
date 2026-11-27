@@ -654,6 +654,7 @@ the client used to send the request.
 | `client.oauth2.client-id`              | The client id which should be used for the `Client credentials flow`          | required `""`   |
 | `client.oauth2.client-secret`          | The client secret which should be used for the `Client credentials flow`      | required `""`   |
 | `client.oauth2.scopes[]`               | A list of `scopes` which should be used for the `Client credentials flow`.    | required `[""]` |
+| `client.oauth2.expiry-delta`           | How long before its expiry the token is refreshed (e.g. `1m`).               | `10s`           |
 | `client.proxy-url`                     | The URL of the proxy to use for the client                                    | `""`            |
 | `client.identity-aware-proxy`          | Google Identity-Aware-Proxy client configuration.                             | `{}`            |
 | `client.identity-aware-proxy.audience` | The Identity-Aware-Proxy audience. (client-id of the IAP oauth2 credential)   | required `""`   |
