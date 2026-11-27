@@ -225,8 +225,11 @@ const sortBy = ref(localStorage.getItem('gatus:sort-by') || 'name')
 // Whether groups start collapsed (ui.default-group-collapsed, true unless configured otherwise).
 // The user's own choices are kept in localStorage as the groups they toggled away from that default:
 // the groups they opened when groups start collapsed, or the groups they closed when they start expanded.
+// The expanded mode uses its own key rather than the legacy gatus:collapsed-groups, which may still hold
+// stale entries from before groups started collapsed (#1212).
+// window.config.defaultGroupCollapsed is the string "true" or "false" (filled in by the Go template), not a boolean.
 const defaultGroupCollapsed = !(typeof window !== 'undefined' && window.config?.defaultGroupCollapsed === 'false')
-const toggledGroupsStorageKey = defaultGroupCollapsed ? 'gatus:uncollapsed-groups' : 'gatus:collapsed-groups'
+const toggledGroupsStorageKey = defaultGroupCollapsed ? 'gatus:uncollapsed-groups' : 'gatus:collapsed-groups-v2'
 const toggledGroups = ref(new Set())
 const resultPageSize = 50
 
@@ -521,12 +524,10 @@ const toggleGroupCollapse = (groupName) => {
   }
   // Save to localStorage
   localStorage.setItem(toggledGroupsStorageKey, JSON.stringify(Array.from(toggledGroups.value)))
-  if (defaultGroupCollapsed) {
-    localStorage.removeItem('gatus:collapsed-groups') // Remove old key if it exists
-  }
 }
 
 const initializeCollapsedGroups = () => {
+  localStorage.removeItem('gatus:collapsed-groups') // Remove legacy key if it exists
   // Get the groups the user toggled away from the default from localStorage
   try {
     const saved = localStorage.getItem(toggledGroupsStorageKey)
