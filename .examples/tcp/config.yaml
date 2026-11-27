@@ -1,0 +1,12 @@
+endpoints:
+  - name: redis
+    url: "tcp://127.0.0.1:6379"
+    interval: 30s
+    conditions:
+      - "[CONNECTED] == true"
+
+  - name: postgres
+    url: "tcp://127.0.0.1:5432"
+    interval: 30s
+    conditions:
+      - "[CONNECTED] == true"
