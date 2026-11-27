@@ -218,7 +218,7 @@ func LoadConfiguration(configPath string) (*Config, error) {
 	}
 	var config *Config
 	if fileInfo.IsDir() {
-		err := walkConfigDir(configPath, func(path string, d fs.DirEntry, err error) error {
+		err := walkConfigDir(usedConfigPath, func(path string, d fs.DirEntry, err error) error {
 			if err != nil {
 				return fmt.Errorf("error walking path %s: %w", path, err)
 			}
