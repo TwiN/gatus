@@ -78,9 +78,9 @@ func (btn *Button) Validate() error {
 }
 
 type Favicon struct {
-	Default   string `yaml:"default,omitempty"`   // URL or path to default favourite icon.
-	Size16x16 string `yaml:"size16x16,omitempty"` // URL or path to favourite icon for 16x16 size.
-	Size32x32 string `yaml:"size32x32,omitempty"` // URL or path to favourite icon for 32x32 size.
+	Default   template.URL `yaml:"default,omitempty"`   // URL or path to default favourite icon.
+	Size16x16 template.URL `yaml:"size16x16,omitempty"` // URL or path to favourite icon for 16x16 size.
+	Size32x32 template.URL `yaml:"size32x32,omitempty"` // URL or path to favourite icon for 32x32 size.
 }
 
 // GetDefaultConfig returns a Config struct with the default values
@@ -150,13 +150,13 @@ func (cfg *Config) ValidateAndSetDefaults() error {
 		cfg.LoginSubtitle = defaultLoginSubtitle
 	}
 	if len(cfg.Favicon.Default) == 0 {
-		cfg.Favicon.Default = defaultFavicon
+		cfg.Favicon.Default = template.URL(defaultFavicon)
 	}
 	if len(cfg.Favicon.Size16x16) == 0 {
-		cfg.Favicon.Size16x16 = defaultFavicon16
+		cfg.Favicon.Size16x16 = template.URL(defaultFavicon16)
 	}
 	if len(cfg.Favicon.Size32x32) == 0 {
-		cfg.Favicon.Size32x32 = defaultFavicon32
+		cfg.Favicon.Size32x32 = template.URL(defaultFavicon32)
 	}
 	for _, btn := range cfg.Buttons {
 		if err := btn.Validate(); err != nil {
